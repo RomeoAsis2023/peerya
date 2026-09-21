@@ -289,35 +289,6 @@
         box-shadow: 0 0 0 0.2rem rgba(139, 195, 74, 0.18);
       }
 
-      .password-field {
-        position: relative;
-      }
-
-      .password-field .form-control {
-        padding-right: 3rem;
-      }
-
-      .password-toggle {
-        position: absolute;
-        top: 50%;
-        right: 0.7rem;
-        transform: translateY(-50%);
-        border: 0;
-        background: none;
-        padding: 0.25rem;
-        color: #8a8a8a;
-        line-height: 1;
-        cursor: pointer;
-      }
-
-      .password-toggle:hover {
-        color: var(--peerya-ink);
-      }
-
-      .password-toggle i {
-        font-size: 1.2rem;
-      }
-
       .btn-signin {
         --bs-btn-bg: var(--peerya-btn);
         --bs-btn-border-color: var(--peerya-btn);
@@ -570,14 +541,8 @@
                         <label class="form-label" for="username">Username</label>
                         <input type="text" class="form-control form-control-lg" id="username" name="username" autocomplete="username" aria-label="Username">
                       </div>
-                      <div class="mb-4">
-                        <label class="form-label" for="password">Password</label>
-                        <div class="password-field">
-                          <input type="password" class="form-control form-control-lg" id="password" name="password" autocomplete="current-password" aria-label="Password">
-                          <button type="button" class="password-toggle" aria-label="Show password"><i class="bi bi-eye"></i></button>
-                        </div>
-                      </div>
-                      <button type="submit" class="btn btn-signin btn-lg w-100" id="signin-btn">Sign in with passkey</button>
+                      <p class="form-hint mb-4">Your device will ask for its PIN or biometrics. There is no password.</p>
+                      <button type="submit" class="btn btn-signin btn-lg w-100" id="signin-btn">Sign in with PIN</button>
                     </form>
 
                     <div class="login-links">
@@ -599,19 +564,12 @@
                           <label class="form-label" for="signup-username">Username</label>
                           <input type="text" class="form-control form-control-lg" id="signup-username" name="username" autocomplete="username" required aria-label="Username">
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-4">
                           <label class="form-label" for="signup-email">Email</label>
                           <input type="email" class="form-control form-control-lg" id="signup-email" name="email" autocomplete="email" aria-label="Email">
-                          <span class="form-hint">Saved on your profile. It cannot reset your account.</span>
+                          <span class="form-hint">Saved on your profile. Your device PIN unlocks this account.</span>
                         </div>
-                        <div class="mb-4">
-                          <label class="form-label" for="signup-password">Password</label>
-                          <div class="password-field">
-                            <input type="password" class="form-control form-control-lg" id="signup-password" name="password" autocomplete="new-password" aria-label="Password">
-                            <button type="button" class="password-toggle" aria-label="Show password"><i class="bi bi-eye"></i></button>
-                          </div>
-                        </div>
-                        <button type="submit" class="btn btn-signin btn-lg w-100" id="signup-btn">Create passkey</button>
+                        <button type="submit" class="btn btn-signin btn-lg w-100" id="signup-btn">Create PIN</button>
                       </div>
                       <div id="signup-recovery" class="hidden">
                         <div class="recovery-box">
@@ -620,7 +578,7 @@
                           <span class="form-hint">Save these 12 words. This is the only way to recover your account.</span>
                         </div>
                         <button type="button" class="btn btn-outline-secondary w-100 mb-3" id="copy-mnemonic-btn">Copy phrase</button>
-                        <button type="button" class="btn btn-signin btn-lg w-100" id="protect-passkey-btn">Protect with passkey</button>
+                        <button type="button" class="btn btn-signin btn-lg w-100" id="protect-passkey-btn">Protect with PIN</button>
                       </div>
                     </form>
 
@@ -643,7 +601,7 @@
                         <span class="form-hint">Peerya has no password reset. Your phrase restores this identity.</span>
                       </div>
                       <button type="submit" class="btn btn-signin btn-lg w-100" id="recover-btn">Recover account</button>
-                      <button type="button" class="btn btn-signin btn-lg w-100 mt-3 hidden" id="recover-passkey-btn">Add passkey on this device</button>
+                      <button type="button" class="btn btn-signin btn-lg w-100 mt-3 hidden" id="recover-passkey-btn">Add PIN on this device</button>
                     </form>
 
                     <div class="login-links">
@@ -689,16 +647,6 @@
       let db
       let pendingSignup = { username: "", email: "" }
       let holdRedirect = false
-
-      document.querySelectorAll(".password-toggle").forEach((button) => {
-        button.addEventListener("click", () => {
-          const input = button.parentElement.querySelector("input")
-          const show = input.type === "password"
-          input.type = show ? "text" : "password"
-          button.setAttribute("aria-label", show ? "Hide password" : "Show password")
-          button.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>'
-        })
-      })
 
       const showPanel = (tab) => bootstrap.Tab.getOrCreateInstance(tab).show()
 
@@ -775,11 +723,11 @@
           return
         }
         if (!PASSKEYS_AVAILABLE) {
-          setStatus("signin-status", "Passkeys need HTTPS or localhost.", "error")
+          setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
           return
         }
         if (!await db.sm.hasExistingWebAuthnRegistration()) {
-          setStatus("signin-status", "No passkey on this device. Recover with your phrase.", "error")
+          setStatus("signin-status", "No PIN on this device. Recover with your phrase.", "error")
           return
         }
         setBusy(signinBtn, true, "Signing in…")
@@ -787,14 +735,14 @@
         try {
           const address = await db.sm.loginCurrentUserWithWebAuthn()
           if (!address) {
-            setStatus("signin-status", "Passkey sign-in was cancelled.", "error")
+            setStatus("signin-status", "PIN sign-in was cancelled.", "error")
             return
           }
           await finishLogin(document.getElementById("username").value)
         } catch {
-          setStatus("signin-status", "Could not sign in with passkey.", "error")
+          setStatus("signin-status", "Could not sign in with PIN.", "error")
         } finally {
-          setBusy(signinBtn, false, "Sign in with passkey")
+          setBusy(signinBtn, false, "Sign in with PIN")
         }
       })
 
@@ -829,12 +777,12 @@
             db.sm.getMnemonicForDisplayAfterRegistrationOrRecovery() || identity.mnemonic
           document.getElementById("signup-fields").classList.add("hidden")
           document.getElementById("signup-recovery").classList.remove("hidden")
-          setStatus("signup-status", "Save your recovery phrase, then protect it with a passkey.", "success")
+          setStatus("signup-status", "Save your recovery phrase, then protect it with your device PIN.", "success")
         } catch {
           holdRedirect = false
           setStatus("signup-status", "Could not create an identity.", "error")
         } finally {
-          setBusy(signupBtn, false, "Create passkey")
+          setBusy(signupBtn, false, "Create PIN")
         }
       })
 
@@ -849,22 +797,22 @@
 
       protectBtn.addEventListener("click", async () => {
         if (!PASSKEYS_AVAILABLE) {
-          setStatus("signup-status", "Passkeys need HTTPS or localhost. Your phrase still works.", "error")
+          setStatus("signup-status", "Device PIN needs HTTPS or localhost. Your phrase still works.", "error")
           await finishLogin(pendingSignup.username, pendingSignup.email)
           return
         }
-        setBusy(protectBtn, true, "Waiting for passkey…")
+        setBusy(protectBtn, true, "Waiting for PIN…")
         try {
           const address = await db.sm.protectCurrentIdentityWithWebAuthn()
           if (!address) {
-            setStatus("signup-status", "Passkey needs a device with PRF support.", "error")
+            setStatus("signup-status", "This device could not create a WebAuthn PIN.", "error")
             return
           }
           await finishLogin(pendingSignup.username, pendingSignup.email)
         } catch {
-          setStatus("signup-status", "Could not register a passkey.", "error")
+          setStatus("signup-status", "Could not register a PIN.", "error")
         } finally {
-          setBusy(protectBtn, false, "Protect with passkey")
+          setBusy(protectBtn, false, "Protect with PIN")
         }
       })
 
@@ -887,7 +835,7 @@
           }
           if (PASSKEYS_AVAILABLE) {
             recoverPasskeyBtn.classList.remove("hidden")
-            setStatus("forgot-status", "Account restored. Add a passkey on this device, or continue.", "success")
+            setStatus("forgot-status", "Account restored. Add a device PIN, or continue.", "success")
             recoverBtn.textContent = "Continue"
             recoverBtn.type = "button"
             recoverBtn.onclick = () => finishLogin(document.getElementById("username").value)
@@ -903,18 +851,18 @@
       })
 
       recoverPasskeyBtn.addEventListener("click", async () => {
-        setBusy(recoverPasskeyBtn, true, "Waiting for passkey…")
+        setBusy(recoverPasskeyBtn, true, "Waiting for PIN…")
         try {
           const address = await db.sm.protectCurrentIdentityWithWebAuthn()
           if (!address) {
-            setStatus("forgot-status", "Passkey was cancelled.", "error")
+            setStatus("forgot-status", "PIN was cancelled.", "error")
             return
           }
           await finishLogin(document.getElementById("username").value)
         } catch {
-          setStatus("forgot-status", "Could not add a passkey.", "error")
+          setStatus("forgot-status", "Could not add a PIN.", "error")
         } finally {
-          setBusy(recoverPasskeyBtn, false, "Add passkey on this device")
+          setBusy(recoverPasskeyBtn, false, "Add PIN on this device")
         }
       })
 
@@ -930,7 +878,7 @@
       })
       if (db.sm.isSecurityActive()) goHome()
       if (!PASSKEYS_AVAILABLE) {
-        setStatus("signin-status", "Passkeys need HTTPS or localhost.", "error")
+        setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
       }
       const savedName = localStorage.getItem("peerya.username")
       if (savedName) document.getElementById("username").value = savedName
