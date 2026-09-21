@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
     <title>Peerya - Social Network</title>
     <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <style>
       :root {
         --peerya-green: #8bc34a;
@@ -288,6 +289,35 @@
         box-shadow: 0 0 0 0.2rem rgba(139, 195, 74, 0.18);
       }
 
+      .password-field {
+        position: relative;
+      }
+
+      .password-field .form-control {
+        padding-right: 3rem;
+      }
+
+      .password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 0.7rem;
+        transform: translateY(-50%);
+        border: 0;
+        background: none;
+        padding: 0.25rem;
+        color: #8a8a8a;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .password-toggle:hover {
+        color: var(--peerya-ink);
+      }
+
+      .password-toggle i {
+        font-size: 1.2rem;
+      }
+
       .btn-signin {
         --bs-btn-bg: var(--peerya-btn);
         --bs-btn-border-color: var(--peerya-btn);
@@ -321,9 +351,70 @@
         min-height: 44px;
       }
 
-      .login-links a:hover {
+      .login-links a:hover,
+      .login-links button:hover {
         color: var(--peerya-green-dark);
         text-decoration: underline;
+      }
+
+      .login-links button {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: #5a5a5a;
+        text-decoration: none;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .form-hint {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 0.8rem;
+        color: #9a9a9a;
+      }
+
+      .auth-status {
+        display: none;
+        margin: 0 0 1rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 0.5rem;
+        font-size: 0.88rem;
+        line-height: 1.4;
+      }
+
+      .auth-status.show {
+        display: block;
+      }
+
+      .auth-status.error {
+        background: #fdecea;
+        color: #9b2c2c;
+      }
+
+      .auth-status.success {
+        background: #eef7e4;
+        color: #3d6b12;
+      }
+
+      .recovery-box {
+        margin-bottom: 1rem;
+      }
+
+      .recovery-box textarea {
+        resize: none;
+        min-height: 6.5rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      .hidden {
+        display: none !important;
       }
 
       @media (max-width: 991.98px) {
@@ -473,20 +564,24 @@
                       <h1>Sign in</h1>
                     </div>
 
-                    <form action="#" method="post">
+                    <p class="auth-status" id="signin-status" role="status"></p>
+                    <form id="signin-form" action="#" method="get" onsubmit="event.preventDefault(); return false;">
                       <div class="mb-3">
                         <label class="form-label" for="username">Username</label>
                         <input type="text" class="form-control form-control-lg" id="username" name="username" autocomplete="username" aria-label="Username">
                       </div>
                       <div class="mb-4">
                         <label class="form-label" for="password">Password</label>
-                        <input type="password" class="form-control form-control-lg" id="password" name="password" autocomplete="current-password" aria-label="Password">
+                        <div class="password-field">
+                          <input type="password" class="form-control form-control-lg" id="password" name="password" autocomplete="current-password" aria-label="Password">
+                          <button type="button" class="password-toggle" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                        </div>
                       </div>
-                      <button type="submit" class="btn btn-signin btn-lg w-100">Sign in</button>
+                      <button type="submit" class="btn btn-signin btn-lg w-100" id="signin-btn">Sign in with passkey</button>
                     </form>
 
                     <div class="login-links">
-                      <a href="#forgot">Forgot Password?</a>
+                      <button type="button" id="forgot-link">Forgot recovery phrase?</button>
                       <a href="#signup-panel" id="create-account-link">Create New Account</a>
                     </div>
                   </div>
@@ -497,24 +592,62 @@
                       <h1>Sign up</h1>
                     </div>
 
-                    <form action="#" method="post">
-                      <div class="mb-3">
-                        <label class="form-label" for="signup-username">Username</label>
-                        <input type="text" class="form-control form-control-lg" id="signup-username" name="username" autocomplete="username" aria-label="Username">
+                    <p class="auth-status" id="signup-status" role="status"></p>
+                    <form id="signup-form" action="#" method="get" onsubmit="event.preventDefault(); return false;">
+                      <div id="signup-fields">
+                        <div class="mb-3">
+                          <label class="form-label" for="signup-username">Username</label>
+                          <input type="text" class="form-control form-control-lg" id="signup-username" name="username" autocomplete="username" required aria-label="Username">
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label" for="signup-email">Email</label>
+                          <input type="email" class="form-control form-control-lg" id="signup-email" name="email" autocomplete="email" aria-label="Email">
+                          <span class="form-hint">Saved on your profile. It cannot reset your account.</span>
+                        </div>
+                        <div class="mb-4">
+                          <label class="form-label" for="signup-password">Password</label>
+                          <div class="password-field">
+                            <input type="password" class="form-control form-control-lg" id="signup-password" name="password" autocomplete="new-password" aria-label="Password">
+                            <button type="button" class="password-toggle" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                          </div>
+                        </div>
+                        <button type="submit" class="btn btn-signin btn-lg w-100" id="signup-btn">Create passkey</button>
                       </div>
-                      <div class="mb-3">
-                        <label class="form-label" for="signup-email">Email</label>
-                        <input type="email" class="form-control form-control-lg" id="signup-email" name="email" autocomplete="email" aria-label="Email">
+                      <div id="signup-recovery" class="hidden">
+                        <div class="recovery-box">
+                          <label class="form-label" for="signup-mnemonic">Recovery phrase</label>
+                          <textarea class="form-control" id="signup-mnemonic" readonly rows="4"></textarea>
+                          <span class="form-hint">Save these 12 words. This is the only way to recover your account.</span>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary w-100 mb-3" id="copy-mnemonic-btn">Copy phrase</button>
+                        <button type="button" class="btn btn-signin btn-lg w-100" id="protect-passkey-btn">Protect with passkey</button>
                       </div>
-                      <div class="mb-4">
-                        <label class="form-label" for="signup-password">Password</label>
-                        <input type="password" class="form-control form-control-lg" id="signup-password" name="password" autocomplete="new-password" aria-label="Password">
-                      </div>
-                      <button type="submit" class="btn btn-signin btn-lg w-100">Sign up</button>
                     </form>
 
                     <div class="login-links">
                       <a href="#signin-panel" id="have-account-link">Already have an account?</a>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane fade" id="forgot-panel" role="tabpanel" tabindex="0">
+                    <div class="login-card-title">
+                      <img src="icon.svg" width="34" height="34" alt="">
+                      <h1>Recover</h1>
+                    </div>
+
+                    <p class="auth-status" id="forgot-status" role="status"></p>
+                    <form id="forgot-form" action="#" method="get" onsubmit="event.preventDefault(); return false;">
+                      <div class="recovery-box">
+                        <label class="form-label" for="recover-mnemonic">Recovery phrase</label>
+                        <textarea class="form-control" id="recover-mnemonic" rows="4" placeholder="Enter your 12-word recovery phrase" autocomplete="off"></textarea>
+                        <span class="form-hint">Peerya has no password reset. Your phrase restores this identity.</span>
+                      </div>
+                      <button type="submit" class="btn btn-signin btn-lg w-100" id="recover-btn">Recover account</button>
+                      <button type="button" class="btn btn-signin btn-lg w-100 mt-3 hidden" id="recover-passkey-btn">Add passkey on this device</button>
+                    </form>
+
+                    <div class="login-links">
+                      <a href="#signin-panel" id="back-signin-link">Back to sign in</a>
                     </div>
                   </div>
                 </div>
@@ -542,19 +675,256 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
-    <script>
-      const signupTab = document.getElementById("signup-tab");
-      const signinTab = document.getElementById("signin-tab");
+    <script type="module">
+      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE } from "./js/peerya.js"
 
-      document.getElementById("create-account-link").addEventListener("click", function (event) {
-        event.preventDefault();
-        bootstrap.Tab.getOrCreateInstance(signupTab).show();
-      });
+      const signupTab = document.getElementById("signup-tab")
+      const signinTab = document.getElementById("signin-tab")
+      const signinBtn = document.getElementById("signin-btn")
+      const signupBtn = document.getElementById("signup-btn")
+      const protectBtn = document.getElementById("protect-passkey-btn")
+      const recoverBtn = document.getElementById("recover-btn")
+      const recoverPasskeyBtn = document.getElementById("recover-passkey-btn")
 
-      document.getElementById("have-account-link").addEventListener("click", function (event) {
-        event.preventDefault();
-        bootstrap.Tab.getOrCreateInstance(signinTab).show();
-      });
+      let db
+      let pendingSignup = { username: "", email: "" }
+      let holdRedirect = false
+
+      document.querySelectorAll(".password-toggle").forEach((button) => {
+        button.addEventListener("click", () => {
+          const input = button.parentElement.querySelector("input")
+          const show = input.type === "password"
+          input.type = show ? "text" : "password"
+          button.setAttribute("aria-label", show ? "Hide password" : "Show password")
+          button.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>'
+        })
+      })
+
+      const showPanel = (tab) => bootstrap.Tab.getOrCreateInstance(tab).show()
+
+      const showForgot = () => {
+        signinTab.classList.remove("active")
+        signupTab.classList.remove("active")
+        signinTab.setAttribute("aria-selected", "false")
+        signupTab.setAttribute("aria-selected", "false")
+        document.getElementById("signin-panel").classList.remove("show", "active")
+        document.getElementById("signup-panel").classList.remove("show", "active")
+        document.getElementById("forgot-panel").classList.add("show", "active")
+      }
+
+      const setStatus = (id, message, kind) => {
+        const el = document.getElementById(id)
+        el.textContent = message || ""
+        el.classList.toggle("show", !!message)
+        el.classList.toggle("error", kind === "error")
+        el.classList.toggle("success", kind === "success")
+      }
+
+      const setBusy = (button, busy, label) => {
+        button.disabled = busy
+        if (label) button.textContent = label
+      }
+
+      const finishLogin = async (username, email) => {
+        try {
+          await saveProfile(db, { username, email })
+        } catch {}
+        goHome()
+      }
+
+      document.getElementById("create-account-link").addEventListener("click", (event) => {
+        event.preventDefault()
+        document.getElementById("forgot-panel").classList.remove("show", "active")
+        showPanel(signupTab)
+      })
+
+      document.getElementById("have-account-link").addEventListener("click", (event) => {
+        event.preventDefault()
+        document.getElementById("forgot-panel").classList.remove("show", "active")
+        showPanel(signinTab)
+      })
+
+      document.getElementById("back-signin-link").addEventListener("click", (event) => {
+        event.preventDefault()
+        document.getElementById("forgot-panel").classList.remove("show", "active")
+        showPanel(signinTab)
+      })
+
+      document.getElementById("forgot-link").addEventListener("click", (event) => {
+        event.preventDefault()
+        showForgot()
+      })
+
+      signupTab.addEventListener("shown.bs.tab", () => {
+        document.getElementById("forgot-panel").classList.remove("show", "active")
+      })
+
+      signinTab.addEventListener("shown.bs.tab", () => {
+        document.getElementById("forgot-panel").classList.remove("show", "active")
+      })
+
+      document.getElementById("signin-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        if (!db) {
+          setStatus("signin-status", "Still starting Peerya…", "error")
+          return
+        }
+        if (!PASSKEYS_AVAILABLE) {
+          setStatus("signin-status", "Passkeys need HTTPS or localhost.", "error")
+          return
+        }
+        if (!await db.sm.hasExistingWebAuthnRegistration()) {
+          setStatus("signin-status", "No passkey on this device. Recover with your phrase.", "error")
+          return
+        }
+        setBusy(signinBtn, true, "Signing in…")
+        setStatus("signin-status")
+        try {
+          const address = await db.sm.loginCurrentUserWithWebAuthn()
+          if (!address) {
+            setStatus("signin-status", "Passkey sign-in was cancelled.", "error")
+            return
+          }
+          await finishLogin(document.getElementById("username").value)
+        } catch {
+          setStatus("signin-status", "Could not sign in with passkey.", "error")
+        } finally {
+          setBusy(signinBtn, false, "Sign in with passkey")
+        }
+      })
+
+      document.getElementById("signup-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        if (!db) {
+          setStatus("signup-status", "Still starting Peerya…", "error")
+          return
+        }
+        const username = document.getElementById("signup-username").value.trim()
+        const email = document.getElementById("signup-email").value.trim()
+        if (!username) {
+          setStatus("signup-status", "Choose a username.", "error")
+          return
+        }
+        setBusy(signupBtn, true, "Creating identity…")
+        setStatus("signup-status")
+        holdRedirect = true
+        try {
+          const identity = await db.sm.startNewUserRegistration()
+          if (!identity) {
+            holdRedirect = false
+            setStatus("signup-status", "Could not create an identity.", "error")
+            return
+          }
+          pendingSignup = { username, email }
+          document.getElementById("signup-mnemonic").value =
+            db.sm.getMnemonicForDisplayAfterRegistrationOrRecovery() || identity.mnemonic
+          document.getElementById("signup-fields").classList.add("hidden")
+          document.getElementById("signup-recovery").classList.remove("hidden")
+          setStatus("signup-status", "Save your recovery phrase, then protect it with a passkey.", "success")
+        } catch {
+          holdRedirect = false
+          setStatus("signup-status", "Could not create an identity.", "error")
+        } finally {
+          setBusy(signupBtn, false, "Create passkey")
+        }
+      })
+
+      document.getElementById("copy-mnemonic-btn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(document.getElementById("signup-mnemonic").value)
+          setStatus("signup-status", "Phrase copied. Keep it offline.", "success")
+        } catch {
+          setStatus("signup-status", "Copy failed. Select the phrase and copy it.", "error")
+        }
+      })
+
+      protectBtn.addEventListener("click", async () => {
+        if (!PASSKEYS_AVAILABLE) {
+          setStatus("signup-status", "Passkeys need HTTPS or localhost. Your phrase still works.", "error")
+          await finishLogin(pendingSignup.username, pendingSignup.email)
+          return
+        }
+        setBusy(protectBtn, true, "Waiting for passkey…")
+        try {
+          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
+          if (!address) {
+            setStatus("signup-status", "Passkey needs a device with PRF support.", "error")
+            return
+          }
+          await finishLogin(pendingSignup.username, pendingSignup.email)
+        } catch {
+          setStatus("signup-status", "Could not register a passkey.", "error")
+        } finally {
+          setBusy(protectBtn, false, "Protect with passkey")
+        }
+      })
+
+      document.getElementById("forgot-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        const mnemonic = document.getElementById("recover-mnemonic").value.trim()
+        if (!mnemonic) {
+          setStatus("forgot-status", "Paste your recovery phrase.", "error")
+          return
+        }
+        setBusy(recoverBtn, true, "Recovering…")
+        setStatus("forgot-status")
+        holdRedirect = true
+        try {
+          const identity = await db.sm.loginOrRecoverUserWithMnemonic(mnemonic)
+          if (!identity) {
+            holdRedirect = false
+            setStatus("forgot-status", "That recovery phrase is not valid.", "error")
+            return
+          }
+          if (PASSKEYS_AVAILABLE) {
+            recoverPasskeyBtn.classList.remove("hidden")
+            setStatus("forgot-status", "Account restored. Add a passkey on this device, or continue.", "success")
+            recoverBtn.textContent = "Continue"
+            recoverBtn.type = "button"
+            recoverBtn.onclick = () => finishLogin(document.getElementById("username").value)
+            return
+          }
+          await finishLogin(document.getElementById("username").value)
+        } catch {
+          holdRedirect = false
+          setStatus("forgot-status", "Could not recover that account.", "error")
+        } finally {
+          setBusy(recoverBtn, false, recoverBtn.textContent)
+        }
+      })
+
+      recoverPasskeyBtn.addEventListener("click", async () => {
+        setBusy(recoverPasskeyBtn, true, "Waiting for passkey…")
+        try {
+          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
+          if (!address) {
+            setStatus("forgot-status", "Passkey was cancelled.", "error")
+            return
+          }
+          await finishLogin(document.getElementById("username").value)
+        } catch {
+          setStatus("forgot-status", "Could not add a passkey.", "error")
+        } finally {
+          setBusy(recoverPasskeyBtn, false, "Add passkey on this device")
+        }
+      })
+
+      try {
+        db = await openDb()
+      } catch {
+        setStatus("signin-status", "Could not start Peerya. Try again.", "error")
+        return
+      }
+      db.sm.setSecurityStateChangeCallback((state) => {
+        if (holdRedirect) return
+        if (state.isActive) goHome()
+      })
+      if (db.sm.isSecurityActive()) goHome()
+      if (!PASSKEYS_AVAILABLE) {
+        setStatus("signin-status", "Passkeys need HTTPS or localhost.", "error")
+      }
+      const savedName = localStorage.getItem("peerya.username")
+      if (savedName) document.getElementById("username").value = savedName
     </script>
   </body>
 </html>
