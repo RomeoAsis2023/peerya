@@ -1,7 +1,10 @@
+const ROOT = new URL("../", import.meta.url)
+
 export const PEERYA = {
   name: "Peerya",
   dbName: "peerya",
-  home: "home.html"
+  home: new URL("home/", ROOT).href,
+  login: ROOT.href
 }
 
 const BOOTSTRAP_ADMIN = "0xFEE1000000000000000000000000000000000A00"
@@ -15,7 +18,7 @@ let dbPromise
 
 export function openDb() {
   if (!dbPromise) {
-    dbPromise = import("https://cdn.jsdelivr.net/npm/genosdb@0.36.3/dist/index.min.js").then(({ gdb }) =>
+    dbPromise = import("https://cdn.jsdelivr.net/npm/genosdb@0.36.3/dist/index.js").then(({ gdb }) =>
       gdb(PEERYA.dbName, {
         rtc: true,
         sm: {
@@ -34,10 +37,30 @@ export function openDb() {
   return dbPromise
 }
 
+export function normalizeUsername(username) {
+  return (username || "").trim().toLowerCase()
+}
+
+export async function isUsernameTaken(db, username, exceptAddress) {
+  const name = normalizeUsername(username)
+  if (!name) return false
+  try {
+    const { result } = await db.get("username:" + name)
+    const owner = result && result.value && result.value.address
+    if (!owner) return false
+    return owner.toLowerCase() !== (exceptAddress || "").toLowerCase()
+  } catch {
+    return false
+  }
+}
+
 export async function saveProfile(db, { username, email }) {
   const address = db.sm.getActiveEthAddress()
-  const name = (username || "").trim().toLowerCase()
+  const name = normalizeUsername(username)
   if (!address || !name) return
+  if (await isUsernameTaken(db, name, address)) {
+    throw new Error("username taken")
+  }
   const value = {
     type: "profile",
     username: name,
@@ -51,6 +74,7 @@ export async function saveProfile(db, { username, email }) {
       value.email = null
     }
   }
+  await db.put({ type: "username", username: name, address }, "username:" + name)
   await db.put(value, "profile:" + address)
   localStorage.setItem("peerya.username", name)
   localStorage.setItem("peerya.address", address)
@@ -61,7 +85,7 @@ export function goHome() {
 }
 
 export function goLogin() {
-  window.location.replace("index.html")
+  window.location.replace(PEERYA.login)
 }
 
 export async function requireAuth() {
