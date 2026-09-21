@@ -173,9 +173,88 @@
       }
 
       .home-shell {
-        max-width: 42rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        gap: 1.75rem;
+        max-width: 62rem;
         margin: 0 auto;
         padding: 1.25rem 1.5rem 2.5rem;
+      }
+
+      .right-rail {
+        position: sticky;
+        top: 1.25rem;
+        align-self: start;
+      }
+
+      .account-switch,
+      .suggest-item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+      }
+
+      .account-switch {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .account-switch img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .follow-btn {
+        margin-left: auto;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--peerya-green-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+
+      .follow-btn.following {
+        color: #9a9a9a;
+        font-weight: 600;
+      }
+
+      .suggest-handle {
+        color: #8a8a8a;
+        font-size: 0.78rem;
+        margin: 0;
+      }
+
+      .right-rail .section-head {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.9rem;
+        padding: 0;
+      }
+
+      .suggest-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.95rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .suggest-item img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .feed-empty {
+        text-align: center;
+        color: #9a9a9a;
+        padding: 0.5rem 0;
+        margin: 0;
+        font-size: 0.85rem;
       }
 
       .friends-card {
@@ -362,6 +441,15 @@
         color: #1f2a12;
       }
 
+      @media (max-width: 1199.98px) {
+        .home-shell {
+          grid-template-columns: minmax(0, 1fr);
+          max-width: 40rem;
+        }
+
+        .right-rail { display: none; }
+      }
+
       @media (max-width: 991.98px) {
         .home-topbar { display: flex; }
         .home-shell { padding: 1rem; }
@@ -437,6 +525,7 @@
     </nav>
 
     <main class="home-shell">
+      <section>
       <div class="friends-card">
         <div class="friends-head">
           <h1>Friends</h1>
@@ -455,6 +544,27 @@
         </div>
         <div class="friend-list" id="offline-friends"></div>
       </div>
+      </section>
+
+      <aside class="right-rail">
+        <div class="account-switch">
+          <img class="avatar" id="me-avatar" src="../icon.svg" alt="">
+          <div>
+            <p class="suggest-name" id="me-name">You</p>
+            <p class="suggest-handle" id="me-handle"></p>
+          </div>
+        </div>
+        <div class="section-head">
+          <h2 class="section-title">Suggested For You</h2>
+          <span class="see-all" id="suggested-count">0</span>
+        </div>
+        <div class="suggest-list" id="suggested-list"></div>
+        <div class="section-head">
+          <h2 class="section-title">Active Peers</h2>
+          <span class="see-all" id="peers-count">0</span>
+        </div>
+        <div class="suggest-list" id="peers-list"></div>
+      </aside>
     </main>
 
     <div class="invite-modal hidden" id="invite-modal">
@@ -483,7 +593,8 @@
         setNavBadge,
         consumeInvite,
         inviteLink,
-        otherFriend
+        otherFriend,
+        toggleFollow
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -493,6 +604,7 @@
       const me = db.sm.getActiveEthAddress()
       const profiles = new Map()
       const friends = new Map()
+      const follows = new Map()
       let paint = () => {}
       const presence = startPresence(db, () => paint())
       const status = document.getElementById("friends-status")
@@ -534,6 +646,34 @@
         return btn
       }
 
+      const renderPeople = (root, countEl, list, emptyText) => {
+        root.innerHTML = ""
+        countEl.textContent = String(list.length)
+        if (!list.length) {
+          const empty = document.createElement("p")
+          empty.className = "feed-empty"
+          empty.textContent = emptyText
+          root.append(empty)
+          return
+        }
+        for (const person of list) {
+          const followed = follows.has("follow:" + me.toLowerCase() + ":" + String(person.address).toLowerCase())
+          const row = document.createElement("div")
+          row.className = "suggest-item"
+          row.innerHTML =
+            '<img class="avatar" alt=""><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
+            '<button type="button" class="follow-btn"></button>'
+          row.querySelector("img").src = avatarUrl(person.address)
+          row.querySelector(".suggest-name").textContent = nameOf(db, profiles, person.address)
+          row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
+          const btn = row.querySelector(".follow-btn")
+          btn.classList.toggle("following", followed)
+          btn.textContent = followed ? "Followed" : "Follow"
+          btn.addEventListener("click", () => toggleFollow(db, person.address))
+          root.append(row)
+        }
+      }
+
       const render = () => {
         const onlineList = document.getElementById("online-friends")
         const offlineList = document.getElementById("offline-friends")
@@ -541,9 +681,11 @@
         offlineList.innerHTML = ""
         let on = 0
         let off = 0
+        const friendAddrs = new Set()
         for (const node of friends.values()) {
           const address = otherFriend(node, me)
           if (!address) continue
+          friendAddrs.add(String(address).toLowerCase())
           const isOn = presence.online.has(String(address).toLowerCase())
           if (isOn) {
             onlineList.append(friendButton(address, true))
@@ -556,6 +698,11 @@
         document.getElementById("online-count").textContent = String(on)
         document.getElementById("offline-count").textContent = String(off)
         document.getElementById("friends-empty").classList.toggle("hidden", on + off > 0)
+        const people = [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
+        const active = people.filter((person) => presence.online.has(String(person.address).toLowerCase()))
+        const suggested = people.filter((person) => !friendAddrs.has(String(person.address).toLowerCase()) && !presence.online.has(String(person.address).toLowerCase()))
+        renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
+        renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles)
         setNavBadge("badge-friends", friends.size)
         setNavBadge("badge-notifications", 0)
@@ -596,6 +743,12 @@
         const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
         if (action === "removed") profiles.delete(address)
         else if (value) profiles.set(address, value)
+        render()
+      })
+
+      await db.map({ query: { type: "follow" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") follows.delete(id)
+        else if (value) follows.set(id, { ...value, id })
         render()
       })
 
