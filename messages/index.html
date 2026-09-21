@@ -591,7 +591,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#friends">
+            <a class="nav-link" href="../friends/">
               <i class="bi bi-people"></i> Friends
               <span class="nav-badge" id="badge-friends" hidden></span>
             </a>
@@ -733,6 +733,7 @@
       const meName = localStorage.getItem("peerya.username") || db.sm.abbrAddr(me)
       const profiles = new Map()
       const dms = new Map()
+      const friends = new Map()
       let query = ""
       let activeThread = ""
       let paint = () => {}
@@ -907,7 +908,7 @@
         renderThreads()
         renderChat()
         applyCurrentUser(db, profiles)
-        const friendCount = [...profiles.keys()].filter((address) => address !== me.toLowerCase()).length
+        const friendCount = friends.size
         const chatCount = new Set([...dms.values()].map((row) => row.threadId).filter(Boolean)).size
         setNavBadge("badge-friends", friendCount)
         setNavBadge("badge-messages", chatCount)
@@ -937,6 +938,14 @@
         try {
           await sendDm(db, to, text)
         } catch {}
+      })
+
+      await db.map({ query: { type: "friend" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") friends.delete(id)
+        else if (value && (String(value.a).toLowerCase() === me.toLowerCase() || String(value.b).toLowerCase() === me.toLowerCase())) {
+          friends.set(id, value)
+        }
+        render()
       })
 
       await db.map(

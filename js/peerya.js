@@ -128,6 +128,10 @@ export function setNavBadge(id, count) {
 }
 
 export function goHome() {
+  if (sessionStorage.getItem("peerya.invite")) {
+    window.location.replace(new URL("friends/", ROOT).href)
+    return
+  }
   window.location.replace(PEERYA.home)
 }
 
@@ -136,10 +140,60 @@ export function goLogin() {
 }
 
 export async function requireAuth() {
+  const invite = new URLSearchParams(location.search).get("invite")
+  if (invite) sessionStorage.setItem("peerya.invite", invite)
   const db = await openDb()
   if (db.sm.isSecurityActive()) return db
   goLogin()
   return null
+}
+
+export function friendIdFor(a, b) {
+  return "friend:" + [String(a).toLowerCase(), String(b).toLowerCase()].sort().join(":")
+}
+
+export function otherFriend(node, me) {
+  const mine = String(me).toLowerCase()
+  if (String(node.a).toLowerCase() === mine) return node.b
+  return node.a
+}
+
+export function inviteLink(envelope) {
+  return new URL("friends/?invite=" + encodeURIComponent(JSON.stringify(envelope)), ROOT).href
+}
+
+export async function acceptInvite(db, raw) {
+  let envelope = raw
+  if (typeof raw === "string") {
+    try {
+      envelope = JSON.parse(raw)
+    } catch {
+      return null
+    }
+  }
+  const from = db.sm.verify(envelope, 7 * 24 * 60 * 60 * 1000)
+  const me = db.sm.getActiveEthAddress()
+  if (!from || !me || from.toLowerCase() === me.toLowerCase()) return null
+  const id = friendIdFor(from, me)
+  const pair = [from.toLowerCase(), me.toLowerCase()].sort()
+  const { result } = await db.get(id)
+  if (result) return id
+  await db.put({
+    type: "friend",
+    a: pair[0],
+    b: pair[1],
+    createdAt: Date.now()
+  }, id)
+  return id
+}
+
+export async function consumeInvite(db) {
+  const raw = sessionStorage.getItem("peerya.invite") || new URLSearchParams(location.search).get("invite")
+  if (!raw) return null
+  sessionStorage.removeItem("peerya.invite")
+  const id = await acceptInvite(db, raw)
+  history.replaceState({}, "", location.pathname)
+  return id
 }
 
 export function threadIdFor(a, b) {

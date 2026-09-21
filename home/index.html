@@ -755,7 +755,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#friends">
+            <a class="nav-link" href="../friends/">
               <i class="bi bi-people"></i> Friends
               <span class="nav-badge" id="badge-friends" hidden></span>
             </a>
@@ -901,6 +901,7 @@
       const comments = new Map()
       const follows = new Map()
       const threads = new Map()
+      const friendNodes = new Map()
       const openComments = new Set()
       const replyTo = new Map()
       let swiper
@@ -1114,7 +1115,7 @@
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles)
-        setNavBadge("badge-friends", people.length)
+        setNavBadge("badge-friends", friendNodes.size)
         setNavBadge("badge-messages", threads.size)
         setNavBadge("badge-notifications", 0)
       }
@@ -1229,6 +1230,14 @@
       await db.map({ query: { type: "comment" }, realtime: true }, ({ id, value, action }) => {
         if (action === "removed") comments.delete(id)
         else if (value) comments.set(id, { ...value, id })
+        render()
+      })
+
+      await db.map({ query: { type: "friend" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") friendNodes.delete(id)
+        else if (value && (String(value.a).toLowerCase() === me.toLowerCase() || String(value.b).toLowerCase() === me.toLowerCase())) {
+          friendNodes.set(id, value)
+        }
         render()
       })
 

@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="icon" href="../icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+    <title>Peerya - Friends</title>
+    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+      :root {
+        --peerya-green: #8bc34a;
+        --peerya-green-dark: #7cb342;
+        --peerya-ink: #2f2f2f;
+        --peerya-muted: #6f6f6f;
+        --peerya-line: #ececec;
+        --peerya-soft: #f6f7f4;
+        --bs-sidebar-width: 17.5rem;
+        --bs-sidebar-bg: #ffffff;
+        --bs-body-font-family: "Manrope", system-ui, sans-serif;
+        --bs-body-color: var(--peerya-ink);
+        --bs-primary: var(--peerya-green);
+        --bs-link-color: var(--peerya-green-dark);
+        --bs-heading-font-family: "Inter", system-ui, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { min-height: 100%; min-height: 100dvh; }
+
+      body {
+        margin: 0;
+        background: #fafafa;
+        color: var(--peerya-ink);
+        font-family: "Manrope", system-ui, sans-serif;
+        visibility: hidden;
+      }
+
+      body.is-authed { visibility: visible; }
+
+      .hidden { display: none !important; }
+
+      h1, h2, .sidebar-brand, .suggest-name, .section-title {
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      .sidebar {
+        --bs-offcanvas-width: var(--bs-sidebar-width);
+        border-right: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--peerya-ink);
+        text-decoration: none;
+      }
+
+      .sidebar-brand img { width: auto; height: 1.75rem; }
+
+      .sidebar-search { position: relative; }
+
+      .sidebar-search i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9a9a9a;
+      }
+
+      .sidebar-search .form-control {
+        padding-left: 2.3rem;
+        border-radius: 999px;
+        background: #f4f4f4;
+        border-color: transparent;
+      }
+
+      .sidebar-nav { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+
+      .sidebar-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        color: #4a4a4a;
+        border-radius: 0.7rem;
+        font-weight: 600;
+      }
+
+      .sidebar-nav .nav-link i { font-size: 1.15rem; width: 1.3rem; text-align: center; }
+      .sidebar-nav .nav-link:hover, .sidebar-nav .nav-link.active { background: var(--peerya-soft); }
+      .sidebar-nav .nav-link.active { color: var(--peerya-green-dark); }
+
+      .nav-badge[hidden] { display: none !important; }
+
+      .nav-badge {
+        margin-left: auto;
+        min-width: 1.4rem;
+        height: 1.4rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: #ecebff;
+        color: #6b63d6;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .promo-card {
+        border: 1px solid var(--peerya-line);
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        background: #fff;
+      }
+
+      .promo-icon {
+        width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 50%;
+        background: #fff6e8;
+        color: #e6a23c;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding-top: 0.85rem;
+        margin-top: 0.85rem;
+        border-top: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-user img, .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .sidebar-user .name, .suggest-name {
+        font-weight: 700;
+        font-size: 0.92rem;
+        margin: 0;
+      }
+
+      .sidebar-user .role, .friend-status {
+        color: #8a8a8a;
+        font-size: 0.78rem;
+        margin: 0;
+      }
+
+      .home-topbar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: #fff;
+        border-bottom: 1px solid var(--peerya-line);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .home-shell {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 1.25rem 1.5rem 2.5rem;
+      }
+
+      .friends-card {
+        border: 0;
+        border-radius: 1.15rem;
+        box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .friends-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1.15rem 1.2rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .friends-head h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .invite-btn {
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .friends-status {
+        display: none;
+        margin: 0;
+        padding: 0.7rem 1.2rem;
+        font-size: 0.88rem;
+      }
+
+      .friends-status.show { display: block; }
+      .friends-status.ok { background: #eef7e4; color: #3d6b12; }
+      .friends-status.err { background: #fdecea; color: #9b2c2c; }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        padding: 0.95rem 1.2rem 0.35rem;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #7a7a7a;
+      }
+
+      .see-all {
+        margin-left: auto;
+        color: var(--peerya-green-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+
+      .friend-list {
+        display: flex;
+        flex-direction: column;
+        padding: 0.2rem 0.7rem 0.9rem;
+        gap: 0.15rem;
+      }
+
+      .friend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        border: 0;
+        background: none;
+        text-align: left;
+        padding: 0.7rem 0.55rem;
+        border-radius: 0.85rem;
+        color: inherit;
+      }
+
+      .friend-item:hover { background: var(--peerya-soft); }
+
+      .friend-avatar { position: relative; width: 44px; height: 44px; flex-shrink: 0; }
+
+      .friend-avatar img {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .presence {
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        width: 0.72rem;
+        height: 0.72rem;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        background: #c8c8c8;
+      }
+
+      .presence.online { background: var(--peerya-green); }
+      .friend-item.online .friend-status { color: var(--peerya-green-dark); font-weight: 600; }
+
+      .friend-meta { min-width: 0; flex: 1; }
+
+      .empty-friends {
+        text-align: center;
+        color: #9a9a9a;
+        padding: 2rem 1.2rem 1.5rem;
+      }
+
+      .invite-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgba(20, 20, 20, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .invite-modal.hidden { display: none; }
+
+      .invite-sheet {
+        width: min(24rem, 100%);
+        background: #fff;
+        border-radius: 1.2rem;
+        padding: 1.4rem 1.3rem 1.25rem;
+        text-align: center;
+        box-shadow: 0 18px 50px rgba(20, 30, 10, 0.18);
+      }
+
+      .invite-sheet h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1.2rem;
+      }
+
+      .invite-sheet p {
+        margin: 0 0 1rem;
+        color: #7a7a7a;
+        font-size: 0.9rem;
+      }
+
+      .invite-sheet canvas {
+        display: block;
+        margin: 0 auto 1rem;
+        border-radius: 0.8rem;
+      }
+
+      .invite-link {
+        width: 100%;
+        border: 1px solid var(--peerya-line);
+        border-radius: 0.7rem;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.75rem;
+        color: #666;
+        background: #f7f7f7;
+        margin-bottom: 0.75rem;
+      }
+
+      .invite-actions { display: flex; gap: 0.5rem; }
+
+      .invite-actions .btn {
+        flex: 1;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+
+      .btn-copy {
+        background: var(--peerya-green);
+        border-color: var(--peerya-green);
+        color: #1f2a12;
+      }
+
+      @media (max-width: 991.98px) {
+        .home-topbar { display: flex; }
+        .home-shell { padding: 1rem; }
+      }
+    </style>
+  </head>
+  <body class="ps-lg-sbwidth">
+    <header class="home-topbar">
+      <a class="sidebar-brand" href="../home/">
+        <img src="../logo_full.svg" alt="Peerya">
+      </a>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-light js-logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+        <button type="button" class="btn btn-light" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar"><i class="bi bi-list"></i></button>
+      </div>
+    </header>
+
+    <nav class="sidebar offcanvas-start offcanvas-lg" tabindex="-1" id="sidebar" aria-label="Main navigation">
+      <div class="offcanvas-header">
+        <a class="sidebar-brand" href="../home/">
+          <img src="../logo_full.svg" alt="Peerya">
+        </a>
+        <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column">
+        <div class="sidebar-search mb-3">
+          <i class="bi bi-search"></i>
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+        </div>
+        <ul class="sidebar-nav">
+          <li class="nav-item"><a class="nav-link" href="../home/"><i class="bi bi-house-door"></i> Home</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="../messages/">
+              <i class="bi bi-chat-dots"></i> Messages
+              <span class="nav-badge" id="badge-messages" hidden></span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="./" aria-current="page">
+              <i class="bi bi-people"></i> Friends
+              <span class="nav-badge" id="badge-friends" hidden></span>
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="#explore"><i class="bi bi-compass"></i> Explore</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="#notifications">
+              <i class="bi bi-bell"></i> Notifications
+              <span class="nav-badge" id="badge-notifications" hidden></span>
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="#settings"><i class="bi bi-gear"></i> Settings</a></li>
+          <li class="nav-item"><a class="nav-link" href="#help"><i class="bi bi-question-circle"></i> Help &amp; Support</a></li>
+          <li class="nav-item"><a class="nav-link js-logout" href="../"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+        <div class="mt-auto">
+          <div class="promo-card mb-3">
+            <div class="d-flex align-items-start justify-content-between mb-2">
+              <span class="promo-icon"><i class="bi bi-exclamation-circle"></i></span>
+              <button type="button" class="btn-close" aria-label="Dismiss promo"></button>
+            </div>
+            <p class="mb-2 small text-secondary">Enjoy unlimited access to Peerya with only a small price monthly.</p>
+          </div>
+          <div class="sidebar-user">
+            <img id="side-avatar" src="../icon.svg" alt="">
+            <div class="meta">
+              <p class="name" id="side-name">You</p>
+              <p class="role" id="side-role">Peer</p>
+            </div>
+            <a href="../" class="ms-auto text-secondary js-logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="home-shell">
+      <div class="friends-card">
+        <div class="friends-head">
+          <h1>Friends</h1>
+          <button type="button" class="invite-btn" id="invite-btn"><i class="bi bi-qr-code"></i> Invite friends</button>
+        </div>
+        <p class="friends-status" id="friends-status"></p>
+        <div id="friends-empty" class="empty-friends hidden">No friends yet. Share your QR so a logged-in peer can join you.</div>
+        <div class="section-head">
+          <h2 class="section-title">Online</h2>
+          <span class="see-all" id="online-count">0</span>
+        </div>
+        <div class="friend-list" id="online-friends"></div>
+        <div class="section-head">
+          <h2 class="section-title">Offline</h2>
+          <span class="see-all" id="offline-count">0</span>
+        </div>
+        <div class="friend-list" id="offline-friends"></div>
+      </div>
+    </main>
+
+    <div class="invite-modal hidden" id="invite-modal">
+      <div class="invite-sheet">
+        <h2>Invite to Peerya</h2>
+        <p>Friends scan this QR while signed in to appear on your list.</p>
+        <canvas id="invite-qr" width="220" height="220"></canvas>
+        <input class="invite-link" id="invite-link" readonly>
+        <div class="invite-actions">
+          <button type="button" class="btn btn-copy" id="copy-invite">Copy link</button>
+          <button type="button" class="btn btn-outline-secondary" id="close-invite">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script type="module">
+      import {
+        requireAuth,
+        signOut,
+        avatarUrl,
+        displayName as nameOf,
+        startPresence,
+        applyCurrentUser,
+        setNavBadge,
+        consumeInvite,
+        inviteLink,
+        otherFriend
+      } from "../js/peerya.js"
+
+      const db = await requireAuth()
+      if (!db) throw new Error("unauthorized")
+      document.body.classList.add("is-authed")
+
+      const me = db.sm.getActiveEthAddress()
+      const profiles = new Map()
+      const friends = new Map()
+      let paint = () => {}
+      const presence = startPresence(db, () => paint())
+      const status = document.getElementById("friends-status")
+
+      document.querySelectorAll(".js-logout").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault()
+          await signOut(db)
+        })
+      })
+
+      const showStatus = (message, kind) => {
+        status.textContent = message || ""
+        status.classList.toggle("show", !!message)
+        status.classList.toggle("ok", kind === "ok")
+        status.classList.toggle("err", kind === "err")
+      }
+
+      const pendingInvite = sessionStorage.getItem("peerya.invite") || new URLSearchParams(location.search).get("invite")
+      try {
+        const added = await consumeInvite(db)
+        if (added) showStatus("You're now friends.", "ok")
+        else if (pendingInvite) showStatus("That invite could not be used.", "err")
+      } catch {
+        showStatus("That invite could not be used.", "err")
+      }
+
+      const friendButton = (address, isOn) => {
+        const btn = document.createElement("button")
+        btn.type = "button"
+        btn.className = "friend-item" + (isOn ? " online" : "")
+        btn.innerHTML =
+          '<div class="friend-avatar"><img alt=""><span class="presence' + (isOn ? " online" : "") + '"></span></div>' +
+          '<div class="friend-meta"><p class="suggest-name"></p><p class="friend-status"></p></div>'
+        btn.querySelector("img").src = avatarUrl(address)
+        btn.querySelector(".suggest-name").textContent = nameOf(db, profiles, address)
+        btn.querySelector(".friend-status").textContent = isOn ? "Active now" : "Offline"
+        btn.addEventListener("click", () => { location.href = "../messages/" })
+        return btn
+      }
+
+      const render = () => {
+        const onlineList = document.getElementById("online-friends")
+        const offlineList = document.getElementById("offline-friends")
+        onlineList.innerHTML = ""
+        offlineList.innerHTML = ""
+        let on = 0
+        let off = 0
+        for (const node of friends.values()) {
+          const address = otherFriend(node, me)
+          if (!address) continue
+          const isOn = presence.online.has(String(address).toLowerCase())
+          if (isOn) {
+            onlineList.append(friendButton(address, true))
+            on += 1
+          } else {
+            offlineList.append(friendButton(address, false))
+            off += 1
+          }
+        }
+        document.getElementById("online-count").textContent = String(on)
+        document.getElementById("offline-count").textContent = String(off)
+        document.getElementById("friends-empty").classList.toggle("hidden", on + off > 0)
+        applyCurrentUser(db, profiles)
+        setNavBadge("badge-friends", friends.size)
+        setNavBadge("badge-notifications", 0)
+      }
+      paint = render
+
+      const modal = document.getElementById("invite-modal")
+      const linkField = document.getElementById("invite-link")
+
+      document.getElementById("invite-btn").addEventListener("click", async () => {
+        try {
+          const envelope = await db.sm.sign({ kind: "invite" })
+          const url = inviteLink(envelope)
+          linkField.value = url
+          await QRCode.toCanvas(document.getElementById("invite-qr"), url, {
+            width: 220,
+            margin: 1,
+            color: { dark: "#3d6b12", light: "#ffffff" }
+          })
+          modal.classList.remove("hidden")
+        } catch {
+          showStatus("Could not create an invite.", "err")
+        }
+      })
+
+      document.getElementById("close-invite").addEventListener("click", () => modal.classList.add("hidden"))
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) modal.classList.add("hidden")
+      })
+      document.getElementById("copy-invite").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(linkField.value)
+          document.getElementById("copy-invite").textContent = "Copied"
+        } catch {}
+      })
+
+      await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
+        const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
+        if (action === "removed") profiles.delete(address)
+        else if (value) profiles.set(address, value)
+        render()
+      })
+
+      await db.map({ query: { type: "friend" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") friends.delete(id)
+        else if (value && (String(value.a).toLowerCase() === me.toLowerCase() || String(value.b).toLowerCase() === me.toLowerCase())) {
+          friends.set(id, value)
+        }
+        render()
+      })
+
+      render()
+    </script>
+  </body>
+</html>
