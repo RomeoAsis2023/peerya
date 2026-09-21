@@ -23,6 +23,7 @@ export function openDb() {
         rtc: true,
         sm: {
           superAdmins: [BOOTSTRAP_ADMIN],
+          acls: true,
           customRoles: {
             superadmin: { can: ["assignRole", "deleteAny"], inherits: ["admin"] },
             admin: { can: ["delete"], inherits: ["manager"] },
@@ -93,6 +94,62 @@ export async function requireAuth() {
   if (db.sm.isSecurityActive()) return db
   goLogin()
   return null
+}
+
+export function threadIdFor(a, b) {
+  return "dm:" + [String(a).toLowerCase(), String(b).toLowerCase()].sort().join(":")
+}
+
+export function otherInThread(threadId, me) {
+  const parts = String(threadId).split(":")
+  const mine = String(me).toLowerCase()
+  if (parts[1] === mine) return parts[2]
+  if (parts[2] === mine) return parts[1]
+  return parts[2] || parts[1] || ""
+}
+
+export function avatarUrl(address) {
+  return "https://i.pravatar.cc/80?u=" + encodeURIComponent(address || "peerya")
+}
+
+export async function sendDm(db, to, text) {
+  const from = db.sm.getActiveEthAddress()
+  const body = (text || "").trim()
+  if (!from || !to || !body) return null
+  const threadId = threadIdFor(from, to)
+  const createdAt = Date.now()
+  const payload = { type: "dm", threadId, from, to, createdAt, text: body }
+  const smId = await db.sm.put(payload)
+  try {
+    await db.sm.acls.grant(smId, to, "read")
+  } catch {}
+  await db.put({
+    type: "dm",
+    threadId,
+    from,
+    to,
+    createdAt,
+    smId
+  })
+  const pair = [from.toLowerCase(), to.toLowerCase()].sort()
+  await db.put({
+    type: "thread",
+    threadId,
+    a: pair[0],
+    b: pair[1],
+    lastAt: createdAt,
+    lastFrom: from
+  }, "thread:" + threadId)
+  return { smId, threadId, createdAt }
+}
+
+export async function readDmText(db, smId) {
+  if (!smId) return ""
+  try {
+    const { result } = await db.sm.get(smId)
+    if (result && result.decrypted && result.value) return result.value.text || ""
+  } catch {}
+  return ""
 }
 
 export async function signOut(db) {

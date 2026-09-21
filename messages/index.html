@@ -217,8 +217,102 @@
         background: #fff;
         overflow: hidden;
         min-height: 36rem;
+        display: grid;
+        grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+      }
+
+      .inbox-pane,
+      .chat-pane {
         display: flex;
         flex-direction: column;
+        min-width: 0;
+        min-height: 36rem;
+      }
+
+      .inbox-pane {
+        border-right: 1px solid var(--peerya-line);
+      }
+
+      .chat-pane { background: #fcfcfb; }
+
+      .chat-head {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.95rem 1.1rem;
+        border-bottom: 1px solid var(--peerya-line);
+        background: #fff;
+      }
+
+      .chat-back {
+        display: none;
+        border: 0;
+        background: none;
+        color: #666;
+        padding: 0.2rem;
+      }
+
+      .chat-log {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 1.1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .chat-empty {
+        margin: auto;
+        text-align: center;
+        color: #9a9a9a;
+        font-size: 0.92rem;
+        max-width: 16rem;
+      }
+
+      .bubble {
+        max-width: 78%;
+        padding: 0.65rem 0.85rem;
+        border-radius: 1rem;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .bubble.mine {
+        margin-left: auto;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        border-bottom-right-radius: 0.3rem;
+      }
+
+      .bubble.theirs {
+        margin-right: auto;
+        background: #fff;
+        border: 1px solid var(--peerya-line);
+        border-bottom-left-radius: 0.3rem;
+      }
+
+      .chat-form {
+        display: flex;
+        gap: 0.55rem;
+        padding: 0.85rem 1rem 1rem;
+        background: #fff;
+        border-top: 1px solid var(--peerya-line);
+      }
+
+      .chat-form .form-control {
+        border-radius: 999px;
+        background: #f4f4f4;
+        border-color: transparent;
+        min-height: 2.6rem;
+      }
+
+      .chat-form .btn {
+        border-radius: 999px;
+        background: var(--peerya-green);
+        border-color: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
       }
 
       .messages-head {
@@ -261,6 +355,8 @@
         display: flex;
         flex-direction: column;
         padding: 0.4rem 0.55rem 0.85rem;
+        overflow-y: auto;
+        flex: 1;
       }
 
       .thread {
@@ -430,7 +526,17 @@
       @media (max-width: 991.98px) {
         .home-topbar { display: flex; }
         .home-shell { padding: 1rem; }
-        .messages-card { min-height: 28rem; }
+        .messages-card,
+        .inbox-pane,
+        .chat-pane { min-height: 28rem; }
+
+        .messages-card { grid-template-columns: 1fr; }
+
+        .chat-back { display: inline-flex; }
+
+        .messages-card:not(.show-chat) .chat-pane { display: none; }
+
+        .messages-card.show-chat .inbox-pane { display: none; }
       }
     </style>
   </head>
@@ -533,188 +639,109 @@
 
     <main class="home-shell">
       <section>
-        <div class="messages-card">
+        <div class="messages-card" id="messages-card">
+          <div class="inbox-pane">
           <div class="messages-head">
             <h1>Messages</h1>
-            <button type="button" class="switch-link" aria-label="New message"><i class="bi bi-pencil-square"></i></button>
           </div>
           <div class="messages-search">
             <i class="bi bi-search"></i>
-            <input type="search" class="form-control" placeholder="Search messages" aria-label="Search messages">
+            <input type="search" class="form-control" id="message-search" placeholder="Search messages and friends" aria-label="Search messages">
           </div>
-          <div class="thread-list">
-            <button type="button" class="thread active unread">
-              <div class="friend-avatar">
-                <img src="https://i.pravatar.cc/80?img=20" alt="">
-                <span class="presence online"></span>
+          <div class="thread-list" id="thread-list"></div>
+          </div>
+          <div class="chat-pane">
+            <div class="chat-head">
+              <button type="button" class="chat-back" id="chat-back" aria-label="Back"><i class="bi bi-chevron-left"></i></button>
+              <div class="friend-avatar" id="chat-avatar-wrap">
+                <img id="chat-avatar" src="../icon.svg" alt="">
+                <span class="presence" id="chat-presence"></span>
               </div>
-              <div class="thread-copy">
-                <div class="thread-top">
-                  <p class="thread-name">Azunyan Senpai</p>
-                  <span class="thread-time">2m</span>
-                </div>
-                <p class="thread-preview">You up for a collab later tonight?</p>
+              <div>
+                <p class="thread-name" id="chat-name">Select a chat</p>
+                <p class="friend-status" id="chat-status">Pick a friend to message</p>
               </div>
-            </button>
-            <button type="button" class="thread unread">
-              <div class="friend-avatar">
-                <img src="https://i.pravatar.cc/80?img=12" alt="">
-                <span class="presence online"></span>
-              </div>
-              <div class="thread-copy">
-                <div class="thread-top">
-                  <p class="thread-name">Oarack Babama</p>
-                  <span class="thread-time">18m</span>
-                </div>
-                <p class="thread-preview">The hike photos are in the album.</p>
-              </div>
-            </button>
-            <button type="button" class="thread">
-              <div class="friend-avatar">
-                <img src="https://i.pravatar.cc/80?img=52" alt="">
-                <span class="presence online"></span>
-              </div>
-              <div class="thread-copy">
-                <div class="thread-top">
-                  <p class="thread-name">David Gilmore</p>
-                  <span class="thread-time">1h</span>
-                </div>
-                <p class="thread-preview">Nice set last night 🔥</p>
-              </div>
-            </button>
-            <button type="button" class="thread unread">
-              <div class="friend-avatar">
-                <img src="https://i.pravatar.cc/80?img=47" alt="">
-                <span class="presence"></span>
-              </div>
-              <div class="thread-copy">
-                <div class="thread-top">
-                  <p class="thread-name">Mary Suez</p>
-                  <span class="thread-time">Yesterday</span>
-                </div>
-                <p class="thread-preview">Sent you the draft. Take a look?</p>
-              </div>
-            </button>
-            <button type="button" class="thread">
-              <div class="friend-avatar">
-                <img src="https://i.pravatar.cc/80?img=8" alt="">
-                <span class="presence"></span>
-              </div>
-              <div class="thread-copy">
-                <div class="thread-top">
-                  <p class="thread-name">Gerard Way</p>
-                  <span class="thread-time">Tue</span>
-                </div>
-                <p class="thread-preview">Catch you on the next drop.</p>
-              </div>
-            </button>
+            </div>
+            <div class="chat-log" id="chat-log">
+              <p class="chat-empty">Your 1:1 chats live here. Search or open a friend to start.</p>
+            </div>
+            <form class="chat-form" id="chat-form">
+              <input type="text" class="form-control" id="chat-input" placeholder="Message…" autocomplete="off" disabled>
+              <button type="submit" class="btn" id="chat-send" disabled>Send</button>
+            </form>
           </div>
         </div>
       </section>
 
       <aside class="right-rail">
         <div class="account-switch">
-          <img class="avatar" src="https://i.pravatar.cc/80?img=32" alt="">
+          <img class="avatar" id="me-avatar" src="../icon.svg" alt="">
           <div>
-            <p class="suggest-name">X_AE_A-13</p>
-            <p class="suggest-handle">@xtheobiterator</p>
+            <p class="suggest-name" id="me-name">You</p>
+            <p class="suggest-handle" id="me-handle"></p>
           </div>
-          <button type="button" class="switch-link">Switch</button>
         </div>
 
         <div class="section-head">
           <h2 class="section-title">Online Friends</h2>
-          <span class="see-all">3</span>
+          <span class="see-all" id="online-count">0</span>
         </div>
-        <div class="friend-list">
-          <button type="button" class="friend-item online">
-            <div class="friend-avatar">
-              <img src="https://i.pravatar.cc/80?img=20" alt="">
-              <span class="presence online"></span>
-            </div>
-            <div class="friend-meta">
-              <p class="suggest-name">Azunyan Senpai</p>
-              <p class="friend-status">Active now</p>
-            </div>
-          </button>
-          <button type="button" class="friend-item online">
-            <div class="friend-avatar">
-              <img src="https://i.pravatar.cc/80?img=12" alt="">
-              <span class="presence online"></span>
-            </div>
-            <div class="friend-meta">
-              <p class="suggest-name">Oarack Babama</p>
-              <p class="friend-status">Active now</p>
-            </div>
-          </button>
-          <button type="button" class="friend-item online">
-            <div class="friend-avatar">
-              <img src="https://i.pravatar.cc/80?img=52" alt="">
-              <span class="presence online"></span>
-            </div>
-            <div class="friend-meta">
-              <p class="suggest-name">David Gilmore</p>
-              <p class="friend-status">Active now</p>
-            </div>
-          </button>
-        </div>
+        <div class="friend-list" id="online-friends"></div>
 
         <div class="section-head">
           <h2 class="section-title">Offline Friends</h2>
-          <span class="see-all">4</span>
+          <span class="see-all" id="offline-count">0</span>
         </div>
-        <div class="friend-list">
-          <button type="button" class="friend-item">
-            <div class="friend-avatar">
-              <img src="https://i.pravatar.cc/80?img=8" alt="">
-              <span class="presence"></span>
-            </div>
-            <div class="friend-meta">
-              <p class="suggest-name">Gerard Way</p>
-              <p class="friend-status">Last seen 2h ago</p>
-            </div>
-          </button>
-          <button type="button" class="friend-item">
-            <div class="friend-avatar">
-              <img src="https://i.pravatar.cc/80?img=47" alt="">
-              <span class="presence"></span>
-            </div>
-            <div class="friend-meta">
-              <p class="suggest-name">Mary Suez</p>
-              <p class="friend-status">Last seen yesterday</p>
-            </div>
-          </button>
-          <button type="button" class="friend-item">
-            <div class="friend-avatar">
-              <img src="https://i.pravatar.cc/80?img=24" alt="">
-              <span class="presence"></span>
-            </div>
-            <div class="friend-meta">
-              <p class="suggest-name">Saylor Twift</p>
-              <p class="friend-status">Last seen 3d ago</p>
-            </div>
-          </button>
-          <button type="button" class="friend-item">
-            <div class="friend-avatar">
-              <img src="https://i.pravatar.cc/80?img=11" alt="">
-              <span class="presence"></span>
-            </div>
-            <div class="friend-meta">
-              <p class="suggest-name">Frank Iero</p>
-              <p class="friend-status">Last seen 1w ago</p>
-            </div>
-          </button>
-        </div>
+        <div class="friend-list" id="offline-friends"></div>
       </aside>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script type="module">
-      import { requireAuth, signOut } from "../js/peerya.js"
+      import {
+        requireAuth,
+        signOut,
+        threadIdFor,
+        otherInThread,
+        avatarUrl,
+        sendDm,
+        readDmText
+      } from "../js/peerya.js"
 
       const db = await requireAuth()
       if (!db) throw new Error("unauthorized")
       document.body.classList.add("is-authed")
+
+      const me = db.sm.getActiveEthAddress()
+      const meName = localStorage.getItem("peerya.username") || db.sm.abbrAddr(me)
+      const profiles = new Map()
+      const dms = new Map()
+      const online = new Map()
+      let query = ""
+      let activeThread = ""
+
+      const els = {
+        card: document.getElementById("messages-card"),
+        threads: document.getElementById("thread-list"),
+        search: document.getElementById("message-search"),
+        onlineList: document.getElementById("online-friends"),
+        offlineList: document.getElementById("offline-friends"),
+        onlineCount: document.getElementById("online-count"),
+        offlineCount: document.getElementById("offline-count"),
+        log: document.getElementById("chat-log"),
+        form: document.getElementById("chat-form"),
+        input: document.getElementById("chat-input"),
+        send: document.getElementById("chat-send"),
+        name: document.getElementById("chat-name"),
+        status: document.getElementById("chat-status"),
+        avatar: document.getElementById("chat-avatar"),
+        presence: document.getElementById("chat-presence"),
+        back: document.getElementById("chat-back")
+      }
+
+      document.getElementById("me-avatar").src = avatarUrl(me)
+      document.getElementById("me-name").textContent = meName
+      document.getElementById("me-handle").textContent = db.sm.abbrAddr(me)
 
       document.querySelectorAll(".js-logout").forEach((button) => {
         button.addEventListener("click", async (event) => {
@@ -723,13 +750,239 @@
         })
       })
 
-      document.querySelectorAll(".thread").forEach((thread) => {
-        thread.addEventListener("click", () => {
-          document.querySelectorAll(".thread").forEach((item) => item.classList.remove("active"))
-          thread.classList.add("active")
-          thread.classList.remove("unread")
-        })
+      const displayName = (address) => {
+        const profile = profiles.get(String(address).toLowerCase())
+        return (profile && profile.username) || db.sm.abbrAddr(address)
+      }
+
+      const matchesQuery = (text) => {
+        if (!query) return true
+        return String(text || "").toLowerCase().includes(query)
+      }
+
+      const when = (ms) => {
+        if (!ms) return ""
+        const diff = Date.now() - ms
+        if (diff < 60000) return "now"
+        if (diff < 3600000) return Math.floor(diff / 60000) + "m"
+        if (diff < 86400000) return Math.floor(diff / 3600000) + "h"
+        return Math.floor(diff / 86400000) + "d"
+      }
+
+      const threadPreview = (threadId) => {
+        const rows = [...dms.values()].filter((row) => row.threadId === threadId)
+        rows.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+        return rows[rows.length - 1] || null
+      }
+
+      const openThread = (threadId) => {
+        activeThread = threadId
+        const other = otherInThread(threadId, me)
+        els.card.classList.add("show-chat")
+        els.name.textContent = displayName(other)
+        els.avatar.src = avatarUrl(other)
+        const isOn = online.has(other.toLowerCase())
+        els.presence.classList.toggle("online", isOn)
+        els.status.textContent = isOn ? "Active now" : "Offline"
+        els.input.disabled = false
+        els.send.disabled = false
+        els.input.focus()
+        render()
+        els.log.scrollTop = els.log.scrollHeight
+      }
+
+      const friendButton = (address, isOn) => {
+        const btn = document.createElement("button")
+        btn.type = "button"
+        btn.className = "friend-item" + (isOn ? " online" : "")
+        btn.innerHTML =
+          '<div class="friend-avatar"><img src="' + avatarUrl(address) + '" alt="">' +
+          '<span class="presence' + (isOn ? " online" : "") + '"></span></div>' +
+          '<div class="friend-meta"><p class="suggest-name"></p><p class="friend-status"></p></div>'
+        btn.querySelector(".suggest-name").textContent = displayName(address)
+        btn.querySelector(".friend-status").textContent = isOn ? "Active now" : "Offline"
+        btn.addEventListener("click", () => openThread(threadIdFor(me, address)))
+        return btn
+      }
+
+      const renderFriends = () => {
+        els.onlineList.innerHTML = ""
+        els.offlineList.innerHTML = ""
+        let on = 0
+        let off = 0
+        for (const [address, profile] of profiles) {
+          if (address === me.toLowerCase()) continue
+          const hay = (profile.username || "") + " " + address
+          if (!matchesQuery(hay)) continue
+          const isOn = online.has(address)
+          if (isOn) {
+            els.onlineList.append(friendButton(profile.address || address, true))
+            on += 1
+          } else {
+            els.offlineList.append(friendButton(profile.address || address, false))
+            off += 1
+          }
+        }
+        els.onlineCount.textContent = String(on)
+        els.offlineCount.textContent = String(off)
+      }
+
+      const renderThreads = () => {
+        const groups = new Map()
+        for (const row of dms.values()) {
+          if (!row.threadId) continue
+          const prev = groups.get(row.threadId)
+          if (!prev || (row.createdAt || 0) > (prev.createdAt || 0)) groups.set(row.threadId, row)
+        }
+        const items = [...groups.values()].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        els.threads.innerHTML = ""
+        for (const row of items) {
+          const other = otherInThread(row.threadId, me)
+          const hay = displayName(other) + " " + (row.text || "")
+          if (!matchesQuery(hay)) continue
+          const btn = document.createElement("button")
+          btn.type = "button"
+          btn.className = "thread" + (row.threadId === activeThread ? " active" : "")
+          btn.innerHTML =
+            '<div class="friend-avatar"><img src="' + avatarUrl(other) + '" alt="">' +
+            '<span class="presence' + (online.has(other.toLowerCase()) ? " online" : "") + '"></span></div>' +
+            '<div class="thread-copy"><div class="thread-top"><p class="thread-name"></p><span class="thread-time"></span></div>' +
+            '<p class="thread-preview"></p></div>'
+          btn.querySelector(".thread-name").textContent = displayName(other)
+          btn.querySelector(".thread-time").textContent = when(row.createdAt)
+          btn.querySelector(".thread-preview").textContent = row.text || "New chat"
+          btn.addEventListener("click", () => openThread(row.threadId))
+          els.threads.append(btn)
+        }
+        if (!els.threads.children.length) {
+          const empty = document.createElement("p")
+          empty.className = "chat-empty"
+          empty.textContent = query ? "No chats match that search." : "No chats yet. Open a friend to start."
+          els.threads.append(empty)
+        }
+      }
+
+      const renderChat = () => {
+        if (!activeThread) return
+        const other = otherInThread(activeThread, me)
+        els.name.textContent = displayName(other)
+        els.presence.classList.toggle("online", online.has(other.toLowerCase()))
+        els.status.textContent = online.has(other.toLowerCase()) ? "Active now" : "Offline"
+        const rows = [...dms.values()]
+          .filter((row) => row.threadId === activeThread)
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+        els.log.innerHTML = ""
+        if (!rows.length) {
+          const empty = document.createElement("p")
+          empty.className = "chat-empty"
+          empty.textContent = "Say hello. Only you two can read this chat."
+          els.log.append(empty)
+          return
+        }
+        for (const row of rows) {
+          const bubble = document.createElement("div")
+          bubble.className = "bubble " + (String(row.from).toLowerCase() === me.toLowerCase() ? "mine" : "theirs")
+          bubble.textContent = row.text || ""
+          els.log.append(bubble)
+        }
+        els.log.scrollTop = els.log.scrollHeight
+      }
+
+      const render = () => {
+        renderFriends()
+        renderThreads()
+        renderChat()
+      }
+
+      els.search.addEventListener("input", () => {
+        query = els.search.value.trim().toLowerCase()
+        render()
       })
+
+      els.back.addEventListener("click", () => {
+        activeThread = ""
+        els.card.classList.remove("show-chat")
+        els.input.disabled = true
+        els.send.disabled = true
+        render()
+      })
+
+      els.form.addEventListener("submit", async (event) => {
+        event.preventDefault()
+        if (!activeThread) return
+        const text = els.input.value
+        const to = otherInThread(activeThread, me)
+        els.input.value = ""
+        try {
+          await sendDm(db, to, text)
+        } catch {}
+      })
+
+      await db.map(
+        {
+          query: { type: "profile" },
+          realtime: true
+        },
+        ({ id, value, action }) => {
+          const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
+          if (action === "removed") profiles.delete(address)
+          else if (value) profiles.set(address, value)
+          render()
+        }
+      )
+
+      await db.map(
+        {
+          query: {
+            $or: [
+              { type: "dm", from: me },
+              { type: "dm", to: me }
+            ]
+          },
+          realtime: true
+        },
+        async ({ id, value, action }) => {
+          if (action === "removed") {
+            dms.delete(id)
+            render()
+            return
+          }
+          if (!value) return
+          const text = await readDmText(db, value.smId)
+          dms.set(id, { ...value, id, text })
+          render()
+        }
+      )
+
+      const announce = async () => {
+        try {
+          const hello = await db.sm.sign({ room: "peerya" })
+          db.room.channel("presence").send(hello)
+        } catch {}
+      }
+
+      if (db.room) {
+        const channel = db.room.channel("presence")
+        const peerToUser = new Map()
+        channel.on("message", (data, peerId) => {
+          const from = db.sm.verify(data)
+          if (!from) return
+          peerToUser.set(peerId, from.toLowerCase())
+          online.set(from.toLowerCase(), peerId)
+          render()
+        })
+        db.room.on("peer:join", () => announce())
+        db.room.on("peer:leave", (peerId) => {
+          const address = peerToUser.get(peerId)
+          if (address) online.delete(address)
+          peerToUser.delete(peerId)
+          render()
+        })
+        await announce()
+        setInterval(announce, 25000)
+      }
+
+      render()
     </script>
   </body>
 </html>
