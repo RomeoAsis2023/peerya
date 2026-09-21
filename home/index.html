@@ -999,7 +999,7 @@
           commentBtn.type = "button"
           commentBtn.className = "post-stat"
           commentBtn.innerHTML = '<i class="bi bi-chat"></i><span></span>'
-          commentBtn.querySelector("span").textContent = String(postComments.length).padStart(2, "0")
+          commentBtn.querySelector("span").textContent = String(postComments.length)
           commentBtn.addEventListener("click", () => {
             if (openComments.has(post.id)) openComments.delete(post.id)
             else openComments.add(post.id)
@@ -1009,13 +1009,13 @@
           likeBtn.type = "button"
           likeBtn.className = "post-stat" + (liked ? " on-like" : "")
           likeBtn.innerHTML = '<i class="bi ' + (liked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up") + '"></i><span></span>'
-          likeBtn.querySelector("span").textContent = String(likeCount).padStart(2, "0")
+          likeBtn.querySelector("span").textContent = String(likeCount)
           likeBtn.addEventListener("click", () => toggleLike(db, post.id))
           const heartBtn = document.createElement("button")
           heartBtn.type = "button"
           heartBtn.className = "post-stat" + (hearted ? " on-heart" : "")
           heartBtn.innerHTML = '<i class="bi ' + (hearted ? "bi-heart-fill" : "bi-heart") + '"></i><span></span>'
-          heartBtn.querySelector("span").textContent = String(heartCount).padStart(2, "0")
+          heartBtn.querySelector("span").textContent = String(heartCount)
           heartBtn.addEventListener("click", () => toggleHeart(db, post.id))
           actions.append(commentBtn, likeBtn, heartBtn)
 
