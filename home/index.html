@@ -372,44 +372,35 @@
 
       .post-media-grid {
         display: grid;
-        gap: 2px;
-        background: #f0f0f0;
+        gap: 0.55rem;
+        margin: 0 1rem 0.35rem;
+        background: transparent;
       }
 
-      .post-media-grid.count-1 {
-        display: block;
-        background: #111;
-      }
+      .post-media-grid.count-1 { display: block; }
 
       .post-media-grid.count-1 img {
         display: block;
         width: 100%;
         height: auto;
-        max-height: 36rem;
+        max-height: 28rem;
         object-fit: contain;
+        border-radius: 1rem;
         cursor: pointer;
+        background: #f4f4f4;
       }
 
-      .post-media-grid.count-2,
-      .post-media-grid.count-4 {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .post-media-grid.count-3 {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .post-media-grid.count-3 img:first-child {
-        grid-column: 1 / -1;
-        height: 16rem;
-      }
+      .post-media-grid.count-2 { grid-template-columns: 1fr 1fr; }
+      .post-media-grid.count-3 { grid-template-columns: 1fr 1fr 1fr; }
+      .post-media-grid.count-4 { grid-template-columns: 1fr 1fr; }
 
       .post-media-grid.count-2 img,
       .post-media-grid.count-3 img,
       .post-media-grid.count-4 img {
         width: 100%;
-        height: 12rem;
+        height: 9.8rem;
         object-fit: cover;
+        border-radius: 1rem;
         cursor: pointer;
         display: block;
       }
@@ -464,10 +455,11 @@
 
       .post-card {
         border: 0;
-        border-radius: 1rem;
-        box-shadow: 0 8px 28px rgba(40, 50, 30, 0.06);
+        border-radius: 1.15rem;
+        box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
         overflow: hidden;
         margin-bottom: 1.25rem;
+        background: #fff;
       }
 
       .post-header,
@@ -512,48 +504,122 @@
       .post-actions {
         display: flex;
         align-items: center;
-        gap: 0.85rem;
-        padding-top: 0.75rem;
+        gap: 1.15rem;
+        padding: 0.35rem 1rem 0.95rem;
       }
 
-      .post-actions button {
+      .post-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
         border: 0;
         background: none;
         padding: 0;
-        color: #444;
-        font-size: 1.35rem;
-        line-height: 1;
-      }
-
-      .post-actions button.liked {
-        color: #e74c3c;
-      }
-
-      .post-actions .bookmark {
-        margin-left: auto;
-      }
-
-      .post-likes {
+        color: #9aa0a6;
         font-weight: 700;
-        font-size: 0.9rem;
-        padding: 0.45rem 1rem 0.2rem;
+        font-size: 0.86rem;
       }
 
-      .post-caption,
-      .post-comments {
-        padding: 0 1rem;
-        font-size: 0.92rem;
+      .post-stat i { font-size: 1.12rem; }
+
+      .post-stat.on-like { color: var(--peerya-green-dark); }
+      .post-stat.on-heart { color: #e74c3c; }
+
+      .post-caption {
+        padding: 0.7rem 1rem 0.15rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
         color: #4a4a4a;
       }
 
       .post-caption strong {
         font-family: "Inter", system-ui, sans-serif;
         color: var(--peerya-ink);
+        margin-right: 0.25rem;
       }
 
       .post-comments {
+        display: none;
+        padding: 0.75rem 1rem 1rem;
+        border-top: 1px solid var(--peerya-line);
+      }
+
+      .post-card.open-comments .post-comments { display: block; }
+
+      .comment-form {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .comment-form .form-control {
+        border-radius: 999px;
+        background: #f4f4f4;
+        border-color: transparent;
+        min-height: 2.4rem;
+        font-size: 0.9rem;
+      }
+
+      .comment-form .btn {
+        border-radius: 999px;
+        background: var(--peerya-green);
+        border-color: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+
+      .comment-item {
+        display: flex;
+        gap: 0.6rem;
+        padding: 0.45rem 0;
+      }
+
+      .comment-item .avatar {
+        width: 28px;
+        height: 28px;
+      }
+
+      .comment-body { min-width: 0; flex: 1; }
+
+      .comment-meta {
+        display: flex;
+        gap: 0.45rem;
+        align-items: baseline;
+      }
+
+      .comment-meta strong {
+        font-size: 0.82rem;
+      }
+
+      .comment-meta span {
+        color: #b0b0b0;
+        font-size: 0.72rem;
+      }
+
+      .comment-text {
+        margin: 0.15rem 0 0;
+        font-size: 0.88rem;
+        color: #4a4a4a;
+      }
+
+      .comment-reply {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--peerya-green-dark);
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .comment-replies {
+        padding-left: 2.15rem;
+      }
+
+      .comment-empty {
         color: #9a9a9a;
-        padding-bottom: 1rem;
+        font-size: 0.85rem;
+        margin: 0;
       }
 
       .right-rail {
@@ -811,6 +877,8 @@
         publishPost,
         toggleFollow,
         toggleLike,
+        toggleHeart,
+        addComment,
         applyCurrentUser,
         compressImage,
         MAX_POST_IMAGES
@@ -825,7 +893,11 @@
       const profiles = new Map()
       const posts = new Map()
       const likes = new Map()
+      const hearts = new Map()
+      const comments = new Map()
       const follows = new Map()
+      const openComments = new Set()
+      const replyTo = new Map()
       let swiper
 
       applyCurrentUser(db, profiles)
@@ -888,15 +960,19 @@
         }
         for (const post of rows) {
           const liked = likes.has("like:" + post.id + ":" + me.toLowerCase())
-          const likeCount = [...likes.values()].filter((like) => like.postId === post.id).length
+          const hearted = hearts.has("heart:" + post.id + ":" + me.toLowerCase())
+          const likeCount = [...likes.values()].filter((item) => item.postId === post.id).length
+          const heartCount = [...hearts.values()].filter((item) => item.postId === post.id).length
+          const postComments = [...comments.values()].filter((item) => item.postId === post.id)
           const article = document.createElement("article")
-          article.className = "card post-card"
+          article.className = "card post-card" + (openComments.has(post.id) ? " open-comments" : "")
           article.innerHTML =
-            '<div class="post-header"><img class="avatar" alt=""><div><p class="post-user"></p><p class="post-meta"></p></div></div>' +
+            '<div class="post-header"><img class="avatar" alt=""><div><p class="post-user"></p><p class="post-meta"></p></div>' +
+            '<button type="button" class="post-more" aria-label="More"><i class="bi bi-three-dots"></i></button></div>' +
             '<div class="post-media-grid"></div>' +
-            '<div class="post-actions"><button type="button" class="like-btn"></button>' +
-            '<a href="../messages/" aria-label="Message"><i class="bi bi-chat"></i></a></div>' +
-            '<p class="post-likes mb-1"></p><p class="post-caption mb-0"><strong></strong> <span></span></p>'
+            '<p class="post-caption"><strong></strong><span></span></p>' +
+            '<div class="post-actions"></div>' +
+            '<div class="post-comments"></div>'
           article.querySelector(".avatar").src = avatarUrl(post.author)
           article.querySelector(".post-user").textContent = nameOf(post.author)
           article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
@@ -913,14 +989,85 @@
               grid.append(img)
             })
           }
-          const likeBtn = article.querySelector(".like-btn")
-          likeBtn.classList.toggle("liked", liked)
-          likeBtn.setAttribute("aria-label", liked ? "Unlike" : "Like")
-          likeBtn.innerHTML = liked ? '<i class="bi bi-heart-fill"></i>' : '<i class="bi bi-heart"></i>'
+          const caption = article.querySelector(".post-caption")
+          if (post.caption) {
+            caption.querySelector("strong").textContent = nameOf(post.author)
+            caption.querySelector("span").textContent = " " + post.caption
+          } else caption.remove()
+          const actions = article.querySelector(".post-actions")
+          const commentBtn = document.createElement("button")
+          commentBtn.type = "button"
+          commentBtn.className = "post-stat"
+          commentBtn.innerHTML = '<i class="bi bi-chat"></i><span></span>'
+          commentBtn.querySelector("span").textContent = String(postComments.length).padStart(2, "0")
+          commentBtn.addEventListener("click", () => {
+            if (openComments.has(post.id)) openComments.delete(post.id)
+            else openComments.add(post.id)
+            render()
+          })
+          const likeBtn = document.createElement("button")
+          likeBtn.type = "button"
+          likeBtn.className = "post-stat" + (liked ? " on-like" : "")
+          likeBtn.innerHTML = '<i class="bi ' + (liked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up") + '"></i><span></span>'
+          likeBtn.querySelector("span").textContent = String(likeCount).padStart(2, "0")
           likeBtn.addEventListener("click", () => toggleLike(db, post.id))
-          article.querySelector(".post-likes").textContent = likeCount ? likeCount + " likes" : "Be the first to like"
-          article.querySelector("strong").textContent = nameOf(post.author)
-          article.querySelector("span").textContent = post.caption || ""
+          const heartBtn = document.createElement("button")
+          heartBtn.type = "button"
+          heartBtn.className = "post-stat" + (hearted ? " on-heart" : "")
+          heartBtn.innerHTML = '<i class="bi ' + (hearted ? "bi-heart-fill" : "bi-heart") + '"></i><span></span>'
+          heartBtn.querySelector("span").textContent = String(heartCount).padStart(2, "0")
+          heartBtn.addEventListener("click", () => toggleHeart(db, post.id))
+          actions.append(commentBtn, likeBtn, heartBtn)
+
+          const box = article.querySelector(".post-comments")
+          const form = document.createElement("form")
+          form.className = "comment-form"
+          const parentId = replyTo.get(post.id) || ""
+          form.innerHTML = '<input type="text" class="form-control" maxlength="280"><button type="submit" class="btn"></button>'
+          form.querySelector("input").placeholder = parentId ? "Write a reply…" : "Write a comment…"
+          form.querySelector(".btn").textContent = parentId ? "Reply" : "Comment"
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault()
+            const input = form.querySelector("input")
+            await addComment(db, post.id, input.value, parentId)
+            input.value = ""
+            replyTo.delete(post.id)
+          })
+          box.append(form)
+          const roots = postComments.filter((item) => !item.parentId)
+          const kids = (parent) => postComments.filter((item) => item.parentId === parent)
+          const drawComment = (node, into) => {
+            const row = document.createElement("div")
+            row.className = "comment-item"
+            row.innerHTML =
+              '<img class="avatar" alt=""><div class="comment-body"><div class="comment-meta"><strong></strong><span></span></div>' +
+              '<p class="comment-text"></p><button type="button" class="comment-reply">Reply</button></div>'
+            row.querySelector("img").src = avatarUrl(node.author)
+            row.querySelector("strong").textContent = nameOf(node.author)
+            row.querySelector("span").textContent = timeAgo(node.createdAt)
+            row.querySelector(".comment-text").textContent = node.text || ""
+            row.querySelector(".comment-reply").addEventListener("click", () => {
+              openComments.add(post.id)
+              replyTo.set(post.id, node.id)
+              render()
+            })
+            into.append(row)
+            const replies = kids(node.id)
+            if (replies.length) {
+              const nest = document.createElement("div")
+              nest.className = "comment-replies"
+              replies.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).forEach((child) => drawComment(child, nest))
+              into.append(nest)
+            }
+          }
+          if (!roots.length) {
+            const empty = document.createElement("p")
+            empty.className = "comment-empty"
+            empty.textContent = "Be the first to comment."
+            box.append(empty)
+          } else {
+            roots.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).forEach((node) => drawComment(node, box))
+          }
           feed.append(article)
         }
       }
@@ -1062,6 +1209,18 @@
       await db.map({ query: { type: "like" }, realtime: true }, ({ id, value, action }) => {
         if (action === "removed") likes.delete(id)
         else if (value) likes.set(id, { ...value, id })
+        render()
+      })
+
+      await db.map({ query: { type: "heart" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") hearts.delete(id)
+        else if (value) hearts.set(id, { ...value, id })
+        render()
+      })
+
+      await db.map({ query: { type: "comment" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") comments.delete(id)
+        else if (value) comments.set(id, { ...value, id })
         render()
       })
 

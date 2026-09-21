@@ -302,17 +302,39 @@ export async function toggleFollow(db, target) {
   return true
 }
 
-export async function toggleLike(db, postId) {
+export async function toggleReaction(db, kind, postId) {
   const from = db.sm.getActiveEthAddress()
-  if (!from || !postId) return false
-  const id = "like:" + postId + ":" + from.toLowerCase()
+  if (!from || !postId || (kind !== "like" && kind !== "heart")) return false
+  const id = kind + ":" + postId + ":" + from.toLowerCase()
   const { result } = await db.get(id)
   if (result) {
     await db.remove(id)
     return false
   }
-  await db.put({ type: "like", postId, from, createdAt: Date.now() }, id)
+  await db.put({ type: kind, postId, from, createdAt: Date.now() }, id)
   return true
+}
+
+export async function toggleLike(db, postId) {
+  return toggleReaction(db, "like", postId)
+}
+
+export async function toggleHeart(db, postId) {
+  return toggleReaction(db, "heart", postId)
+}
+
+export async function addComment(db, postId, text, parentId) {
+  const author = db.sm.getActiveEthAddress()
+  const body = (text || "").trim()
+  if (!author || !postId || !body) return null
+  return db.put({
+    type: "comment",
+    postId,
+    parentId: parentId || "",
+    author,
+    text: body,
+    createdAt: Date.now()
+  })
 }
 
 export async function signOut(db) {
