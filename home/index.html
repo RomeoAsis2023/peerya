@@ -288,6 +288,46 @@
         pointer-events: none;
       }
 
+      .composer {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 8px 28px rgba(40, 50, 30, 0.06);
+        background: #fff;
+        padding: 1rem 1.1rem 0.95rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .composer textarea {
+        width: 100%;
+        border: 0;
+        resize: none;
+        min-height: 4.2rem;
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        outline: none;
+      }
+
+      .composer-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .composer .btn {
+        background: var(--peerya-green);
+        border-color: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 0.4rem 1.1rem;
+      }
+
+      .feed-empty {
+        text-align: center;
+        color: #9a9a9a;
+        padding: 2rem 1rem;
+      }
+
       .post-card {
         border: 0;
         border-radius: 1rem;
@@ -559,10 +599,10 @@
           </div>
 
           <div class="sidebar-user">
-            <img src="https://i.pravatar.cc/80?img=32" alt="Azunyan U. Wu">
+            <img id="side-avatar" src="../icon.svg" alt="">
             <div class="meta">
-              <p class="name">Azunyan U. Wu</p>
-              <p class="role">Basic Member</p>
+              <p class="name" id="side-name">You</p>
+              <p class="role" id="side-role">Peer</p>
             </div>
              <a href="../" class="ms-auto text-secondary js-logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></a>
           </div>
@@ -573,216 +613,77 @@
     <main class="home-shell">
       <section>
         <div class="swiper stories-swiper stories-row" id="stories">
-          <div class="swiper-wrapper">
-            <div class="swiper-slide">
-              <a class="story" href="#story-1">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=5" alt=""></div>
-                <span class="story-name">mion_eusk</span>
-              </a>
-            </div>
-            <div class="swiper-slide">
-              <a class="story" href="#story-2">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=12" alt=""></div>
-                <span class="story-name">oarackbab</span>
-              </a>
-            </div>
-            <div class="swiper-slide">
-              <a class="story" href="#story-3">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=20" alt=""></div>
-                <span class="story-name">azunyan_s</span>
-              </a>
-            </div>
-            <div class="swiper-slide">
-              <a class="story" href="#story-4">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=33" alt=""></div>
-                <span class="story-name">x_ae_b-22</span>
-              </a>
-            </div>
-            <div class="swiper-slide">
-              <a class="story" href="#story-5">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=15" alt=""></div>
-                <span class="story-name">theblacks</span>
-              </a>
-            </div>
-            <div class="swiper-slide">
-              <a class="story" href="#story-6">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=52" alt=""></div>
-                <span class="story-name">david_gil</span>
-              </a>
-            </div>
-            <div class="swiper-slide">
-              <a class="story" href="#story-7">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=8" alt=""></div>
-                <span class="story-name">gerard_way</span>
-              </a>
-            </div>
-            <div class="swiper-slide">
-              <a class="story" href="#story-8">
-                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=47" alt=""></div>
-                <span class="story-name">asuna_yuuki</span>
-              </a>
-            </div>
-          </div>
+          <div class="swiper-wrapper" id="stories-track"></div>
           <button type="button" class="stories-next" aria-label="Next stories">
             <i class="bi bi-chevron-right"></i>
           </button>
         </div>
 
-        <article class="card post-card">
-          <div class="post-header">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=68" alt="">
-            <div>
-              <p class="post-user">crunchtech</p>
-              <p class="post-meta">1m ago</p>
-            </div>
-            <button type="button" class="post-more" aria-label="More"><i class="bi bi-three-dots"></i></button>
+        <form class="composer" id="composer">
+          <textarea id="composer-text" placeholder="Share with your peers…" maxlength="500"></textarea>
+          <div class="composer-actions">
+            <button type="submit" class="btn">Post</button>
           </div>
-          <img class="post-media" src="https://picsum.photos/id/1018/800/1000" alt="Living room interior">
-          <div class="post-actions">
-            <button type="button" class="like-btn liked" aria-label="Unlike"><i class="bi bi-heart-fill"></i></button>
-            <button type="button" aria-label="Comment"><i class="bi bi-chat"></i></button>
-            <button type="button" aria-label="Share"><i class="bi bi-send"></i></button>
-            <button type="button" class="bookmark" aria-label="Save"><i class="bi bi-bookmark"></i></button>
-          </div>
-          <p class="post-likes mb-1">Liked by <strong>x_ae_b-22</strong> and others</p>
-          <p class="post-caption mb-1">
-            <strong>crunchtech</strong>
-            Morning light, quiet corners, and a space that actually feels like home. Privacy first, always.
-          </p>
-          <p class="post-comments mb-0">View all 25 comments · Show More</p>
-        </article>
+        </form>
 
-        <article class="card post-card">
-          <div class="post-header">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=12" alt="">
-            <div>
-              <p class="post-user">oarackbab</p>
-              <p class="post-meta">18m ago</p>
-            </div>
-            <button type="button" class="post-more" aria-label="More"><i class="bi bi-three-dots"></i></button>
-          </div>
-          <img class="post-media" src="https://picsum.photos/id/1015/800/1000" alt="Mountain landscape">
-          <div class="post-actions">
-            <button type="button" class="like-btn" aria-label="Like"><i class="bi bi-heart"></i></button>
-            <button type="button" aria-label="Comment"><i class="bi bi-chat"></i></button>
-            <button type="button" aria-label="Share"><i class="bi bi-send"></i></button>
-            <button type="button" class="bookmark" aria-label="Save"><i class="bi bi-bookmark"></i></button>
-          </div>
-          <p class="post-likes mb-1">Liked by <strong>azunyan_s</strong> and others</p>
-          <p class="post-caption mb-1">
-            <strong>oarackbab</strong>
-            Weekend hike with the crew. The view was worth every step.
-          </p>
-          <p class="post-comments mb-0">View all 12 comments · Show More</p>
-        </article>
+        <div id="feed"></div>
       </section>
 
       <aside class="right-rail">
         <div class="account-switch">
-          <img class="avatar" src="https://i.pravatar.cc/80?img=32" alt="">
+          <img class="avatar" id="me-avatar" src="../icon.svg" alt="">
           <div>
-            <p class="suggest-name">X_AE_A-13</p>
-            <p class="suggest-handle">@xtheobiterator</p>
+            <p class="suggest-name" id="me-name">You</p>
+            <p class="suggest-handle" id="me-handle"></p>
           </div>
-          <button type="button" class="switch-link">Switch</button>
         </div>
 
         <div class="section-head">
           <h2 class="section-title">Suggested For You</h2>
-          <a href="#suggested" class="see-all">See All</a>
+          <span class="see-all" id="suggested-count">0</span>
         </div>
-        <div class="suggest-list">
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=20" alt="">
-            <div>
-              <p class="suggest-name">Azunyan Senpai</p>
-              <p class="suggest-handle">@nyancat221b</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=12" alt="">
-            <div>
-              <p class="suggest-name">Oarack Babama</p>
-              <p class="suggest-handle">@oarackbabama</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=52" alt="">
-            <div>
-              <p class="suggest-name">David Gilmore</p>
-              <p class="suggest-handle">@davidgilmore</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=8" alt="">
-            <div>
-              <p class="suggest-name">Gerard Way</p>
-              <p class="suggest-handle">@gerardway</p>
-            </div>
-            <button type="button" class="follow-btn following">Followed</button>
-          </div>
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=47" alt="">
-            <div>
-              <p class="suggest-name">Mary Suez</p>
-              <p class="suggest-handle">@marysuez21</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-        </div>
+        <div class="suggest-list" id="suggested-list"></div>
 
         <div class="section-head">
-          <h2 class="section-title">Trending Artists</h2>
-          <a href="#trending" class="see-all">See All</a>
+          <h2 class="section-title">Active Peers</h2>
+          <span class="see-all" id="peers-count">0</span>
         </div>
-        <div class="suggest-list">
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=24" alt="">
-            <div>
-              <p class="suggest-name">Saylor Twift</p>
-              <p class="suggest-handle">@saylortwiftofficial</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=11" alt="">
-            <div>
-              <p class="suggest-name">Frank Iero</p>
-              <p class="suggest-handle">@frankieroofficial</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=60" alt="">
-            <div>
-              <p class="suggest-name">Charlie XXX</p>
-              <p class="suggest-handle">@charliexxx</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-          <div class="suggest-item">
-            <img class="avatar" src="https://i.pravatar.cc/80?img=44" alt="">
-            <div>
-              <p class="suggest-name">Star Warz</p>
-              <p class="suggest-handle">@starwarzofficial</p>
-            </div>
-            <button type="button" class="follow-btn">Follow</button>
-          </div>
-        </div>
+        <div class="suggest-list" id="peers-list"></div>
       </aside>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script type="module">
-      import { requireAuth, signOut } from "../js/peerya.js"
+      import {
+        requireAuth,
+        signOut,
+        avatarUrl,
+        displayName,
+        timeAgo,
+        startPresence,
+        publishPost,
+        toggleFollow,
+        toggleLike
+      } from "../js/peerya.js"
 
       const db = await requireAuth()
       if (!db) throw new Error("unauthorized")
       document.body.classList.add("is-authed")
+
+      const me = db.sm.getActiveEthAddress()
+      const meName = localStorage.getItem("peerya.username") || db.sm.abbrAddr(me)
+      const profiles = new Map()
+      const posts = new Map()
+      const likes = new Map()
+      const follows = new Map()
+      let swiper
+
+      document.getElementById("side-avatar").src = avatarUrl(me)
+      document.getElementById("side-name").textContent = meName
+      document.getElementById("me-avatar").src = avatarUrl(me)
+      document.getElementById("me-name").textContent = meName
+      document.getElementById("me-handle").textContent = db.sm.abbrAddr(me)
 
       document.querySelectorAll(".js-logout").forEach((button) => {
         button.addEventListener("click", async (event) => {
@@ -791,36 +692,154 @@
         })
       })
 
-      new Swiper("#stories", {
-        slidesPerView: "auto",
-        spaceBetween: 16,
-        grabCursor: true,
-        freeMode: {
-          enabled: true,
-          momentum: true
-        },
-        mousewheel: {
-          forceToAxis: true
-        },
-        navigation: {
-          nextEl: ".stories-next"
+      let paint = () => {}
+      const presence = startPresence(db, () => paint())
+      const nameOf = (address) => displayName(db, profiles, address)
+
+      const others = () =>
+        [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
+
+      const renderStories = () => {
+        const track = document.getElementById("stories-track")
+        const peers = [
+          { address: me, username: meName },
+          ...others()
+        ]
+        track.innerHTML = ""
+        for (const peer of peers) {
+          const slide = document.createElement("div")
+          slide.className = "swiper-slide"
+          const online = presence.online.has(String(peer.address).toLowerCase()) || peer.address === me
+          slide.innerHTML =
+            '<a class="story" href="../messages/"><div class="story-ring"><img alt=""></div><span class="story-name"></span></a>'
+          slide.querySelector("img").src = avatarUrl(peer.address)
+          slide.querySelector(".story-name").textContent = peer.username || nameOf(peer.address)
+          if (!online) slide.querySelector(".story-ring").style.opacity = "0.55"
+          track.append(slide)
         }
+        if (swiper) swiper.update()
+        else {
+          swiper = new Swiper("#stories", {
+            slidesPerView: "auto",
+            spaceBetween: 16,
+            grabCursor: true,
+            freeMode: { enabled: true, momentum: true },
+            mousewheel: { forceToAxis: true },
+            navigation: { nextEl: ".stories-next" }
+          })
+        }
+      }
+
+      const renderFeed = () => {
+        const feed = document.getElementById("feed")
+        const rows = [...posts.values()].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        feed.innerHTML = ""
+        if (!rows.length) {
+          const empty = document.createElement("p")
+          empty.className = "feed-empty"
+          empty.textContent = "No posts yet. Share something with your peers."
+          feed.append(empty)
+          return
+        }
+        for (const post of rows) {
+          const liked = likes.has("like:" + post.id + ":" + me.toLowerCase())
+          const likeCount = [...likes.values()].filter((like) => like.postId === post.id).length
+          const article = document.createElement("article")
+          article.className = "card post-card"
+          article.innerHTML =
+            '<div class="post-header"><img class="avatar" alt=""><div><p class="post-user"></p><p class="post-meta"></p></div></div>' +
+            '<div class="post-actions"><button type="button" class="like-btn"></button>' +
+            '<a href="../messages/" aria-label="Message"><i class="bi bi-chat"></i></a></div>' +
+            '<p class="post-likes mb-1"></p><p class="post-caption mb-0"><strong></strong> <span></span></p>'
+          article.querySelector(".avatar").src = avatarUrl(post.author)
+          article.querySelector(".post-user").textContent = nameOf(post.author)
+          article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
+          const likeBtn = article.querySelector(".like-btn")
+          likeBtn.classList.toggle("liked", liked)
+          likeBtn.setAttribute("aria-label", liked ? "Unlike" : "Like")
+          likeBtn.innerHTML = liked ? '<i class="bi bi-heart-fill"></i>' : '<i class="bi bi-heart"></i>'
+          likeBtn.addEventListener("click", () => toggleLike(db, post.id))
+          article.querySelector(".post-likes").textContent = likeCount ? likeCount + " likes" : "Be the first to like"
+          article.querySelector("strong").textContent = nameOf(post.author)
+          article.querySelector("span").textContent = post.caption || ""
+          feed.append(article)
+        }
+      }
+
+      const renderPeople = (root, countEl, list, emptyText) => {
+        root.innerHTML = ""
+        countEl.textContent = String(list.length)
+        if (!list.length) {
+          const empty = document.createElement("p")
+          empty.className = "feed-empty"
+          empty.textContent = emptyText
+          root.append(empty)
+          return
+        }
+        for (const person of list) {
+          const followed = follows.has("follow:" + me.toLowerCase() + ":" + String(person.address).toLowerCase())
+          const row = document.createElement("div")
+          row.className = "suggest-item"
+          row.innerHTML =
+            '<img class="avatar" alt=""><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
+            '<button type="button" class="follow-btn"></button>'
+          row.querySelector("img").src = avatarUrl(person.address)
+          row.querySelector(".suggest-name").textContent = nameOf(person.address)
+          row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
+          const btn = row.querySelector(".follow-btn")
+          btn.classList.toggle("following", followed)
+          btn.textContent = followed ? "Followed" : "Follow"
+          btn.addEventListener("click", () => toggleFollow(db, person.address))
+          root.append(row)
+        }
+      }
+
+      const render = () => {
+        const people = others()
+        const active = people.filter((person) => presence.online.has(String(person.address).toLowerCase()))
+        const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()))
+        renderStories()
+        renderFeed()
+        renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
+        renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
+      }
+      paint = render
+
+      document.getElementById("composer").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        const field = document.getElementById("composer-text")
+        try {
+          await publishPost(db, field.value)
+          field.value = ""
+        } catch {}
       })
 
-      document.querySelectorAll(".like-btn").forEach((button) => {
-        button.addEventListener("click", () => {
-          const liked = button.classList.toggle("liked")
-          button.setAttribute("aria-label", liked ? "Unlike" : "Like")
-          button.innerHTML = liked ? '<i class="bi bi-heart-fill"></i>' : '<i class="bi bi-heart"></i>'
-        })
+      await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
+        const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
+        if (action === "removed") profiles.delete(address)
+        else if (value) profiles.set(address, value)
+        render()
       })
 
-      document.querySelectorAll(".follow-btn").forEach((button) => {
-        button.addEventListener("click", () => {
-          const following = button.classList.toggle("following")
-          button.textContent = following ? "Followed" : "Follow"
-        })
+      await db.map({ query: { type: "post" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") posts.delete(id)
+        else if (value) posts.set(id, { ...value, id })
+        render()
       })
+
+      await db.map({ query: { type: "like" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") likes.delete(id)
+        else if (value) likes.set(id, { ...value, id })
+        render()
+      })
+
+      await db.map({ query: { type: "follow" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") follows.delete(id)
+        else if (value) follows.set(id, { ...value, id })
+        render()
+      })
+
+      render()
     </script>
   </body>
 </html>

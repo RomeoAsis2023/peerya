@@ -713,7 +713,10 @@
         otherInThread,
         avatarUrl,
         sendDm,
-        readDmText
+        readDmText,
+        displayName as nameOf,
+        timeAgo,
+        startPresence
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -724,9 +727,11 @@
       const meName = localStorage.getItem("peerya.username") || db.sm.abbrAddr(me)
       const profiles = new Map()
       const dms = new Map()
-      const online = new Map()
       let query = ""
       let activeThread = ""
+      let paint = () => {}
+      const presence = startPresence(db, () => paint())
+      const online = presence.online
 
       const els = {
         card: document.getElementById("messages-card"),
@@ -758,10 +763,7 @@
         })
       })
 
-      const displayName = (address) => {
-        const profile = profiles.get(String(address).toLowerCase())
-        return (profile && profile.username) || db.sm.abbrAddr(address)
-      }
+      const displayName = (address) => nameOf(db, profiles, address)
 
       const matchesQuery = (text) => {
         if (!query) return true
@@ -857,7 +859,7 @@
             '<div class="thread-copy"><div class="thread-top"><p class="thread-name"></p><span class="thread-time"></span></div>' +
             '<p class="thread-preview"></p></div>'
           btn.querySelector(".thread-name").textContent = displayName(other)
-          btn.querySelector(".thread-time").textContent = when(row.createdAt)
+          btn.querySelector(".thread-time").textContent = timeAgo(row.createdAt)
           btn.querySelector(".thread-preview").textContent = row.text || "New chat"
           btn.addEventListener("click", () => openThread(row.threadId))
           els.threads.append(btn)
@@ -901,6 +903,7 @@
         renderThreads()
         renderChat()
       }
+      paint = render
 
       els.search.addEventListener("input", () => {
         query = els.search.value.trim().toLowerCase()
@@ -961,34 +964,6 @@
           render()
         }
       )
-
-      const announce = async () => {
-        try {
-          const hello = await db.sm.sign({ room: "peerya" })
-          db.room.channel("presence").send(hello)
-        } catch {}
-      }
-
-      if (db.room) {
-        const channel = db.room.channel("presence")
-        const peerToUser = new Map()
-        channel.on("message", (data, peerId) => {
-          const from = db.sm.verify(data)
-          if (!from) return
-          peerToUser.set(peerId, from.toLowerCase())
-          online.set(from.toLowerCase(), peerId)
-          render()
-        })
-        db.room.on("peer:join", () => announce())
-        db.room.on("peer:leave", (peerId) => {
-          const address = peerToUser.get(peerId)
-          if (address) online.delete(address)
-          peerToUser.delete(peerId)
-          render()
-        })
-        await announce()
-        setInterval(announce, 25000)
-      }
 
       render()
     </script>

@@ -152,6 +152,100 @@ export async function readDmText(db, smId) {
   return ""
 }
 
+export function displayName(db, profiles, address) {
+  const profile = profiles.get(String(address).toLowerCase())
+  if (profile && profile.username) return profile.username
+  try {
+    return db.sm.abbrAddr(address)
+  } catch {
+    return String(address || "").slice(0, 10)
+  }
+}
+
+export function timeAgo(ms) {
+  if (!ms) return ""
+  const diff = Date.now() - ms
+  if (diff < 60000) return "now"
+  if (diff < 3600000) return Math.floor(diff / 60000) + "m ago"
+  if (diff < 86400000) return Math.floor(diff / 3600000) + "h ago"
+  return Math.floor(diff / 86400000) + "d ago"
+}
+
+export function startPresence(db, onChange) {
+  const online = new Map()
+  const peerToUser = new Map()
+  const announce = async () => {
+    try {
+      const hello = await db.sm.sign({ room: "peerya" })
+      db.room.channel("presence").send(hello)
+    } catch {}
+  }
+  const me = db.sm.getActiveEthAddress()
+  if (me) online.set(me.toLowerCase(), "self")
+  if (!db.room) return { online, stop() {} }
+  const channel = db.room.channel("presence")
+  channel.on("message", (data, peerId) => {
+    const from = db.sm.verify(data)
+    if (!from) return
+    peerToUser.set(peerId, from.toLowerCase())
+    online.set(from.toLowerCase(), peerId)
+    if (onChange) onChange()
+  })
+  db.room.on("peer:join", () => announce())
+  db.room.on("peer:leave", (peerId) => {
+    const address = peerToUser.get(peerId)
+    if (address) online.delete(address)
+    peerToUser.delete(peerId)
+    if (onChange) onChange()
+  })
+  announce()
+  const timer = setInterval(announce, 25000)
+  return {
+    online,
+    stop() {
+      clearInterval(timer)
+    }
+  }
+}
+
+export async function publishPost(db, caption) {
+  const author = db.sm.getActiveEthAddress()
+  const text = (caption || "").trim()
+  if (!author || !text) return null
+  return db.put({
+    type: "post",
+    author,
+    caption: text,
+    createdAt: Date.now()
+  })
+}
+
+export async function toggleFollow(db, target) {
+  const from = db.sm.getActiveEthAddress()
+  if (!from || !target) return false
+  const id = "follow:" + from.toLowerCase() + ":" + String(target).toLowerCase()
+  const { result } = await db.get(id)
+  if (result) {
+    await db.remove(id)
+    return false
+  }
+  await db.put({ type: "follow", from, to: target, createdAt: Date.now() }, id)
+  return true
+}
+
+export async function toggleLike(db, postId) {
+  const from = db.sm.getActiveEthAddress()
+  if (!from || !postId) return false
+  const id = "like:" + postId + ":" + from.toLowerCase()
+  const { result } = await db.get(id)
+  if (result) {
+    await db.remove(id)
+    return false
+  }
+  await db.put({ type: "like", postId, from, createdAt: Date.now() }, id)
+  return true
+}
+
 export async function signOut(db) {
   try {
     await db.sm.clearSecurity()
