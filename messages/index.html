@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="icon" href="../icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+    <title>Peerya - Messages</title>
+    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+      :root {
+        --peerya-green: #8bc34a;
+        --peerya-green-dark: #7cb342;
+        --peerya-ink: #2f2f2f;
+        --peerya-muted: #6f6f6f;
+        --peerya-line: #ececec;
+        --peerya-soft: #f6f7f4;
+        --bs-sidebar-width: 17.5rem;
+        --bs-sidebar-bg: #ffffff;
+        --bs-body-font-family: "Manrope", system-ui, sans-serif;
+        --bs-body-color: var(--peerya-ink);
+        --bs-primary: var(--peerya-green);
+        --bs-link-color: var(--peerya-green-dark);
+        --bs-heading-font-family: "Inter", system-ui, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        min-height: 100%;
+        min-height: 100dvh;
+      }
+
+      body {
+        margin: 0;
+        background: #fafafa;
+        color: var(--peerya-ink);
+        font-family: "Manrope", system-ui, sans-serif;
+        -webkit-text-size-adjust: 100%;
+        visibility: hidden;
+      }
+
+      body.is-authed { visibility: visible; }
+
+      h1, h2, h3, h4, h5, h6,
+      .sidebar-brand,
+      .suggest-name,
+      .section-title,
+      .thread-name {
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      img { max-width: 100%; height: auto; }
+
+      .sidebar {
+        --bs-offcanvas-width: var(--bs-sidebar-width);
+        border-right: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--peerya-ink);
+        text-decoration: none;
+      }
+
+      .sidebar-brand img {
+        width: auto;
+        height: 1.75rem;
+      }
+
+      .sidebar-search { position: relative; }
+
+      .sidebar-search i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9a9a9a;
+      }
+
+      .sidebar-search .form-control {
+        padding-left: 2.3rem;
+        border-radius: 999px;
+        background: #f4f4f4;
+        border-color: transparent;
+      }
+
+      .sidebar-nav {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0;
+      }
+
+      .sidebar-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        color: #4a4a4a;
+        border-radius: 0.7rem;
+        font-weight: 600;
+      }
+
+      .sidebar-nav .nav-link i {
+        font-size: 1.15rem;
+        width: 1.3rem;
+        text-align: center;
+      }
+
+      .sidebar-nav .nav-link:hover,
+      .sidebar-nav .nav-link.active {
+        background: var(--peerya-soft);
+        color: var(--peerya-ink);
+      }
+
+      .sidebar-nav .nav-link.active { color: var(--peerya-green-dark); }
+
+      .nav-badge {
+        margin-left: auto;
+        min-width: 1.4rem;
+        height: 1.4rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: #ecebff;
+        color: #6b63d6;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .promo-card {
+        border: 1px solid var(--peerya-line);
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        background: #fff;
+      }
+
+      .promo-card .promo-icon {
+        width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 50%;
+        background: #fff6e8;
+        color: #e6a23c;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding-top: 0.85rem;
+        margin-top: 0.85rem;
+        border-top: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-user img,
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .sidebar-user .name,
+      .suggest-name,
+      .thread-name {
+        font-weight: 700;
+        font-size: 0.92rem;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .sidebar-user .role,
+      .suggest-handle,
+      .thread-preview {
+        color: #8a8a8a;
+        font-size: 0.78rem;
+        margin: 0;
+      }
+
+      .home-topbar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: #fff;
+        border-bottom: 1px solid var(--peerya-line);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .home-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        gap: 1.75rem;
+        max-width: 62rem;
+        margin: 0 auto;
+        padding: 1.25rem 1.5rem 2.5rem;
+      }
+
+      .messages-card {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 8px 28px rgba(40, 50, 30, 0.06);
+        background: #fff;
+        overflow: hidden;
+        min-height: 36rem;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .messages-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.15rem 0.85rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .messages-head h1 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .messages-search {
+        position: relative;
+        margin: 0.9rem 1.15rem 0.35rem;
+      }
+
+      .messages-search i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9a9a9a;
+      }
+
+      .messages-search .form-control {
+        padding-left: 2.3rem;
+        border-radius: 999px;
+        background: #f4f4f4;
+        border-color: transparent;
+        min-height: 2.6rem;
+      }
+
+      .thread-list {
+        display: flex;
+        flex-direction: column;
+        padding: 0.4rem 0.55rem 0.85rem;
+      }
+
+      .thread {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        border: 0;
+        background: none;
+        text-align: left;
+        padding: 0.75rem 0.7rem;
+        border-radius: 0.85rem;
+        color: inherit;
+      }
+
+      .thread:hover,
+      .thread.active {
+        background: var(--peerya-soft);
+      }
+
+      .thread-copy { min-width: 0; flex: 1; }
+
+      .thread-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+
+      .thread-time {
+        color: #b0b0b0;
+        font-size: 0.72rem;
+        white-space: nowrap;
+      }
+
+      .thread-preview {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .thread.unread .thread-name,
+      .thread.unread .thread-preview {
+        color: var(--peerya-ink);
+        font-weight: 700;
+      }
+
+      .right-rail {
+        position: sticky;
+        top: 1.25rem;
+        align-self: start;
+      }
+
+      .account-switch,
+      .friend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+      }
+
+      .account-switch {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .account-switch img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .switch-link,
+      .see-all {
+        margin-left: auto;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--peerya-green-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.9rem;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #7a7a7a;
+      }
+
+      .friend-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.95rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .friend-item {
+        width: 100%;
+        border: 0;
+        background: none;
+        padding: 0;
+        text-align: left;
+        color: inherit;
+      }
+
+      .friend-avatar {
+        position: relative;
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+      }
+
+      .friend-avatar img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .presence {
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        width: 0.72rem;
+        height: 0.72rem;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        background: #c8c8c8;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+      }
+
+      .presence.online { background: var(--peerya-green); }
+
+      .friend-meta { min-width: 0; }
+
+      .friend-status {
+        margin: 0.15rem 0 0;
+        font-size: 0.75rem;
+        color: #9a9a9a;
+      }
+
+      .friend-item.online .friend-status {
+        color: var(--peerya-green-dark);
+        font-weight: 600;
+      }
+
+      @media (max-width: 1199.98px) {
+        .home-shell {
+          grid-template-columns: minmax(0, 1fr);
+          max-width: 40rem;
+        }
+
+        .right-rail {
+          position: static;
+          order: -1;
+        }
+      }
+
+      @media (max-width: 991.98px) {
+        .home-topbar { display: flex; }
+        .home-shell { padding: 1rem; }
+        .messages-card { min-height: 28rem; }
+      }
+    </style>
+  </head>
+  <body class="ps-lg-sbwidth">
+    <header class="home-topbar">
+      <a class="sidebar-brand" href="../home/">
+        <img src="../logo_full.svg" alt="Peerya">
+      </a>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-light js-logout" aria-label="Logout">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+        <button type="button" class="btn btn-light" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+          <i class="bi bi-list"></i>
+        </button>
+      </div>
+    </header>
+
+    <nav class="sidebar offcanvas-start offcanvas-lg" tabindex="-1" id="sidebar" aria-label="Main navigation">
+      <div class="offcanvas-header">
+        <a class="sidebar-brand" href="../home/">
+          <img src="../logo_full.svg" alt="Peerya">
+        </a>
+        <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column">
+        <div class="sidebar-search mb-3">
+          <i class="bi bi-search"></i>
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+        </div>
+
+        <ul class="sidebar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="../home/">
+              <i class="bi bi-house-door"></i> Home
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="./" aria-current="page">
+              <i class="bi bi-chat-dots"></i> Messages
+              <span class="nav-badge">3</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#friends">
+              <i class="bi bi-people"></i> Friends
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#explore">
+              <i class="bi bi-compass"></i> Explore
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#notifications">
+              <i class="bi bi-bell"></i> Notifications
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#settings">
+              <i class="bi bi-gear"></i> Settings
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#help">
+              <i class="bi bi-question-circle"></i> Help &amp; Support
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link js-logout" href="../">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+          </li>
+        </ul>
+
+        <div class="mt-auto">
+          <div class="promo-card mb-3">
+            <div class="d-flex align-items-start justify-content-between mb-2">
+              <span class="promo-icon"><i class="bi bi-exclamation-circle"></i></span>
+              <button type="button" class="btn-close" aria-label="Dismiss promo"></button>
+            </div>
+            <p class="mb-2 small text-secondary">Enjoy unlimited access to Peerya with only a small price monthly.</p>
+            <div class="d-flex gap-3">
+              <button type="button" class="btn btn-link btn-sm px-0 text-secondary">Dismiss</button>
+              <a href="#upgrade" class="btn btn-link btn-sm px-0">Go Pro</a>
+            </div>
+          </div>
+
+          <div class="sidebar-user">
+            <img src="https://i.pravatar.cc/80?img=32" alt="Azunyan U. Wu">
+            <div class="meta">
+              <p class="name">Azunyan U. Wu</p>
+              <p class="role">Basic Member</p>
+            </div>
+            <a href="../" class="ms-auto text-secondary js-logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="home-shell">
+      <section>
+        <div class="messages-card">
+          <div class="messages-head">
+            <h1>Messages</h1>
+            <button type="button" class="switch-link" aria-label="New message"><i class="bi bi-pencil-square"></i></button>
+          </div>
+          <div class="messages-search">
+            <i class="bi bi-search"></i>
+            <input type="search" class="form-control" placeholder="Search messages" aria-label="Search messages">
+          </div>
+          <div class="thread-list">
+            <button type="button" class="thread active unread">
+              <div class="friend-avatar">
+                <img src="https://i.pravatar.cc/80?img=20" alt="">
+                <span class="presence online"></span>
+              </div>
+              <div class="thread-copy">
+                <div class="thread-top">
+                  <p class="thread-name">Azunyan Senpai</p>
+                  <span class="thread-time">2m</span>
+                </div>
+                <p class="thread-preview">You up for a collab later tonight?</p>
+              </div>
+            </button>
+            <button type="button" class="thread unread">
+              <div class="friend-avatar">
+                <img src="https://i.pravatar.cc/80?img=12" alt="">
+                <span class="presence online"></span>
+              </div>
+              <div class="thread-copy">
+                <div class="thread-top">
+                  <p class="thread-name">Oarack Babama</p>
+                  <span class="thread-time">18m</span>
+                </div>
+                <p class="thread-preview">The hike photos are in the album.</p>
+              </div>
+            </button>
+            <button type="button" class="thread">
+              <div class="friend-avatar">
+                <img src="https://i.pravatar.cc/80?img=52" alt="">
+                <span class="presence online"></span>
+              </div>
+              <div class="thread-copy">
+                <div class="thread-top">
+                  <p class="thread-name">David Gilmore</p>
+                  <span class="thread-time">1h</span>
+                </div>
+                <p class="thread-preview">Nice set last night 🔥</p>
+              </div>
+            </button>
+            <button type="button" class="thread unread">
+              <div class="friend-avatar">
+                <img src="https://i.pravatar.cc/80?img=47" alt="">
+                <span class="presence"></span>
+              </div>
+              <div class="thread-copy">
+                <div class="thread-top">
+                  <p class="thread-name">Mary Suez</p>
+                  <span class="thread-time">Yesterday</span>
+                </div>
+                <p class="thread-preview">Sent you the draft. Take a look?</p>
+              </div>
+            </button>
+            <button type="button" class="thread">
+              <div class="friend-avatar">
+                <img src="https://i.pravatar.cc/80?img=8" alt="">
+                <span class="presence"></span>
+              </div>
+              <div class="thread-copy">
+                <div class="thread-top">
+                  <p class="thread-name">Gerard Way</p>
+                  <span class="thread-time">Tue</span>
+                </div>
+                <p class="thread-preview">Catch you on the next drop.</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="right-rail">
+        <div class="account-switch">
+          <img class="avatar" src="https://i.pravatar.cc/80?img=32" alt="">
+          <div>
+            <p class="suggest-name">X_AE_A-13</p>
+            <p class="suggest-handle">@xtheobiterator</p>
+          </div>
+          <button type="button" class="switch-link">Switch</button>
+        </div>
+
+        <div class="section-head">
+          <h2 class="section-title">Online Friends</h2>
+          <span class="see-all">3</span>
+        </div>
+        <div class="friend-list">
+          <button type="button" class="friend-item online">
+            <div class="friend-avatar">
+              <img src="https://i.pravatar.cc/80?img=20" alt="">
+              <span class="presence online"></span>
+            </div>
+            <div class="friend-meta">
+              <p class="suggest-name">Azunyan Senpai</p>
+              <p class="friend-status">Active now</p>
+            </div>
+          </button>
+          <button type="button" class="friend-item online">
+            <div class="friend-avatar">
+              <img src="https://i.pravatar.cc/80?img=12" alt="">
+              <span class="presence online"></span>
+            </div>
+            <div class="friend-meta">
+              <p class="suggest-name">Oarack Babama</p>
+              <p class="friend-status">Active now</p>
+            </div>
+          </button>
+          <button type="button" class="friend-item online">
+            <div class="friend-avatar">
+              <img src="https://i.pravatar.cc/80?img=52" alt="">
+              <span class="presence online"></span>
+            </div>
+            <div class="friend-meta">
+              <p class="suggest-name">David Gilmore</p>
+              <p class="friend-status">Active now</p>
+            </div>
+          </button>
+        </div>
+
+        <div class="section-head">
+          <h2 class="section-title">Offline Friends</h2>
+          <span class="see-all">4</span>
+        </div>
+        <div class="friend-list">
+          <button type="button" class="friend-item">
+            <div class="friend-avatar">
+              <img src="https://i.pravatar.cc/80?img=8" alt="">
+              <span class="presence"></span>
+            </div>
+            <div class="friend-meta">
+              <p class="suggest-name">Gerard Way</p>
+              <p class="friend-status">Last seen 2h ago</p>
+            </div>
+          </button>
+          <button type="button" class="friend-item">
+            <div class="friend-avatar">
+              <img src="https://i.pravatar.cc/80?img=47" alt="">
+              <span class="presence"></span>
+            </div>
+            <div class="friend-meta">
+              <p class="suggest-name">Mary Suez</p>
+              <p class="friend-status">Last seen yesterday</p>
+            </div>
+          </button>
+          <button type="button" class="friend-item">
+            <div class="friend-avatar">
+              <img src="https://i.pravatar.cc/80?img=24" alt="">
+              <span class="presence"></span>
+            </div>
+            <div class="friend-meta">
+              <p class="suggest-name">Saylor Twift</p>
+              <p class="friend-status">Last seen 3d ago</p>
+            </div>
+          </button>
+          <button type="button" class="friend-item">
+            <div class="friend-avatar">
+              <img src="https://i.pravatar.cc/80?img=11" alt="">
+              <span class="presence"></span>
+            </div>
+            <div class="friend-meta">
+              <p class="suggest-name">Frank Iero</p>
+              <p class="friend-status">Last seen 1w ago</p>
+            </div>
+          </button>
+        </div>
+      </aside>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
+    <script type="module">
+      import { requireAuth, signOut } from "../js/peerya.js"
+
+      const db = await requireAuth()
+      if (!db) throw new Error("unauthorized")
+      document.body.classList.add("is-authed")
+
+      document.querySelectorAll(".js-logout").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault()
+          await signOut(db)
+        })
+      })
+
+      document.querySelectorAll(".thread").forEach((thread) => {
+        thread.addEventListener("click", () => {
+          document.querySelectorAll(".thread").forEach((item) => item.classList.remove("active"))
+          thread.classList.add("active")
+          thread.classList.remove("unread")
+        })
+      })
+    </script>
+  </body>
+</html>
