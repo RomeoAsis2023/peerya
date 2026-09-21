@@ -241,14 +241,50 @@ export function startPresence(db, onChange) {
   }
 }
 
-export async function publishPost(db, caption) {
+export const MAX_POST_IMAGES = 4
+
+export function compressImage(file) {
+  return new Promise((resolve) => {
+    if (!file || !String(file.type || "").startsWith("image/")) {
+      resolve(null)
+      return
+    }
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const max = 1280
+      let width = img.width
+      let height = img.height
+      if (width > max || height > max) {
+        const scale = Math.min(max / width, max / height)
+        width = Math.round(width * scale)
+        height = Math.round(height * scale)
+      }
+      const canvas = document.createElement("canvas")
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height)
+      URL.revokeObjectURL(url)
+      resolve({ mime: "image/jpeg", data: canvas.toDataURL("image/jpeg", 0.8) })
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+    img.src = url
+  })
+}
+
+export async function publishPost(db, caption, images) {
   const author = db.sm.getActiveEthAddress()
   const text = (caption || "").trim()
-  if (!author || !text) return null
+  const pics = (images || []).filter((image) => image && image.data).slice(0, MAX_POST_IMAGES)
+  if (!author || (!text && !pics.length)) return null
   return db.put({
     type: "post",
     author,
     caption: text,
+    images: pics,
     createdAt: Date.now()
   })
 }

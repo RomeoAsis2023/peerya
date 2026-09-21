@@ -310,7 +310,9 @@
 
       .composer-actions {
         display: flex;
-        justify-content: flex-end;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
       }
 
       .composer .btn {
@@ -321,6 +323,138 @@
         border-radius: 999px;
         padding: 0.4rem 1.1rem;
       }
+
+      .attach-btn {
+        border: 0;
+        background: none;
+        color: var(--peerya-green-dark);
+        font-size: 1.35rem;
+        padding: 0.2rem;
+        line-height: 1;
+      }
+
+      .composer-previews {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.45rem;
+        margin: 0.35rem 0 0.85rem;
+      }
+
+      .composer-previews:empty { display: none; }
+
+      .composer-thumb {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 0.6rem;
+        overflow: hidden;
+        background: #eee;
+      }
+
+      .composer-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .composer-thumb button {
+        position: absolute;
+        top: 0.25rem;
+        right: 0.25rem;
+        width: 1.35rem;
+        height: 1.35rem;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(20, 20, 20, 0.72);
+        color: #fff;
+        line-height: 1;
+        font-size: 0.85rem;
+      }
+
+      .post-media-grid {
+        display: grid;
+        gap: 2px;
+        background: #f0f0f0;
+      }
+
+      .post-media-grid.count-1 {
+        display: block;
+        background: #111;
+      }
+
+      .post-media-grid.count-1 img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 36rem;
+        object-fit: contain;
+        cursor: pointer;
+      }
+
+      .post-media-grid.count-2,
+      .post-media-grid.count-4 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .post-media-grid.count-3 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .post-media-grid.count-3 img:first-child {
+        grid-column: 1 / -1;
+        height: 16rem;
+      }
+
+      .post-media-grid.count-2 img,
+      .post-media-grid.count-3 img,
+      .post-media-grid.count-4 img {
+        width: 100%;
+        height: 12rem;
+        object-fit: cover;
+        cursor: pointer;
+        display: block;
+      }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        background: rgba(18, 18, 18, 0.94);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .lightbox.hidden { display: none; }
+
+      .lightbox img {
+        max-width: min(92vw, 56rem);
+        max-height: 86vh;
+        object-fit: contain;
+      }
+
+      .lightbox-close,
+      .lightbox-prev,
+      .lightbox-next {
+        position: absolute;
+        border: 0;
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      .lightbox-close {
+        top: 1rem;
+        right: 1rem;
+      }
+
+      .lightbox-prev { left: 1rem; }
+      .lightbox-next { right: 1rem; }
 
       .feed-empty {
         text-align: center;
@@ -621,7 +755,12 @@
 
         <form class="composer" id="composer">
           <textarea id="composer-text" placeholder="Share with your peers…" maxlength="500"></textarea>
+          <div class="composer-previews" id="composer-previews"></div>
           <div class="composer-actions">
+            <button type="button" class="attach-btn" id="attach-btn" aria-label="Attach images">
+              <i class="bi bi-image"></i>
+            </button>
+            <input type="file" id="composer-files" accept="image/*" multiple hidden>
             <button type="submit" class="btn">Post</button>
           </div>
         </form>
@@ -652,6 +791,13 @@
       </aside>
     </main>
 
+    <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="Post images">
+      <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+      <button type="button" class="lightbox-prev" id="lightbox-prev" aria-label="Previous"><i class="bi bi-chevron-left"></i></button>
+      <img id="lightbox-image" alt="">
+      <button type="button" class="lightbox-next" id="lightbox-next" aria-label="Next"><i class="bi bi-chevron-right"></i></button>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script type="module">
@@ -665,7 +811,9 @@
         publishPost,
         toggleFollow,
         toggleLike,
-        applyCurrentUser
+        applyCurrentUser,
+        compressImage,
+        MAX_POST_IMAGES
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -745,12 +893,26 @@
           article.className = "card post-card"
           article.innerHTML =
             '<div class="post-header"><img class="avatar" alt=""><div><p class="post-user"></p><p class="post-meta"></p></div></div>' +
+            '<div class="post-media-grid"></div>' +
             '<div class="post-actions"><button type="button" class="like-btn"></button>' +
             '<a href="../messages/" aria-label="Message"><i class="bi bi-chat"></i></a></div>' +
             '<p class="post-likes mb-1"></p><p class="post-caption mb-0"><strong></strong> <span></span></p>'
           article.querySelector(".avatar").src = avatarUrl(post.author)
           article.querySelector(".post-user").textContent = nameOf(post.author)
           article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
+          const pics = Array.isArray(post.images) ? post.images.filter((image) => image && image.data) : []
+          const grid = article.querySelector(".post-media-grid")
+          if (!pics.length) grid.remove()
+          else {
+            grid.classList.add("count-" + Math.min(pics.length, 4))
+            pics.forEach((image, index) => {
+              const img = document.createElement("img")
+              img.src = image.data
+              img.alt = ""
+              img.addEventListener("click", () => openLightbox(pics, index))
+              grid.append(img)
+            })
+          }
           const likeBtn = article.querySelector(".like-btn")
           likeBtn.classList.toggle("liked", liked)
           likeBtn.setAttribute("aria-label", liked ? "Unlike" : "Like")
@@ -803,12 +965,84 @@
       }
       paint = render
 
+      let pendingImages = []
+      let lightboxImages = []
+      let lightboxIndex = 0
+
+      const previews = document.getElementById("composer-previews")
+      const fileInput = document.getElementById("composer-files")
+      const lightbox = document.getElementById("lightbox")
+      const lightboxImage = document.getElementById("lightbox-image")
+
+      const renderPreviews = () => {
+        previews.innerHTML = ""
+        pendingImages.forEach((image, index) => {
+          const thumb = document.createElement("div")
+          thumb.className = "composer-thumb"
+          thumb.innerHTML = '<img alt=""><button type="button" aria-label="Remove">&times;</button>'
+          thumb.querySelector("img").src = image.data
+          thumb.querySelector("button").addEventListener("click", () => {
+            pendingImages.splice(index, 1)
+            renderPreviews()
+          })
+          previews.append(thumb)
+        })
+      }
+
+      const openLightbox = (images, index) => {
+        lightboxImages = images
+        lightboxIndex = index
+        lightboxImage.src = images[index].data
+        const many = images.length > 1
+        document.getElementById("lightbox-prev").style.visibility = many ? "visible" : "hidden"
+        document.getElementById("lightbox-next").style.visibility = many ? "visible" : "hidden"
+        lightbox.classList.remove("hidden")
+      }
+
+      const closeLightbox = () => {
+        lightbox.classList.add("hidden")
+        lightboxImage.src = ""
+      }
+
+      const stepLightbox = (dir) => {
+        if (!lightboxImages.length) return
+        lightboxIndex = (lightboxIndex + dir + lightboxImages.length) % lightboxImages.length
+        lightboxImage.src = lightboxImages[lightboxIndex].data
+      }
+
+      document.getElementById("attach-btn").addEventListener("click", () => fileInput.click())
+      fileInput.addEventListener("change", async () => {
+        const files = [...fileInput.files]
+        fileInput.value = ""
+        const room = MAX_POST_IMAGES - pendingImages.length
+        for (const file of files.slice(0, room)) {
+          const image = await compressImage(file)
+          if (image) pendingImages.push(image)
+        }
+        renderPreviews()
+      })
+
+      document.getElementById("lightbox-close").addEventListener("click", closeLightbox)
+      document.getElementById("lightbox-prev").addEventListener("click", () => stepLightbox(-1))
+      document.getElementById("lightbox-next").addEventListener("click", () => stepLightbox(1))
+      lightbox.addEventListener("click", (event) => {
+        if (event.target === lightbox) closeLightbox()
+      })
+      document.addEventListener("keydown", (event) => {
+        if (lightbox.classList.contains("hidden")) return
+        if (event.key === "Escape") closeLightbox()
+        if (event.key === "ArrowLeft") stepLightbox(-1)
+        if (event.key === "ArrowRight") stepLightbox(1)
+      })
+
       document.getElementById("composer").addEventListener("submit", async (event) => {
         event.preventDefault()
         const field = document.getElementById("composer-text")
         try {
-          await publishPost(db, field.value)
+          await publishPost(db, field.value, pendingImages)
           field.value = ""
+          pendingImages = []
+          renderPreviews()
         } catch {}
       })
 
