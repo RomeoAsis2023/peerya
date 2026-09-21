@@ -55,26 +55,31 @@ export async function isUsernameTaken(db, username, exceptAddress) {
   }
 }
 
-export async function saveProfile(db, { username, email }) {
+export async function saveProfile(db, fields) {
   const address = db.sm.getActiveEthAddress()
-  const name = normalizeUsername(username)
-  if (!address || !name) return
+  if (!address) return
+  const { result } = await db.get("profile:" + address)
+  const prev = (result && result.value) || {}
+  const name = normalizeUsername((fields && fields.username) || prev.username)
+  if (!name) return
   if (await isUsernameTaken(db, name, address)) {
     throw new Error("username taken")
   }
   const value = {
+    ...prev,
     type: "profile",
     username: name,
     address,
-    createdAt: Date.now()
+    firstName: fields && fields.firstName != null ? String(fields.firstName).trim() : prev.firstName || "",
+    lastName: fields && fields.lastName != null ? String(fields.lastName).trim() : prev.lastName || "",
+    email: fields && fields.email != null ? String(fields.email).trim() : prev.email || "",
+    birthday: fields && fields.birthday != null ? fields.birthday : prev.birthday || "",
+    gender: fields && fields.gender != null ? fields.gender : prev.gender || "",
+    about: fields && fields.about != null ? String(fields.about).trim() : prev.about || "",
+    createdAt: prev.createdAt || Date.now(),
+    updatedAt: Date.now()
   }
-  if (email && email.trim()) {
-    try {
-      value.email = await db.sm.encryptDataForCurrentUser(email.trim())
-    } catch {
-      value.email = null
-    }
-  }
+  if (fields && fields.avatar) value.avatar = fields.avatar
   await db.put({ type: "username", username: name, address }, "username:" + name)
   await db.put(value, "profile:" + address)
   localStorage.setItem("peerya.username", name)
@@ -87,7 +92,7 @@ export function applyCurrentUser(db, profiles) {
   const profile = profiles.get(me.toLowerCase())
   const name = displayName(db, profiles, me)
   const handle = "@" + ((profile && profile.username) || db.sm.abbrAddr(me))
-  const src = avatarUrl(me)
+  const src = avatarUrl(me, profile)
   const set = (id, write) => {
     const el = document.getElementById(id)
     if (el) write(el)
@@ -211,7 +216,10 @@ export function otherInThread(threadId, me) {
   return parts[2] || parts[1] || ""
 }
 
-export function avatarUrl(address) {
+export function avatarUrl(address, source) {
+  let profile = source
+  if (source && typeof source.get === "function") profile = source.get(String(address).toLowerCase())
+  if (profile && profile.avatar && profile.avatar.data) return profile.avatar.data
   return "https://i.pravatar.cc/80?u=" + encodeURIComponent(address || "peerya")
 }
 
@@ -257,7 +265,11 @@ export async function readDmText(db, smId) {
 
 export function displayName(db, profiles, address) {
   const profile = profiles.get(String(address).toLowerCase())
-  if (profile && profile.username) return profile.username
+  if (profile) {
+    const full = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim()
+    if (full) return full
+    if (profile.username) return profile.username
+  }
   try {
     return db.sm.abbrAddr(address)
   } catch {

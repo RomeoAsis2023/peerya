@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-    <title>Peerya - Friends</title>
+    <title>Peerya - Settings</title>
     <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <style>
@@ -257,12 +257,98 @@
         font-size: 0.85rem;
       }
 
-      .friends-card {
+      .settings-card {
         border: 0;
         border-radius: 1.15rem;
         box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
         background: #fff;
         overflow: hidden;
+        padding: 1.2rem 1.25rem 1.4rem;
+      }
+
+      .settings-card h1 {
+        margin: 0 0 1.1rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .avatar-edit {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .avatar-edit img {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #eee;
+        border: 3px solid #f0f4e8;
+      }
+
+      .avatar-edit .btn {
+        border-radius: 999px;
+        font-weight: 700;
+        background: var(--peerya-soft);
+        border-color: var(--peerya-line);
+        color: var(--peerya-ink);
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem 1rem;
+      }
+
+      .settings-grid .full { grid-column: 1 / -1; }
+
+      .settings-card .form-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #7a7a7a;
+        margin-bottom: 0.3rem;
+      }
+
+      .settings-card .form-control,
+      .settings-card .form-select {
+        border-color: #e8e8e8;
+        background: #fafafa;
+        min-height: 2.7rem;
+        border-radius: 0.7rem;
+      }
+
+      .settings-card textarea.form-control {
+        min-height: 7rem;
+        resize: vertical;
+      }
+
+      .settings-save {
+        margin-top: 1.1rem;
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.55rem 1.3rem;
+      }
+
+      .settings-note {
+        display: none;
+        margin: 0 0 0.9rem;
+        padding: 0.65rem 0.8rem;
+        border-radius: 0.6rem;
+        font-size: 0.88rem;
+      }
+
+      .settings-note.show { display: block; }
+      .settings-note.ok { background: #eef7e4; color: #3d6b12; }
+      .settings-note.err { background: #fdecea; color: #9b2c2c; }
+
+      .friends-card {
+        display: none;
       }
 
       .friends-head {
@@ -457,6 +543,10 @@
         .right-rail { display: none; }
       }
 
+      @media (max-width: 575.98px) {
+        .settings-grid { grid-template-columns: 1fr; }
+      }
+
       @media (max-width: 991.98px) {
         .home-topbar { display: flex; }
         .home-shell { padding: 1rem; }
@@ -495,7 +585,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="./" aria-current="page">
+            <a class="nav-link" href="../friends/">
               <i class="bi bi-people"></i> Friends
               <span class="nav-badge" id="badge-friends" hidden></span>
             </a>
@@ -507,7 +597,7 @@
               <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
           </li>
-          <li class="nav-item"><a class="nav-link" href="../settings/"><i class="bi bi-gear"></i> Settings</a></li>
+          <li class="nav-item"><a class="nav-link active" href="./" aria-current="page"><i class="bi bi-gear"></i> Settings</a></li>
           <li class="nav-item"><a class="nav-link" href="#help"><i class="bi bi-question-circle"></i> Help &amp; Support</a></li>
           <li class="nav-item"><a class="nav-link js-logout" href="../"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
         </ul>
@@ -533,24 +623,49 @@
 
     <main class="home-shell">
       <section>
-      <div class="friends-card">
-        <div class="friends-head">
-          <h1>Friends</h1>
-          <button type="button" class="invite-btn" id="invite-btn"><i class="bi bi-qr-code"></i> Invite friends</button>
+      <form class="settings-card" id="settings-form">
+        <h1>Settings</h1>
+        <p class="settings-note" id="settings-note"></p>
+        <div class="avatar-edit">
+          <img id="settings-avatar" src="../icon.svg" alt="Avatar">
+          <div>
+            <button type="button" class="btn" id="avatar-btn">Upload photo</button>
+            <input type="file" id="avatar-file" accept="image/*" hidden>
+          </div>
         </div>
-        <p class="friends-status" id="friends-status"></p>
-        <div id="friends-empty" class="empty-friends hidden">No friends yet. Share your QR so a logged-in peer can join you.</div>
-        <div class="section-head">
-          <h2 class="section-title">Online</h2>
-          <span class="see-all" id="online-count">0</span>
+        <div class="settings-grid">
+          <div>
+            <label class="form-label" for="first-name">First name</label>
+            <input class="form-control" id="first-name" autocomplete="given-name">
+          </div>
+          <div>
+            <label class="form-label" for="last-name">Last name</label>
+            <input class="form-control" id="last-name" autocomplete="family-name">
+          </div>
+          <div class="full">
+            <label class="form-label" for="settings-email">Email</label>
+            <input type="email" class="form-control" id="settings-email" autocomplete="email">
+          </div>
+          <div>
+            <label class="form-label" for="birthday">Birthday</label>
+            <input type="date" class="form-control" id="birthday">
+          </div>
+          <div>
+            <label class="form-label" for="gender">Gender</label>
+            <select class="form-select" id="gender">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="lgbt+">LGBT+</option>
+            </select>
+          </div>
+          <div class="full">
+            <label class="form-label" for="about">About me</label>
+            <textarea class="form-control" id="about" maxlength="500" placeholder="Tell peers a little about you"></textarea>
+          </div>
         </div>
-        <div class="friend-list" id="online-friends"></div>
-        <div class="section-head">
-          <h2 class="section-title">Offline</h2>
-          <span class="see-all" id="offline-count">0</span>
-        </div>
-        <div class="friend-list" id="offline-friends"></div>
-      </div>
+        <button type="submit" class="settings-save">Save changes</button>
+      </form>
       </section>
 
       <aside class="right-rail">
@@ -574,21 +689,7 @@
       </aside>
     </main>
 
-    <div class="invite-modal hidden" id="invite-modal">
-      <div class="invite-sheet">
-        <h2>Invite to Peerya</h2>
-        <p>Friends scan this QR while signed in to appear on your list.</p>
-        <div id="invite-qr"></div>
-        <input class="invite-link" id="invite-link" readonly>
-        <div class="invite-actions">
-          <button type="button" class="btn btn-copy" id="copy-invite">Copy link</button>
-          <button type="button" class="btn btn-outline-secondary" id="close-invite">Close</button>
-        </div>
-      </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script type="module">
       import {
         requireAuth,
@@ -598,10 +699,9 @@
         startPresence,
         applyCurrentUser,
         setNavBadge,
-        consumeInvite,
-        inviteLink,
-        otherFriend,
-        toggleFollow
+        toggleFollow,
+        saveProfile,
+        compressImage
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -612,9 +712,11 @@
       const profiles = new Map()
       const friends = new Map()
       const follows = new Map()
+      let pendingAvatar = null
+      let filled = false
       let paint = () => {}
       const presence = startPresence(db, () => paint())
-      const status = document.getElementById("friends-status")
+      const note = document.getElementById("settings-note")
 
       document.querySelectorAll(".js-logout").forEach((button) => {
         button.addEventListener("click", async (event) => {
@@ -623,34 +725,23 @@
         })
       })
 
-      const showStatus = (message, kind) => {
-        status.textContent = message || ""
-        status.classList.toggle("show", !!message)
-        status.classList.toggle("ok", kind === "ok")
-        status.classList.toggle("err", kind === "err")
+      const showNote = (message, kind) => {
+        note.textContent = message || ""
+        note.classList.toggle("show", !!message)
+        note.classList.toggle("ok", kind === "ok")
+        note.classList.toggle("err", kind === "err")
       }
 
-      const pendingInvite = sessionStorage.getItem("peerya.invite") || new URLSearchParams(location.search).get("invite")
-      try {
-        const added = await consumeInvite(db)
-        if (added) showStatus("You're now friends.", "ok")
-        else if (pendingInvite) showStatus("That invite could not be used.", "err")
-      } catch {
-        showStatus("That invite could not be used.", "err")
-      }
-
-      const friendButton = (address, isOn) => {
-        const btn = document.createElement("button")
-        btn.type = "button"
-        btn.className = "friend-item" + (isOn ? " online" : "")
-        btn.innerHTML =
-          '<div class="friend-avatar"><img alt=""><span class="presence' + (isOn ? " online" : "") + '"></span></div>' +
-          '<div class="friend-meta"><p class="suggest-name"></p><p class="friend-status"></p></div>'
-        btn.querySelector("img").src = avatarUrl(address, profiles)
-        btn.querySelector(".suggest-name").textContent = nameOf(db, profiles, address)
-        btn.querySelector(".friend-status").textContent = isOn ? "Active now" : "Offline"
-        btn.addEventListener("click", () => { location.href = "../messages/" })
-        return btn
+      const fillForm = (profile) => {
+        if (!profile || filled) return
+        filled = true
+        document.getElementById("first-name").value = profile.firstName || ""
+        document.getElementById("last-name").value = profile.lastName || ""
+        document.getElementById("settings-email").value = typeof profile.email === "string" && !profile.email.startsWith("{") ? profile.email : ""
+        document.getElementById("birthday").value = profile.birthday || ""
+        document.getElementById("gender").value = profile.gender || ""
+        document.getElementById("about").value = profile.about || ""
+        document.getElementById("settings-avatar").src = avatarUrl(me, profile)
       }
 
       const renderPeople = (root, countEl, list, emptyText) => {
@@ -670,7 +761,7 @@
           row.innerHTML =
             '<img class="avatar" alt=""><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="follow-btn"></button>'
-          row.querySelector("img").src = avatarUrl(person.address, profiles)
+          row.querySelector("img").src = avatarUrl(person.address, person)
           row.querySelector(".suggest-name").textContent = nameOf(db, profiles, person.address)
           row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
           const btn = row.querySelector(".follow-btn")
@@ -682,32 +773,10 @@
       }
 
       const render = () => {
-        const onlineList = document.getElementById("online-friends")
-        const offlineList = document.getElementById("offline-friends")
-        onlineList.innerHTML = ""
-        offlineList.innerHTML = ""
-        let on = 0
-        let off = 0
-        const friendAddrs = new Set()
-        for (const node of friends.values()) {
-          const address = otherFriend(node, me)
-          if (!address) continue
-          friendAddrs.add(String(address).toLowerCase())
-          const isOn = presence.online.has(String(address).toLowerCase())
-          if (isOn) {
-            onlineList.append(friendButton(address, true))
-            on += 1
-          } else {
-            offlineList.append(friendButton(address, false))
-            off += 1
-          }
-        }
-        document.getElementById("online-count").textContent = String(on)
-        document.getElementById("offline-count").textContent = String(off)
-        document.getElementById("friends-empty").classList.toggle("hidden", on + off > 0)
+        fillForm(profiles.get(me.toLowerCase()))
         const people = [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
         const active = people.filter((person) => presence.online.has(String(person.address).toLowerCase()))
-        const suggested = people.filter((person) => !friendAddrs.has(String(person.address).toLowerCase()) && !presence.online.has(String(person.address).toLowerCase()))
+        const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()))
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles)
@@ -716,41 +785,37 @@
       }
       paint = render
 
-      const modal = document.getElementById("invite-modal")
-      const linkField = document.getElementById("invite-link")
+      document.getElementById("avatar-btn").addEventListener("click", () => {
+        document.getElementById("avatar-file").click()
+      })
+      document.getElementById("avatar-file").addEventListener("change", async () => {
+        const file = document.getElementById("avatar-file").files[0]
+        document.getElementById("avatar-file").value = ""
+        if (!file) return
+        const image = await compressImage(file)
+        if (!image) return
+        pendingAvatar = image
+        document.getElementById("settings-avatar").src = image.data
+      })
 
-      document.getElementById("invite-btn").addEventListener("click", () => {
+      document.getElementById("settings-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
         try {
-          let url = inviteLink(me)
-          db.sm.sign({ kind: "invite" }).then((envelope) => {
-            if (envelope) linkField.value = inviteLink(envelope)
-          }).catch(() => {})
-          linkField.value = url
-          const box = document.getElementById("invite-qr")
-          box.innerHTML = ""
-          new QRCode(box, {
-            text: url,
-            width: 220,
-            height: 220,
-            colorDark: "#3d6b12",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.M
+          await saveProfile(db, {
+            username: localStorage.getItem("peerya.username") || "",
+            firstName: document.getElementById("first-name").value,
+            lastName: document.getElementById("last-name").value,
+            email: document.getElementById("settings-email").value,
+            birthday: document.getElementById("birthday").value,
+            gender: document.getElementById("gender").value,
+            about: document.getElementById("about").value,
+            avatar: pendingAvatar
           })
-          modal.classList.remove("hidden")
+          pendingAvatar = null
+          showNote("Saved.", "ok")
         } catch {
-          showStatus("Could not create a QR code.", "err")
+          showNote("Could not save settings.", "err")
         }
-      })
-
-      document.getElementById("close-invite").addEventListener("click", () => modal.classList.add("hidden"))
-      modal.addEventListener("click", (event) => {
-        if (event.target === modal) modal.classList.add("hidden")
-      })
-      document.getElementById("copy-invite").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(linkField.value)
-          document.getElementById("copy-invite").textContent = "Copied"
-        } catch {}
       })
 
       await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {

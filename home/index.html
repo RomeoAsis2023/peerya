@@ -772,7 +772,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#settings">
+            <a class="nav-link" href="../settings/">
               <i class="bi bi-gear"></i> Settings
             </a>
           </li>
@@ -935,7 +935,7 @@
           const online = presence.online.has(String(peer.address).toLowerCase()) || peer.address === me
           slide.innerHTML =
             '<a class="story" href="../messages/"><div class="story-ring"><img alt=""></div><span class="story-name"></span></a>'
-          slide.querySelector("img").src = avatarUrl(peer.address)
+          slide.querySelector("img").src = avatarUrl(peer.address, profiles)
           slide.querySelector(".story-name").textContent = peer.username || nameOf(peer.address)
           if (!online) slide.querySelector(".story-ring").style.opacity = "0.55"
           track.append(slide)
@@ -979,7 +979,7 @@
             '<p class="post-caption"><strong></strong><span></span></p>' +
             '<div class="post-actions"></div>' +
             '<div class="post-comments"></div>'
-          article.querySelector(".avatar").src = avatarUrl(post.author)
+          article.querySelector(".avatar").src = avatarUrl(post.author, profiles)
           article.querySelector(".post-user").textContent = nameOf(post.author)
           article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
           const pics = Array.isArray(post.images) ? post.images.filter((image) => image && image.data) : []
@@ -1048,7 +1048,7 @@
             row.innerHTML =
               '<img class="avatar" alt=""><div class="comment-body"><div class="comment-meta"><strong></strong><span></span></div>' +
               '<p class="comment-text"></p><button type="button" class="comment-reply">Reply</button></div>'
-            row.querySelector("img").src = avatarUrl(node.author)
+            row.querySelector("img").src = avatarUrl(node.author, profiles)
             row.querySelector("strong").textContent = nameOf(node.author)
             row.querySelector("span").textContent = timeAgo(node.createdAt)
             row.querySelector(".comment-text").textContent = node.text || ""
@@ -1095,7 +1095,7 @@
           row.innerHTML =
             '<img class="avatar" alt=""><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="follow-btn"></button>'
-          row.querySelector("img").src = avatarUrl(person.address)
+          row.querySelector("img").src = avatarUrl(person.address, profiles)
           row.querySelector(".suggest-name").textContent = nameOf(person.address)
           row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
           const btn = row.querySelector(".follow-btn")

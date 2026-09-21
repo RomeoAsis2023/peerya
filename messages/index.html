@@ -608,7 +608,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#settings">
+            <a class="nav-link" href="../settings/">
               <i class="bi bi-gear"></i> Settings
             </a>
           </li>
@@ -795,7 +795,7 @@
         const other = otherInThread(threadId, me)
         els.card.classList.add("show-chat")
         els.name.textContent = displayName(other)
-        els.avatar.src = avatarUrl(other)
+        els.avatar.src = avatarUrl(other, profiles)
         const isOn = online.has(other.toLowerCase())
         els.presence.classList.toggle("online", isOn)
         els.status.textContent = isOn ? "Active now" : "Offline"
@@ -811,7 +811,7 @@
         btn.type = "button"
         btn.className = "friend-item" + (isOn ? " online" : "")
         btn.innerHTML =
-          '<div class="friend-avatar"><img src="' + avatarUrl(address) + '" alt="">' +
+          '<div class="friend-avatar"><img src="' + avatarUrl(address, profiles) + '" alt="">' +
           '<span class="presence' + (isOn ? " online" : "") + '"></span></div>' +
           '<div class="friend-meta"><p class="suggest-name"></p><p class="friend-status"></p></div>'
         btn.querySelector(".suggest-name").textContent = displayName(address)
@@ -859,7 +859,7 @@
           btn.type = "button"
           btn.className = "thread" + (row.threadId === activeThread ? " active" : "")
           btn.innerHTML =
-            '<div class="friend-avatar"><img src="' + avatarUrl(other) + '" alt="">' +
+            '<div class="friend-avatar"><img src="' + avatarUrl(other, profiles) + '" alt="">' +
             '<span class="presence' + (online.has(other.toLowerCase()) ? " online" : "") + '"></span></div>' +
             '<div class="thread-copy"><div class="thread-top"><p class="thread-name"></p><span class="thread-time"></span></div>' +
             '<p class="thread-preview"></p></div>'
