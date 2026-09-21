@@ -114,6 +114,19 @@ export function applyCurrentUser(db, profiles) {
   })
 }
 
+export function setNavBadge(id, count) {
+  const el = document.getElementById(id)
+  if (!el) return
+  const n = Number(count) || 0
+  if (n <= 0) {
+    el.hidden = true
+    el.textContent = ""
+    return
+  }
+  el.hidden = false
+  el.textContent = String(n)
+}
+
 export function goHome() {
   window.location.replace(PEERYA.home)
 }

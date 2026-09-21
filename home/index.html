@@ -130,6 +130,8 @@
         color: var(--peerya-green-dark);
       }
 
+      .nav-badge[hidden] { display: none !important; }
+
       .nav-badge {
         margin-left: auto;
         min-width: 1.4rem;
@@ -744,18 +746,18 @@
           <li class="nav-item">
             <a class="nav-link active" href="./" aria-current="page">
               <i class="bi bi-house-door"></i> Home
-              <span class="nav-badge">10</span>
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="../messages/">
               <i class="bi bi-chat-dots"></i> Messages
+              <span class="nav-badge" id="badge-messages" hidden></span>
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#friends">
               <i class="bi bi-people"></i> Friends
-              <span class="nav-badge">2</span>
+              <span class="nav-badge" id="badge-friends" hidden></span>
             </a>
           </li>
           <li class="nav-item">
@@ -766,6 +768,7 @@
           <li class="nav-item">
             <a class="nav-link" href="#notifications">
               <i class="bi bi-bell"></i> Notifications
+              <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
           </li>
           <li class="nav-item">
@@ -881,7 +884,8 @@
         addComment,
         applyCurrentUser,
         compressImage,
-        MAX_POST_IMAGES
+        MAX_POST_IMAGES,
+        setNavBadge
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -896,6 +900,7 @@
       const hearts = new Map()
       const comments = new Map()
       const follows = new Map()
+      const threads = new Map()
       const openComments = new Set()
       const replyTo = new Map()
       let swiper
@@ -1109,6 +1114,9 @@
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles)
+        setNavBadge("badge-friends", people.length)
+        setNavBadge("badge-messages", threads.size)
+        setNavBadge("badge-notifications", 0)
       }
       paint = render
 
@@ -1221,6 +1229,14 @@
       await db.map({ query: { type: "comment" }, realtime: true }, ({ id, value, action }) => {
         if (action === "removed") comments.delete(id)
         else if (value) comments.set(id, { ...value, id })
+        render()
+      })
+
+      await db.map({ query: { type: "thread" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") threads.delete(id)
+        else if (value && (value.a === me.toLowerCase() || value.b === me.toLowerCase() || value.a === me || value.b === me)) {
+          threads.set(id, value)
+        }
         render()
       })
 
