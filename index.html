@@ -547,7 +547,7 @@
 
                     <div class="login-links">
                       <button type="button" id="forgot-link">Forgot recovery phrase?</button>
-                      <a href="#signup-panel" id="create-account-link" data-bs-toggle="tab" data-bs-target="#signup-panel" role="tab" aria-controls="signup-panel">Create New Account</a>
+                      <a href="#signup-panel" id="create-account-link">Create New Account</a>
                     </div>
                   </div>
 
@@ -583,7 +583,7 @@
                     </form>
 
                     <div class="login-links">
-                      <a href="#signin-panel" id="have-account-link" data-bs-toggle="tab" data-bs-target="#signin-panel" role="tab" aria-controls="signin-panel">Already have an account?</a>
+                      <a href="#signin-panel" id="have-account-link">Already have an account?</a>
                     </div>
                   </div>
 
@@ -605,7 +605,7 @@
                     </form>
 
                     <div class="login-links">
-                      <a href="#signin-panel" id="back-signin-link" data-bs-toggle="tab" data-bs-target="#signin-panel" role="tab" aria-controls="signin-panel">Back to sign in</a>
+                      <a href="#signin-panel" id="back-signin-link">Back to sign in</a>
                     </div>
                   </div>
                 </div>
@@ -866,22 +866,26 @@
         }
       })
 
-      try {
-        db = await openDb()
-      } catch {
-        setStatus("signin-status", "Could not start Peerya. Try again.", "error")
-        return
+      async function boot() {
+        try {
+          db = await openDb()
+        } catch {
+          setStatus("signin-status", "Could not start Peerya. Try again.", "error")
+          return
+        }
+        db.sm.setSecurityStateChangeCallback((state) => {
+          if (holdRedirect) return
+          if (state.isActive) goHome()
+        })
+        if (db.sm.isSecurityActive()) goHome()
+        if (!PASSKEYS_AVAILABLE) {
+          setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
+        }
+        const savedName = localStorage.getItem("peerya.username")
+        if (savedName) document.getElementById("username").value = savedName
       }
-      db.sm.setSecurityStateChangeCallback((state) => {
-        if (holdRedirect) return
-        if (state.isActive) goHome()
-      })
-      if (db.sm.isSecurityActive()) goHome()
-      if (!PASSKEYS_AVAILABLE) {
-        setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
-      }
-      const savedName = localStorage.getItem("peerya.username")
-      if (savedName) document.getElementById("username").value = savedName
+
+      boot()
     </script>
   </body>
 </html>
