@@ -664,7 +664,8 @@
         startPresence,
         publishPost,
         toggleFollow,
-        toggleLike
+        toggleLike,
+        applyCurrentUser
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -679,11 +680,7 @@
       const follows = new Map()
       let swiper
 
-      document.getElementById("side-avatar").src = avatarUrl(me)
-      document.getElementById("side-name").textContent = meName
-      document.getElementById("me-avatar").src = avatarUrl(me)
-      document.getElementById("me-name").textContent = meName
-      document.getElementById("me-handle").textContent = db.sm.abbrAddr(me)
+      applyCurrentUser(db, profiles)
 
       document.querySelectorAll(".js-logout").forEach((button) => {
         button.addEventListener("click", async (event) => {
@@ -802,6 +799,7 @@
         renderFeed()
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
+        applyCurrentUser(db, profiles)
       }
       paint = render
 

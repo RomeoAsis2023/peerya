@@ -81,6 +81,39 @@ export async function saveProfile(db, { username, email }) {
   localStorage.setItem("peerya.address", address)
 }
 
+export function applyCurrentUser(db, profiles) {
+  const me = db.sm.getActiveEthAddress()
+  if (!me) return
+  const profile = profiles.get(me.toLowerCase())
+  const name = displayName(db, profiles, me)
+  const handle = "@" + ((profile && profile.username) || db.sm.abbrAddr(me))
+  const src = avatarUrl(me)
+  const set = (id, write) => {
+    const el = document.getElementById(id)
+    if (el) write(el)
+  }
+  set("side-avatar", (el) => {
+    el.src = src
+    el.alt = name
+  })
+  set("side-name", (el) => {
+    el.textContent = name
+  })
+  set("side-role", (el) => {
+    el.textContent = handle
+  })
+  set("me-avatar", (el) => {
+    el.src = src
+    el.alt = name
+  })
+  set("me-name", (el) => {
+    el.textContent = name
+  })
+  set("me-handle", (el) => {
+    el.textContent = handle
+  })
+}
+
 export function goHome() {
   window.location.replace(PEERYA.home)
 }

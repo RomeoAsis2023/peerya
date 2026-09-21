@@ -634,10 +634,10 @@
           </div>
 
           <div class="sidebar-user">
-            <img src="https://i.pravatar.cc/80?img=32" alt="Azunyan U. Wu">
+            <img id="side-avatar" src="../icon.svg" alt="">
             <div class="meta">
-              <p class="name">Azunyan U. Wu</p>
-              <p class="role">Basic Member</p>
+              <p class="name" id="side-name">You</p>
+              <p class="role" id="side-role">Peer</p>
             </div>
             <a href="../" class="ms-auto text-secondary js-logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></a>
           </div>
@@ -716,7 +716,8 @@
         readDmText,
         displayName as nameOf,
         timeAgo,
-        startPresence
+        startPresence,
+        applyCurrentUser
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -752,9 +753,7 @@
         back: document.getElementById("chat-back")
       }
 
-      document.getElementById("me-avatar").src = avatarUrl(me)
-      document.getElementById("me-name").textContent = meName
-      document.getElementById("me-handle").textContent = db.sm.abbrAddr(me)
+      applyCurrentUser(db, profiles)
 
       document.querySelectorAll(".js-logout").forEach((button) => {
         button.addEventListener("click", async (event) => {
@@ -902,6 +901,7 @@
         renderFriends()
         renderThreads()
         renderChat()
+        applyCurrentUser(db, profiles)
       }
       paint = render
 
