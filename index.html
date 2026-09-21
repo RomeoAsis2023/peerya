@@ -579,6 +579,7 @@
                         </div>
                         <button type="button" class="btn btn-outline-secondary w-100 mb-3" id="copy-mnemonic-btn">Copy phrase</button>
                         <button type="button" class="btn btn-signin btn-lg w-100" id="protect-passkey-btn">Protect with PIN</button>
+                        <button type="button" class="btn btn-outline-secondary w-100 mt-3 hidden" id="continue-phrase-btn">Continue without PIN</button>
                       </div>
                     </form>
 
@@ -647,6 +648,9 @@
       let db
       let pendingSignup = { username: "", email: "" }
       let holdRedirect = false
+      let hasPasskey = false
+
+      const continuePhraseBtn = document.getElementById("continue-phrase-btn")
 
       const showPanel = (tab) => bootstrap.Tab.getOrCreateInstance(tab).show()
 
@@ -726,23 +730,24 @@
           setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
           return
         }
-        if (!await db.sm.hasExistingWebAuthnRegistration()) {
+        if (!hasPasskey) {
           setStatus("signin-status", "No PIN on this device. Recover with your phrase.", "error")
           return
         }
-        setBusy(signinBtn, true, "Signing in…")
         setStatus("signin-status")
+        const pending = db.sm.loginCurrentUserWithWebAuthn()
+        signinBtn.textContent = "Signing in…"
         try {
-          const address = await db.sm.loginCurrentUserWithWebAuthn()
+          const address = await pending
           if (!address) {
             setStatus("signin-status", "PIN sign-in was cancelled.", "error")
             return
           }
           await finishLogin(document.getElementById("username").value)
         } catch {
-          setStatus("signin-status", "Could not sign in with PIN.", "error")
+          setStatus("signin-status", "PIN timed out or was blocked. Try again, or recover with your phrase.", "error")
         } finally {
-          setBusy(signinBtn, false, "Sign in with PIN")
+          signinBtn.textContent = "Sign in with PIN"
         }
       })
 
@@ -798,22 +803,29 @@
       protectBtn.addEventListener("click", async () => {
         if (!PASSKEYS_AVAILABLE) {
           setStatus("signup-status", "Device PIN needs HTTPS or localhost. Your phrase still works.", "error")
-          await finishLogin(pendingSignup.username, pendingSignup.email)
+          continuePhraseBtn.classList.remove("hidden")
           return
         }
-        setBusy(protectBtn, true, "Waiting for PIN…")
+        const pending = db.sm.protectCurrentIdentityWithWebAuthn()
+        protectBtn.textContent = "Waiting for PIN…"
         try {
-          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
+          const address = await pending
           if (!address) {
-            setStatus("signup-status", "This device could not create a WebAuthn PIN.", "error")
+            setStatus("signup-status", "This device could not create a WebAuthn PIN. Continue with your recovery phrase.", "error")
+            continuePhraseBtn.classList.remove("hidden")
             return
           }
           await finishLogin(pendingSignup.username, pendingSignup.email)
         } catch {
-          setStatus("signup-status", "Could not register a PIN.", "error")
+          setStatus("signup-status", "PIN timed out or was blocked. Use Chrome/Edge with Windows Hello, or continue with your phrase.", "error")
+          continuePhraseBtn.classList.remove("hidden")
         } finally {
-          setBusy(protectBtn, false, "Protect with PIN")
+          protectBtn.textContent = "Protect with PIN"
         }
+      })
+
+      continuePhraseBtn.addEventListener("click", () => {
+        finishLogin(pendingSignup.username, pendingSignup.email)
       })
 
       document.getElementById("forgot-form").addEventListener("submit", async (event) => {
@@ -851,18 +863,19 @@
       })
 
       recoverPasskeyBtn.addEventListener("click", async () => {
-        setBusy(recoverPasskeyBtn, true, "Waiting for PIN…")
+        const pending = db.sm.protectCurrentIdentityWithWebAuthn()
+        recoverPasskeyBtn.textContent = "Waiting for PIN…"
         try {
-          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
+          const address = await pending
           if (!address) {
             setStatus("forgot-status", "PIN was cancelled.", "error")
             return
           }
           await finishLogin(document.getElementById("username").value)
         } catch {
-          setStatus("forgot-status", "Could not add a PIN.", "error")
+          setStatus("forgot-status", "PIN timed out or was blocked. Continue with your phrase.", "error")
         } finally {
-          setBusy(recoverPasskeyBtn, false, "Add PIN on this device")
+          recoverPasskeyBtn.textContent = "Add PIN on this device"
         }
       })
 
@@ -880,6 +893,11 @@
         if (db.sm.isSecurityActive()) goHome()
         if (!PASSKEYS_AVAILABLE) {
           setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
+        }
+        try {
+          hasPasskey = !!(await db.sm.hasExistingWebAuthnRegistration())
+        } catch {
+          hasPasskey = false
         }
         const savedName = localStorage.getItem("peerya.username")
         if (savedName) document.getElementById("username").value = savedName
