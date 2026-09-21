@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+    <title>Peerya - Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <style>
+      :root {
+        --peerya-green: #8bc34a;
+        --peerya-green-dark: #7cb342;
+        --peerya-ink: #2f2f2f;
+        --peerya-muted: #6f6f6f;
+        --peerya-line: #ececec;
+        --peerya-soft: #f6f7f4;
+        --bs-sidebar-width: 17.5rem;
+        --bs-sidebar-bg: #ffffff;
+        --bs-body-font-family: "Manrope", system-ui, sans-serif;
+        --bs-body-color: var(--peerya-ink);
+        --bs-primary: var(--peerya-green);
+        --bs-link-color: var(--peerya-green-dark);
+        --bs-heading-font-family: "Inter", system-ui, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        min-height: 100%;
+        min-height: 100dvh;
+      }
+
+      body {
+        margin: 0;
+        background: #fafafa;
+        color: var(--peerya-ink);
+        font-family: "Manrope", system-ui, sans-serif;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      h1, h2, h3, h4, h5, h6,
+      .sidebar-brand,
+      .post-user,
+      .suggest-name,
+      .story-name,
+      .section-title {
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      img { max-width: 100%; height: auto; }
+
+      .sidebar {
+        --bs-offcanvas-width: var(--bs-sidebar-width);
+        border-right: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--peerya-ink);
+        text-decoration: none;
+      }
+
+      .sidebar-brand img {
+        width: auto;
+        height: 1.75rem;
+      }
+
+      .sidebar-search {
+        position: relative;
+      }
+
+      .sidebar-search i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9a9a9a;
+      }
+
+      .sidebar-search .form-control {
+        padding-left: 2.3rem;
+        border-radius: 999px;
+        background: #f4f4f4;
+        border-color: transparent;
+      }
+
+      .sidebar-nav {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0;
+      }
+
+      .sidebar-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        color: #4a4a4a;
+        border-radius: 0.7rem;
+        font-weight: 600;
+      }
+
+      .sidebar-nav .nav-link i {
+        font-size: 1.15rem;
+        width: 1.3rem;
+        text-align: center;
+      }
+
+      .sidebar-nav .nav-link:hover,
+      .sidebar-nav .nav-link.active {
+        background: var(--peerya-soft);
+        color: var(--peerya-ink);
+      }
+
+      .sidebar-nav .nav-link.active {
+        color: var(--peerya-green-dark);
+      }
+
+      .nav-badge {
+        margin-left: auto;
+        min-width: 1.4rem;
+        height: 1.4rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: #ecebff;
+        color: #6b63d6;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .promo-card {
+        border: 1px solid var(--peerya-line);
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        background: #fff;
+      }
+
+      .promo-card .promo-icon {
+        width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 50%;
+        background: #fff6e8;
+        color: #e6a23c;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding-top: 0.85rem;
+        margin-top: 0.85rem;
+        border-top: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-user img,
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .sidebar-user .meta {
+        min-width: 0;
+      }
+
+      .sidebar-user .name,
+      .suggest-name,
+      .post-user {
+        font-weight: 700;
+        font-size: 0.92rem;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .sidebar-user .role,
+      .suggest-handle,
+      .post-meta,
+      .story-name {
+        color: #8a8a8a;
+        font-size: 0.78rem;
+        margin: 0;
+      }
+
+      .home-topbar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: #fff;
+        border-bottom: 1px solid var(--peerya-line);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .home-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        gap: 1.75rem;
+        max-width: 62rem;
+        margin: 0 auto;
+        padding: 1.25rem 1.5rem 2.5rem;
+      }
+
+      .stories-row,
+      .stories-swiper {
+        position: relative;
+        padding: 0.35rem 2.4rem 1.1rem 0.15rem;
+        overflow: hidden;
+      }
+
+      .stories-swiper .swiper-slide {
+        width: 4.6rem;
+      }
+
+      .story {
+        display: block;
+        width: 4.6rem;
+        text-align: center;
+        text-decoration: none;
+        color: inherit;
+        user-select: none;
+      }
+
+      .story-ring {
+        width: 3.6rem;
+        height: 3.6rem;
+        margin: 0 auto 0.4rem;
+        border-radius: 50%;
+        padding: 3px;
+        background: conic-gradient(from 200deg, #cddc39, #8bc34a, #689f38, #cddc39);
+      }
+
+      .story-ring img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #fff;
+      }
+
+      .story-name {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .stories-next {
+        position: absolute;
+        top: 1.35rem;
+        right: 0;
+        z-index: 2;
+        width: 2rem;
+        height: 2rem;
+        border: 1px solid var(--peerya-line);
+        background: #fff;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #888;
+      }
+
+      .stories-next.swiper-button-disabled {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .post-card {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 8px 28px rgba(40, 50, 30, 0.06);
+        overflow: hidden;
+        margin-bottom: 1.25rem;
+      }
+
+      .post-header,
+      .post-body,
+      .post-actions {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+
+      .post-header {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding-top: 0.9rem;
+        padding-bottom: 0.75rem;
+      }
+
+      .post-header .avatar {
+        width: 36px;
+        height: 36px;
+      }
+
+      .post-meta {
+        margin-top: 0.1rem;
+      }
+
+      .post-more {
+        margin-left: auto;
+        border: 0;
+        background: none;
+        color: #999;
+      }
+
+      .post-media {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        background: #eee;
+      }
+
+      .post-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding-top: 0.75rem;
+      }
+
+      .post-actions button {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: #444;
+        font-size: 1.35rem;
+        line-height: 1;
+      }
+
+      .post-actions button.liked {
+        color: #e74c3c;
+      }
+
+      .post-actions .bookmark {
+        margin-left: auto;
+      }
+
+      .post-likes {
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 0.45rem 1rem 0.2rem;
+      }
+
+      .post-caption,
+      .post-comments {
+        padding: 0 1rem;
+        font-size: 0.92rem;
+        color: #4a4a4a;
+      }
+
+      .post-caption strong {
+        font-family: "Inter", system-ui, sans-serif;
+        color: var(--peerya-ink);
+      }
+
+      .post-comments {
+        color: #9a9a9a;
+        padding-bottom: 1rem;
+      }
+
+      .right-rail {
+        position: sticky;
+        top: 1.25rem;
+        align-self: start;
+      }
+
+      .account-switch,
+      .suggest-item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+      }
+
+      .account-switch {
+        margin-bottom: 1.5rem;
+      }
+
+      .account-switch img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .switch-link,
+      .follow-btn,
+      .see-all {
+        margin-left: auto;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--peerya-green-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .follow-btn.following {
+        color: #9a9a9a;
+        font-weight: 600;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.9rem;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #7a7a7a;
+      }
+
+      .suggest-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.95rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .suggest-item img {
+        width: 36px;
+        height: 36px;
+      }
+
+      @media (max-width: 1199.98px) {
+        .home-shell {
+          grid-template-columns: minmax(0, 1fr);
+          max-width: 40rem;
+        }
+
+        .right-rail {
+          display: none;
+        }
+      }
+
+      @media (max-width: 991.98px) {
+        .home-topbar {
+          display: flex;
+        }
+
+        .home-shell {
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="ps-lg-sbwidth">
+    <header class="home-topbar">
+      <a class="sidebar-brand" href="home.html">
+        <img src="logo_full.svg" alt="Peerya">
+      </a>
+      <button type="button" class="btn btn-light" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+    </header>
+
+    <nav class="sidebar offcanvas-start offcanvas-lg" tabindex="-1" id="sidebar" aria-label="Main navigation">
+      <div class="offcanvas-header">
+        <a class="sidebar-brand" href="home.html">
+          <img src="logo_full.svg" alt="Peerya">
+        </a>
+        <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column">
+        <div class="sidebar-search mb-3">
+          <i class="bi bi-search"></i>
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+        </div>
+
+        <ul class="sidebar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" href="home.html" aria-current="page">
+              <i class="bi bi-house-door"></i> Home
+              <span class="nav-badge">10</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#messages">
+              <i class="bi bi-chat-dots"></i> Messages
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#friends">
+              <i class="bi bi-people"></i> Friends
+              <span class="nav-badge">2</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#explore">
+              <i class="bi bi-compass"></i> Explore
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#notifications">
+              <i class="bi bi-bell"></i> Notifications
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#settings">
+              <i class="bi bi-gear"></i> Settings
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#help">
+              <i class="bi bi-question-circle"></i> Help &amp; Support
+            </a>
+          </li>
+        </ul>
+
+        <div class="mt-auto">
+          <div class="promo-card mb-3">
+            <div class="d-flex align-items-start justify-content-between mb-2">
+              <span class="promo-icon"><i class="bi bi-exclamation-circle"></i></span>
+              <button type="button" class="btn-close" aria-label="Dismiss promo"></button>
+            </div>
+            <p class="mb-2 small text-secondary">Enjoy unlimited access to Peerya with only a small price monthly.</p>
+            <div class="d-flex gap-3">
+              <button type="button" class="btn btn-link btn-sm px-0 text-secondary">Dismiss</button>
+              <a href="#upgrade" class="btn btn-link btn-sm px-0">Go Pro</a>
+            </div>
+          </div>
+
+          <div class="sidebar-user">
+            <img src="https://i.pravatar.cc/80?img=32" alt="Azunyan U. Wu">
+            <div class="meta">
+              <p class="name">Azunyan U. Wu</p>
+              <p class="role">Basic Member</p>
+            </div>
+            <a href="index.html" class="ms-auto text-secondary" aria-label="Sign out"><i class="bi bi-box-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="home-shell">
+      <section>
+        <div class="swiper stories-swiper stories-row" id="stories">
+          <div class="swiper-wrapper">
+            <div class="swiper-slide">
+              <a class="story" href="#story-1">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=5" alt=""></div>
+                <span class="story-name">mion_eusk</span>
+              </a>
+            </div>
+            <div class="swiper-slide">
+              <a class="story" href="#story-2">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=12" alt=""></div>
+                <span class="story-name">oarackbab</span>
+              </a>
+            </div>
+            <div class="swiper-slide">
+              <a class="story" href="#story-3">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=20" alt=""></div>
+                <span class="story-name">azunyan_s</span>
+              </a>
+            </div>
+            <div class="swiper-slide">
+              <a class="story" href="#story-4">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=33" alt=""></div>
+                <span class="story-name">x_ae_b-22</span>
+              </a>
+            </div>
+            <div class="swiper-slide">
+              <a class="story" href="#story-5">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=15" alt=""></div>
+                <span class="story-name">theblacks</span>
+              </a>
+            </div>
+            <div class="swiper-slide">
+              <a class="story" href="#story-6">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=52" alt=""></div>
+                <span class="story-name">david_gil</span>
+              </a>
+            </div>
+            <div class="swiper-slide">
+              <a class="story" href="#story-7">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=8" alt=""></div>
+                <span class="story-name">gerard_way</span>
+              </a>
+            </div>
+            <div class="swiper-slide">
+              <a class="story" href="#story-8">
+                <div class="story-ring"><img src="https://i.pravatar.cc/80?img=47" alt=""></div>
+                <span class="story-name">asuna_yuuki</span>
+              </a>
+            </div>
+          </div>
+          <button type="button" class="stories-next" aria-label="Next stories">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+
+        <article class="card post-card">
+          <div class="post-header">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=68" alt="">
+            <div>
+              <p class="post-user">crunchtech</p>
+              <p class="post-meta">1m ago</p>
+            </div>
+            <button type="button" class="post-more" aria-label="More"><i class="bi bi-three-dots"></i></button>
+          </div>
+          <img class="post-media" src="https://picsum.photos/id/1018/800/1000" alt="Living room interior">
+          <div class="post-actions">
+            <button type="button" class="like-btn liked" aria-label="Unlike"><i class="bi bi-heart-fill"></i></button>
+            <button type="button" aria-label="Comment"><i class="bi bi-chat"></i></button>
+            <button type="button" aria-label="Share"><i class="bi bi-send"></i></button>
+            <button type="button" class="bookmark" aria-label="Save"><i class="bi bi-bookmark"></i></button>
+          </div>
+          <p class="post-likes mb-1">Liked by <strong>x_ae_b-22</strong> and others</p>
+          <p class="post-caption mb-1">
+            <strong>crunchtech</strong>
+            Morning light, quiet corners, and a space that actually feels like home. Privacy first, always.
+          </p>
+          <p class="post-comments mb-0">View all 25 comments · Show More</p>
+        </article>
+
+        <article class="card post-card">
+          <div class="post-header">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=12" alt="">
+            <div>
+              <p class="post-user">oarackbab</p>
+              <p class="post-meta">18m ago</p>
+            </div>
+            <button type="button" class="post-more" aria-label="More"><i class="bi bi-three-dots"></i></button>
+          </div>
+          <img class="post-media" src="https://picsum.photos/id/1015/800/1000" alt="Mountain landscape">
+          <div class="post-actions">
+            <button type="button" class="like-btn" aria-label="Like"><i class="bi bi-heart"></i></button>
+            <button type="button" aria-label="Comment"><i class="bi bi-chat"></i></button>
+            <button type="button" aria-label="Share"><i class="bi bi-send"></i></button>
+            <button type="button" class="bookmark" aria-label="Save"><i class="bi bi-bookmark"></i></button>
+          </div>
+          <p class="post-likes mb-1">Liked by <strong>azunyan_s</strong> and others</p>
+          <p class="post-caption mb-1">
+            <strong>oarackbab</strong>
+            Weekend hike with the crew. The view was worth every step.
+          </p>
+          <p class="post-comments mb-0">View all 12 comments · Show More</p>
+        </article>
+      </section>
+
+      <aside class="right-rail">
+        <div class="account-switch">
+          <img class="avatar" src="https://i.pravatar.cc/80?img=32" alt="">
+          <div>
+            <p class="suggest-name">X_AE_A-13</p>
+            <p class="suggest-handle">@xtheobiterator</p>
+          </div>
+          <button type="button" class="switch-link">Switch</button>
+        </div>
+
+        <div class="section-head">
+          <h2 class="section-title">Suggested For You</h2>
+          <a href="#suggested" class="see-all">See All</a>
+        </div>
+        <div class="suggest-list">
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=20" alt="">
+            <div>
+              <p class="suggest-name">Azunyan Senpai</p>
+              <p class="suggest-handle">@nyancat221b</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=12" alt="">
+            <div>
+              <p class="suggest-name">Oarack Babama</p>
+              <p class="suggest-handle">@oarackbabama</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=52" alt="">
+            <div>
+              <p class="suggest-name">David Gilmore</p>
+              <p class="suggest-handle">@davidgilmore</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=8" alt="">
+            <div>
+              <p class="suggest-name">Gerard Way</p>
+              <p class="suggest-handle">@gerardway</p>
+            </div>
+            <button type="button" class="follow-btn following">Followed</button>
+          </div>
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=47" alt="">
+            <div>
+              <p class="suggest-name">Mary Suez</p>
+              <p class="suggest-handle">@marysuez21</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h2 class="section-title">Trending Artists</h2>
+          <a href="#trending" class="see-all">See All</a>
+        </div>
+        <div class="suggest-list">
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=24" alt="">
+            <div>
+              <p class="suggest-name">Saylor Twift</p>
+              <p class="suggest-handle">@saylortwiftofficial</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=11" alt="">
+            <div>
+              <p class="suggest-name">Frank Iero</p>
+              <p class="suggest-handle">@frankieroofficial</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=60" alt="">
+            <div>
+              <p class="suggest-name">Charlie XXX</p>
+              <p class="suggest-handle">@charliexxx</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+          <div class="suggest-item">
+            <img class="avatar" src="https://i.pravatar.cc/80?img=44" alt="">
+            <div>
+              <p class="suggest-name">Star Warz</p>
+              <p class="suggest-handle">@starwarzofficial</p>
+            </div>
+            <button type="button" class="follow-btn">Follow</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+      new Swiper("#stories", {
+        slidesPerView: "auto",
+        spaceBetween: 16,
+        grabCursor: true,
+        freeMode: {
+          enabled: true,
+          momentum: true
+        },
+        mousewheel: {
+          forceToAxis: true
+        },
+        navigation: {
+          nextEl: ".stories-next"
+        }
+      });
+
+      document.querySelectorAll(".like-btn").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var liked = button.classList.toggle("liked");
+          button.setAttribute("aria-label", liked ? "Unlike" : "Like");
+          button.innerHTML = liked ? '<i class="bi bi-heart-fill"></i>' : '<i class="bi bi-heart"></i>';
+        });
+      });
+
+      document.querySelectorAll(".follow-btn").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var following = button.classList.toggle("following");
+          button.textContent = following ? "Followed" : "Follow";
+        });
+      });
+    </script>
+  </body>
+</html>

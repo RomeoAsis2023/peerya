@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+    <title>Peerya - Social Network</title>
+    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
+    <style>
+      :root {
+        --peerya-green: #8bc34a;
+        --peerya-green-dark: #7cb342;
+        --peerya-ink: #3a3a3a;
+        --peerya-muted: #6f6f6f;
+        --peerya-btn: #555555;
+        --peerya-btn-hover: #444444;
+        --bs-body-font-family: "Inter", system-ui, sans-serif;
+        --bs-body-color: var(--peerya-ink);
+        --bs-primary: var(--peerya-green);
+        --bs-link-color: var(--peerya-green-dark);
+        --bs-link-hover-color: #689f38;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: #f6f7f4;
+        color: var(--peerya-ink);
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      .login-page {
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      .login-rings {
+        position: absolute;
+        width: min(160vw, 1400px);
+        height: min(160vw, 1400px);
+        left: -28%;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .login-rings span {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 90px solid rgba(139, 195, 74, 0.055);
+      }
+
+      .login-rings span:nth-child(1) {
+        inset: 12%;
+        border-width: 80px;
+        background: rgba(139, 195, 74, 0.035);
+      }
+
+      .login-rings span:nth-child(2) {
+        inset: 26%;
+        border-width: 70px;
+      }
+
+      .login-rings span:nth-child(3) {
+        inset: 40%;
+        border-width: 0;
+        background: rgba(139, 195, 74, 0.045);
+      }
+
+      .login-shell {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 2.5rem 0;
+        padding-top: max(1.5rem, env(safe-area-inset-top));
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+
+      .login-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: 1fr auto;
+        grid-template-areas:
+          "brand form"
+          "footer form";
+        align-items: stretch;
+        min-height: calc(100vh - 5rem);
+        min-height: calc(100dvh - 5rem);
+        column-gap: 1.5rem;
+        row-gap: 1rem;
+      }
+
+      .brand-col {
+        grid-area: brand;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 1rem 1.25rem 0.5rem 2rem;
+      }
+
+      .brand-logo {
+        width: 168px;
+        height: auto;
+        margin-bottom: 1.75rem;
+      }
+
+      .brand-kicker {
+        font-family: "Manrope", "Inter", sans-serif;
+        font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+        font-weight: 500;
+        color: #4a4a4a;
+        line-height: 1.25;
+        margin: 0;
+      }
+
+      .brand-title {
+        font-family: "Manrope", "Inter", sans-serif;
+        font-size: clamp(1.7rem, 3.4vw, 2.55rem);
+        font-weight: 800;
+        color: #2f2f2f;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin: 0 0 1.25rem;
+      }
+
+      .brand-copy {
+        max-width: 28rem;
+        color: var(--peerya-muted);
+        font-size: clamp(0.94rem, 1.5vw, 1.02rem);
+        line-height: 1.55;
+        margin-bottom: 0.85rem;
+      }
+
+      .auth-switch {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        margin: 2.5rem 0 0;
+      }
+
+      .auth-switch .nav-link {
+        border: 0;
+        background: none;
+        padding: 0.45rem 1.15rem;
+        min-height: 44px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #c4c4c4;
+        border-radius: 0;
+      }
+
+      .auth-switch .nav-link:first-child {
+        padding-left: 0;
+      }
+
+      .auth-switch .nav-link.active {
+        color: var(--peerya-green);
+      }
+
+      .auth-switch .nav-divider {
+        width: 1px;
+        background: #d5d5d5;
+        margin: 0.15rem 0;
+      }
+
+      .brand-footer {
+        grid-area: footer;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1rem 1.25rem 1rem 2rem;
+      }
+
+      .language-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-bottom: 2.25rem;
+      }
+
+      .language-row .form-label {
+        margin: 0;
+        font-size: 0.92rem;
+        color: #6a6a6a;
+      }
+
+      .language-row .form-select {
+        width: auto;
+        min-width: 8.5rem;
+        padding: 0.35rem 2.1rem 0.35rem 0.9rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7a7a7a;
+        background-color: #fff;
+        border-color: #d9d9d9;
+        border-radius: 0.45rem;
+      }
+
+      .copyright {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #b0b0b0;
+      }
+
+      .copyright img {
+        width: 14px;
+        height: 14px;
+        opacity: 0.55;
+      }
+
+      .form-col {
+        grid-area: form;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        min-width: 0;
+      }
+
+      .login-card {
+        width: 100%;
+        max-width: 26.5rem;
+        border: 0;
+        border-radius: 1.1rem;
+        box-shadow: 0 12px 40px rgba(40, 50, 30, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 1.85rem 1.85rem 2.5rem;
+        min-height: 36rem;
+      }
+
+      .login-card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 1.65rem;
+      }
+
+      .login-card-title img {
+        width: 34px;
+        height: 34px;
+      }
+
+      .login-card-title h1 {
+        font-family: "Manrope", "Inter", sans-serif;
+        font-size: 1.55rem;
+        font-weight: 700;
+        color: var(--peerya-green);
+        margin: 0;
+      }
+
+      .login-card .form-label {
+        font-size: 0.95rem;
+        color: #6a6a6a;
+        margin-bottom: 0.4rem;
+      }
+
+      .login-card .form-control {
+        border-color: #e4e4e4;
+        background-color: #fafafa;
+        min-height: 3rem;
+        font-size: 16px;
+      }
+
+      .login-card .form-control:focus {
+        background-color: #fff;
+        border-color: var(--peerya-green);
+        box-shadow: 0 0 0 0.2rem rgba(139, 195, 74, 0.18);
+      }
+
+      .btn-signin {
+        --bs-btn-bg: var(--peerya-btn);
+        --bs-btn-border-color: var(--peerya-btn);
+        --bs-btn-hover-bg: var(--peerya-btn-hover);
+        --bs-btn-hover-border-color: var(--peerya-btn-hover);
+        --bs-btn-active-bg: #333;
+        --bs-btn-active-border-color: #333;
+        --bs-btn-color: #fff;
+        --bs-btn-hover-color: #fff;
+        --bs-btn-active-color: #fff;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 0.8rem 1rem;
+        border-radius: 0.5rem;
+      }
+
+      .login-links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        margin-top: 1.85rem;
+      }
+
+      .login-links a {
+        color: #5a5a5a;
+        text-decoration: none;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+      }
+
+      .login-links a:hover {
+        color: var(--peerya-green-dark);
+        text-decoration: underline;
+      }
+
+      @media (max-width: 991.98px) {
+        .login-shell.container {
+          max-width: none;
+          width: 100%;
+          padding-left: 0;
+          padding-right: 0;
+        }
+
+        .login-layout {
+          width: 100%;
+          max-width: none;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto;
+          grid-template-areas:
+            "brand"
+            "form"
+            "footer";
+          min-height: auto;
+          column-gap: 0;
+          row-gap: 1.25rem;
+        }
+
+        .brand-col,
+        .form-col,
+        .brand-footer {
+          min-height: auto;
+          width: 100%;
+        }
+
+        .brand-col {
+          align-items: center;
+          text-align: center;
+          padding: 1rem 1.25rem 0.5rem;
+        }
+
+        .brand-logo {
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .brand-copy {
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .auth-switch {
+          justify-content: center;
+        }
+
+        .auth-switch .nav-link:first-child {
+          padding-left: 1.15rem;
+        }
+
+        .form-col {
+          padding: 0;
+        }
+
+        .login-card {
+          max-width: none;
+          width: 100%;
+          min-height: 0;
+          border-radius: 0;
+          box-shadow: none;
+          padding: 1.5rem 1.25rem 1.75rem;
+        }
+
+        .brand-footer {
+          align-items: center;
+          text-align: center;
+          padding: 0.5rem 1.25rem 1.5rem;
+        }
+
+        .language-row {
+          justify-content: center;
+        }
+
+        .copyright {
+          justify-content: center;
+        }
+
+        .login-rings {
+          left: -55%;
+          top: -10%;
+          transform: none;
+        }
+      }
+
+      @media (max-width: 575.98px) {
+        .brand-col {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+
+        .form-col {
+          padding: 0 1rem;
+        }
+
+        .login-card {
+          padding: 1.25rem 1rem 1.5rem;
+        }
+
+        .brand-footer {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-page">
+      <div class="login-rings" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="container login-shell">
+        <div class="login-layout">
+          <div class="brand-col">
+            <img class="brand-logo" width="200" height="51" src="logo_full.svg" alt="Peerya">
+
+            <p class="brand-kicker">The New Era of</p>
+            <h2 class="brand-title">Social Networking</h2>
+
+            <p class="brand-copy">
+              Connect with friends, colleagues, customers, students, and loved ones—all in one place.
+            </p>
+            <p class="brand-copy mb-0">
+              Share, engage, and stay close without ever compromising your privacy.
+            </p>
+
+            <nav class="auth-switch nav" role="tablist">
+              <button class="nav-link" id="signup-tab" data-bs-toggle="tab" data-bs-target="#signup-panel" type="button" role="tab" aria-controls="signup-panel" aria-selected="false">Sign up</button>
+              <span class="nav-divider" aria-hidden="true"></span>
+              <button class="nav-link active" id="signin-tab" data-bs-toggle="tab" data-bs-target="#signin-panel" type="button" role="tab" aria-controls="signin-panel" aria-selected="true">Sign in</button>
+            </nav>
+          </div>
+
+          <div class="form-col">
+            <div class="card login-card">
+                <div class="tab-content">
+                  <div class="tab-pane fade show active" id="signin-panel" role="tabpanel" aria-labelledby="signin-tab" tabindex="0">
+                    <div class="login-card-title">
+                      <img src="icon.svg" width="34" height="34" alt="">
+                      <h1>Sign in</h1>
+                    </div>
+
+                    <form action="#" method="post">
+                      <div class="mb-3">
+                        <label class="form-label" for="username">Username</label>
+                        <input type="text" class="form-control form-control-lg" id="username" name="username" autocomplete="username" aria-label="Username">
+                      </div>
+                      <div class="mb-4">
+                        <label class="form-label" for="password">Password</label>
+                        <input type="password" class="form-control form-control-lg" id="password" name="password" autocomplete="current-password" aria-label="Password">
+                      </div>
+                      <button type="submit" class="btn btn-signin btn-lg w-100">Sign in</button>
+                    </form>
+
+                    <div class="login-links">
+                      <a href="#forgot">Forgot Password?</a>
+                      <a href="#signup-panel" id="create-account-link">Create New Account</a>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane fade" id="signup-panel" role="tabpanel" aria-labelledby="signup-tab" tabindex="0">
+                    <div class="login-card-title">
+                      <img src="icon.svg" width="34" height="34" alt="">
+                      <h1>Sign up</h1>
+                    </div>
+
+                    <form action="#" method="post">
+                      <div class="mb-3">
+                        <label class="form-label" for="signup-username">Username</label>
+                        <input type="text" class="form-control form-control-lg" id="signup-username" name="username" autocomplete="username" aria-label="Username">
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label" for="signup-email">Email</label>
+                        <input type="email" class="form-control form-control-lg" id="signup-email" name="email" autocomplete="email" aria-label="Email">
+                      </div>
+                      <div class="mb-4">
+                        <label class="form-label" for="signup-password">Password</label>
+                        <input type="password" class="form-control form-control-lg" id="signup-password" name="password" autocomplete="new-password" aria-label="Password">
+                      </div>
+                      <button type="submit" class="btn btn-signin btn-lg w-100">Sign up</button>
+                    </form>
+
+                    <div class="login-links">
+                      <a href="#signin-panel" id="have-account-link">Already have an account?</a>
+                    </div>
+                  </div>
+                </div>
+            </div>
+          </div>
+
+          <div class="brand-footer">
+            <div class="language-row">
+              <label class="form-label" for="language">Select Language:</label>
+              <select class="form-select" id="language" aria-label="Select language">
+                <option value="en" selected>English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="fil">Filipino</option>
+              </select>
+            </div>
+            <div class="copyright">
+              <img src="icon.svg" alt="">
+              <span>2026 Peerya Social Network</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
+    <script>
+      const signupTab = document.getElementById("signup-tab");
+      const signinTab = document.getElementById("signin-tab");
+
+      document.getElementById("create-account-link").addEventListener("click", function (event) {
+        event.preventDefault();
+        bootstrap.Tab.getOrCreateInstance(signupTab).show();
+      });
+
+      document.getElementById("have-account-link").addEventListener("click", function (event) {
+        event.preventDefault();
+        bootstrap.Tab.getOrCreateInstance(signinTab).show();
+      });
+    </script>
+  </body>
+</html>
