@@ -410,10 +410,17 @@
         font-size: 0.9rem;
       }
 
-      .invite-sheet canvas {
-        display: block;
+      #invite-qr {
+        width: 220px;
+        height: 220px;
         margin: 0 auto 1rem;
-        border-radius: 0.8rem;
+      }
+
+      #invite-qr img,
+      #invite-qr canvas,
+      #invite-qr table {
+        width: 220px !important;
+        height: 220px !important;
       }
 
       .invite-link {
@@ -571,7 +578,7 @@
       <div class="invite-sheet">
         <h2>Invite to Peerya</h2>
         <p>Friends scan this QR while signed in to appear on your list.</p>
-        <canvas id="invite-qr" width="220" height="220"></canvas>
+        <div id="invite-qr"></div>
         <input class="invite-link" id="invite-link" readonly>
         <div class="invite-actions">
           <button type="button" class="btn btn-copy" id="copy-invite">Copy link</button>
@@ -581,7 +588,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script type="module">
       import {
         requireAuth,
@@ -712,19 +719,26 @@
       const modal = document.getElementById("invite-modal")
       const linkField = document.getElementById("invite-link")
 
-      document.getElementById("invite-btn").addEventListener("click", async () => {
+      document.getElementById("invite-btn").addEventListener("click", () => {
         try {
-          const envelope = await db.sm.sign({ kind: "invite" })
-          const url = inviteLink(envelope)
+          let url = inviteLink(me)
+          db.sm.sign({ kind: "invite" }).then((envelope) => {
+            if (envelope) linkField.value = inviteLink(envelope)
+          }).catch(() => {})
           linkField.value = url
-          await QRCode.toCanvas(document.getElementById("invite-qr"), url, {
+          const box = document.getElementById("invite-qr")
+          box.innerHTML = ""
+          new QRCode(box, {
+            text: url,
             width: 220,
-            margin: 1,
-            color: { dark: "#3d6b12", light: "#ffffff" }
+            height: 220,
+            colorDark: "#3d6b12",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
           })
           modal.classList.remove("hidden")
         } catch {
-          showStatus("Could not create an invite.", "err")
+          showStatus("Could not create a QR code.", "err")
         }
       })
 

@@ -158,22 +158,25 @@ export function otherFriend(node, me) {
   return node.a
 }
 
-export function inviteLink(envelope) {
-  return new URL("friends/?invite=" + encodeURIComponent(JSON.stringify(envelope)), ROOT).href
+export function inviteLink(payload) {
+  const token = typeof payload === "string" ? payload : JSON.stringify(payload)
+  return new URL("friends/?invite=" + encodeURIComponent(token), ROOT).href
 }
 
 export async function acceptInvite(db, raw) {
-  let envelope = raw
-  if (typeof raw === "string") {
+  const me = db.sm.getActiveEthAddress()
+  if (!me || !raw) return null
+  let from = null
+  const text = String(raw)
+  if (/^0x[a-fA-F0-9]{40}$/.test(text)) from = text
+  else {
     try {
-      envelope = JSON.parse(raw)
+      from = db.sm.verify(JSON.parse(text), 7 * 24 * 60 * 60 * 1000)
     } catch {
       return null
     }
   }
-  const from = db.sm.verify(envelope, 7 * 24 * 60 * 60 * 1000)
-  const me = db.sm.getActiveEthAddress()
-  if (!from || !me || from.toLowerCase() === me.toLowerCase()) return null
+  if (!from || from.toLowerCase() === me.toLowerCase()) return null
   const id = friendIdFor(from, me)
   const pair = [from.toLowerCase(), me.toLowerCase()].sort()
   const { result } = await db.get(id)
