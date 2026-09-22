@@ -121,6 +121,15 @@ export function applyCurrentUser(db, profiles, onlineMap) {
   set("side-presence", (el) => el.classList.toggle("online", on))
   set("me-presence", (el) => el.classList.toggle("online", on))
   set("settings-presence", (el) => el.classList.toggle("online", on))
+  const href = profile && profile.username
+    ? new URL("p/" + encodeURIComponent(String(profile.username).toLowerCase()), ROOT).href
+    : ""
+  set("side-profile-link", (el) => {
+    if (href) el.href = href
+  })
+  set("me-profile-link", (el) => {
+    if (href) el.href = href
+  })
 }
 
 export function setNavBadge(id, count) {
@@ -236,6 +245,13 @@ export function otherInThread(threadId, me) {
   if (parts[1] === mine) return parts[2]
   if (parts[2] === mine) return parts[1]
   return parts[2] || parts[1] || ""
+}
+
+export function profileHref(profiles, address) {
+  const profile = profiles && profiles.get && profiles.get(String(address).toLowerCase())
+  const username = profile && profile.username
+  if (!username) return ""
+  return new URL("p/" + encodeURIComponent(String(username).toLowerCase()), ROOT).href
 }
 
 export function avatarUrl(address, source) {

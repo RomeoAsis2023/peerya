@@ -803,7 +803,7 @@
           </div>
 
           <div class="sidebar-user">
-            <span class="avatar-wrap"><img id="side-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="side-presence"></span></span>
+            <a class="avatar-link" id="side-profile-link"><span class="avatar-wrap"><img id="side-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="side-presence"></span></span></a>
             <div class="meta">
               <p class="name" id="side-name">You</p>
               <p class="role" id="side-role">Peer</p>
@@ -840,7 +840,7 @@
 
       <aside class="right-rail">
         <div class="account-switch">
-          <span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span>
+          <a class="avatar-link" id="me-profile-link"><span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span></a>
           <div>
             <p class="suggest-name" id="me-name">You</p>
             <p class="suggest-handle" id="me-handle"></p>
@@ -887,7 +887,8 @@
         compressImage,
         MAX_POST_IMAGES,
         setNavBadge,
-        watchNotices
+        watchNotices,
+        profileHref
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -935,8 +936,9 @@
           const slide = document.createElement("div")
           slide.className = "swiper-slide"
           const online = presence.online.has(String(peer.address).toLowerCase()) || peer.address === me
+          const href = profileHref(profiles, peer.address) || "../explore/"
           slide.innerHTML =
-            '<a class="story" href="../messages/"><div class="story-ring"><img alt=""><span class="presence"></span></div><span class="story-name"></span></a>'
+            '<a class="story" href="' + href + '"><div class="story-ring"><img alt=""><span class="presence"></span></div><span class="story-name"></span></a>'
           slide.querySelector("img").src = avatarUrl(peer.address, profiles)
           slide.querySelector(".story-name").textContent = peer.username || nameOf(peer.address)
           slide.querySelector(".presence").classList.toggle("online", online)
@@ -975,7 +977,7 @@
           const article = document.createElement("article")
           article.className = "card post-card" + (openComments.has(post.id) ? " open-comments" : "")
           article.innerHTML =
-            '<div class="post-header"><span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="post-user"></p><p class="post-meta"></p></div>' +
+            '<div class="post-header">' + (profileHref(profiles, post.author) ? '<a class="avatar-link" href="' + profileHref(profiles, post.author) + '">' : '') + '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span>' + (profileHref(profiles, post.author) ? "</a>" : "") + '<div><p class="post-user"></p><p class="post-meta"></p></div>' +
             '<button type="button" class="post-more" aria-label="More"><i class="bi bi-three-dots"></i></button></div>' +
             '<div class="post-media-grid"></div>' +
             '<p class="post-caption"><strong></strong><span></span></p>' +
@@ -1049,7 +1051,7 @@
             const row = document.createElement("div")
             row.className = "comment-item"
             row.innerHTML =
-              '<span class="avatar-wrap sm"><img class="avatar" alt=""><span class="presence"></span></span><div class="comment-body"><div class="comment-meta"><strong></strong><span></span></div>' +
+              (profileHref(profiles, node.author) ? '<a class="avatar-link" href="' + profileHref(profiles, node.author) + '">' : "") + '<span class="avatar-wrap sm"><img class="avatar" alt=""><span class="presence"></span></span>' + (profileHref(profiles, node.author) ? "</a>" : "") + '<div class="comment-body"><div class="comment-meta"><strong></strong><span></span></div>' +
               '<p class="comment-text"></p><button type="button" class="comment-reply">Reply</button></div>'
             row.querySelector("img").src = avatarUrl(node.author, profiles)
             row.querySelector(".presence").classList.toggle("online", presence.online.has(String(node.author).toLowerCase()))
@@ -1097,7 +1099,7 @@
           const row = document.createElement("div")
           row.className = "suggest-item"
           row.innerHTML =
-            '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
+            (profileHref(profiles, person.address) ? '<a class="avatar-link" href="' + profileHref(profiles, person.address) + '">' : "") + '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span>' + (profileHref(profiles, person.address) ? "</a>" : "") + '<div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="follow-btn"></button>'
           row.querySelector("img").src = avatarUrl(person.address, profiles)
           row.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))

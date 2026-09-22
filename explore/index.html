@@ -791,7 +791,7 @@
             <p class="mb-2 small text-secondary">Enjoy unlimited access to Peerya with only a small price monthly.</p>
           </div>
           <div class="sidebar-user">
-            <span class="avatar-wrap"><img id="side-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="side-presence"></span></span>
+            <a class="avatar-link" id="side-profile-link"><span class="avatar-wrap"><img id="side-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="side-presence"></span></span></a>
             <div class="meta">
               <p class="name" id="side-name">You</p>
               <p class="role" id="side-role">Peer</p>
@@ -825,7 +825,7 @@
 
       <aside class="right-rail">
         <div class="account-switch">
-          <span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span>
+          <a class="avatar-link" id="me-profile-link"><span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span></a>
           <div>
             <p class="suggest-name" id="me-name">You</p>
             <p class="suggest-handle" id="me-handle"></p>
@@ -857,7 +857,8 @@
         toggleFollow,
         addFriend,
         otherFriend,
-        watchNotices
+        watchNotices,
+        profileHref
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -893,7 +894,7 @@
           const row = document.createElement("div")
           row.className = "suggest-item"
           row.innerHTML =
-            '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
+            (profileHref(profiles, person.address) ? '<a class="avatar-link" href="' + profileHref(profiles, person.address) + '">' : "") + '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span>' + (profileHref(profiles, person.address) ? "</a>" : "") + '<div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="follow-btn"></button>'
           row.querySelector("img").src = avatarUrl(person.address, person)
           row.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))
@@ -945,7 +946,7 @@
           const card = document.createElement("div")
           card.className = "peer-card"
           card.innerHTML =
-            '<span class="avatar-wrap"><img alt=""><span class="presence"></span></span>' +
+            (profileHref(profiles, person.address) ? '<a class="avatar-link" href="' + profileHref(profiles, person.address) + '">' : "") + '<span class="avatar-wrap"><img alt=""><span class="presence"></span></span>' + (profileHref(profiles, person.address) ? "</a>" : "") +
             '<div class="peer-meta"><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="add-friend-btn">Add as a friend</button>'
           card.querySelector("img").src = avatarUrl(person.address, person)
