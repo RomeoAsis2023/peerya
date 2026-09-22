@@ -767,7 +767,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#notifications">
+            <a class="nav-link" href="../notifications/">
               <i class="bi bi-bell"></i> Notifications
               <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
@@ -886,7 +886,8 @@
         applyCurrentUser,
         compressImage,
         MAX_POST_IMAGES,
-        setNavBadge
+        setNavBadge,
+        watchNotices
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -1121,9 +1122,9 @@
         applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friendNodes.size)
         setNavBadge("badge-messages", threads.size)
-        setNavBadge("badge-notifications", 0)
       }
       paint = render
+      watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
 
       let pendingImages = []
       let lightboxImages = []

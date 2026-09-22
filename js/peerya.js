@@ -196,6 +196,7 @@ export async function acceptInvite(db, raw) {
     b: pair[1],
     createdAt: Date.now()
   }, id)
+  await createNotice(db, { kind: "friend", from: me, to: from })
   return id
 }
 
@@ -212,6 +213,7 @@ export async function addFriend(db, other) {
     b: pair[1],
     createdAt: Date.now()
   }, id)
+  await createNotice(db, { kind: "friend", from: me, to: other })
   return id
 }
 
@@ -271,6 +273,7 @@ export async function sendDm(db, to, text) {
     lastAt: createdAt,
     lastFrom: from
   }, "thread:" + threadId)
+  await createNotice(db, { kind: "dm", from, to, text: body })
   return { smId, threadId, createdAt }
 }
 
@@ -439,6 +442,11 @@ export async function toggleReaction(db, kind, postId) {
     return false
   }
   await db.put({ type: kind, postId, from, createdAt: Date.now() }, id)
+  try {
+    const { result: post } = await db.get(postId)
+    const author = post && post.value && post.value.author
+    if (author) await createNotice(db, { kind, from, to: author, postId })
+  } catch {}
   return true
 }
 
@@ -454,7 +462,7 @@ export async function addComment(db, postId, text, parentId) {
   const author = db.sm.getActiveEthAddress()
   const body = (text || "").trim()
   if (!author || !postId || !body) return null
-  return db.put({
+  const commentId = await db.put({
     type: "comment",
     postId,
     parentId: parentId || "",
@@ -462,6 +470,58 @@ export async function addComment(db, postId, text, parentId) {
     text: body,
     createdAt: Date.now()
   })
+  try {
+    if (parentId) {
+      const { result } = await db.get(parentId)
+      const to = result && result.value && result.value.author
+      if (to) await createNotice(db, { kind: "reply", from: author, to, postId, text: body })
+    } else {
+      const { result } = await db.get(postId)
+      const to = result && result.value && result.value.author
+      if (to) await createNotice(db, { kind: "comment", from: author, to, postId, text: body })
+    }
+  } catch {}
+  return commentId
+}
+
+export async function createNotice(db, { kind, from, to, postId, text }) {
+  const a = String(from || "").toLowerCase()
+  const b = String(to || "").toLowerCase()
+  if (!a || !b || a === b) return null
+  return db.put({
+    type: "notice",
+    kind: kind || "info",
+    from: a,
+    to: b,
+    postId: postId || "",
+    text: String(text || "").slice(0, 80),
+    createdAt: Date.now(),
+    read: false
+  })
+}
+
+export function watchNotices(db, onChange) {
+  const me = String(db.sm.getActiveEthAddress() || "").toLowerCase()
+  const items = new Map()
+  const emit = () => {
+    const unread = [...items.values()].filter((item) => !item.read).length
+    if (onChange) onChange(unread, items)
+  }
+  db.map({ query: { type: "notice" }, realtime: true }, ({ id, value, action }) => {
+    if (action === "removed") items.delete(id)
+    else if (value && String(value.to).toLowerCase() === me) items.set(id, { ...value, id })
+    else return
+    emit()
+  })
+  return items
+}
+
+export async function markNoticesRead(db, items) {
+  for (const notice of items) {
+    if (!notice || !notice.id || notice.read) continue
+    const { id, ...value } = notice
+    await db.put({ ...value, read: true }, id)
+  }
 }
 
 export async function signOut(db) {

@@ -601,7 +601,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#notifications">
+            <a class="nav-link" href="../notifications/">
               <i class="bi bi-bell"></i> Notifications
               <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
@@ -721,7 +721,8 @@
         timeAgo,
         startPresence,
         applyCurrentUser,
-        setNavBadge
+        setNavBadge,
+        watchNotices
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -911,9 +912,9 @@
         const chatCount = new Set([...dms.values()].map((row) => row.threadId).filter(Boolean)).size
         setNavBadge("badge-friends", friendCount)
         setNavBadge("badge-messages", chatCount)
-        setNavBadge("badge-notifications", 0)
       }
       paint = render
+      watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
 
       els.search.addEventListener("input", () => {
         query = els.search.value.trim().toLowerCase()

@@ -659,7 +659,7 @@
           </li>
           <li class="nav-item"><a class="nav-link active" href="./" aria-current="page"><i class="bi bi-compass"></i> Explore</a></li>
           <li class="nav-item">
-            <a class="nav-link" href="#notifications">
+            <a class="nav-link" href="../notifications/">
               <i class="bi bi-bell"></i> Notifications
               <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
@@ -731,7 +731,8 @@
         setNavBadge,
         toggleFollow,
         addFriend,
-        otherFriend
+        otherFriend,
+        watchNotices
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -833,9 +834,9 @@
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friends.size)
-        setNavBadge("badge-notifications", 0)
       }
       paint = render
+      watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
 
       await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
         const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()

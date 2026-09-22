@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-    <title>Peerya - Friends</title>
+    <title>Peerya - Notifications</title>
     <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="../css/presence.css">
@@ -41,6 +41,7 @@
       }
 
       body.is-authed { visibility: visible; }
+      .hidden { display: none !important; }
 
       .hidden { display: none !important; }
 
@@ -258,12 +259,223 @@
         font-size: 0.85rem;
       }
 
-      .friends-card {
-        border: 0;
+      .notice-card {
+        background: #fff;
         border-radius: 1.15rem;
         box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
-        background: #fff;
         overflow: hidden;
+      }
+
+      .notice-head {
+        padding: 1.15rem 1.2rem 0.85rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .notice-head h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .notice-list { padding: 0.35rem 0.45rem 0.7rem; }
+
+      .notice-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        width: 100%;
+        border: 0;
+        background: none;
+        text-align: left;
+        padding: 0.8rem 0.7rem;
+        border-radius: 0.9rem;
+        color: inherit;
+      }
+
+      .notice-item:hover { background: var(--peerya-soft); }
+      .notice-item.unread { background: #f4f8ec; }
+
+      .notice-icon {
+        width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--peerya-soft);
+        color: var(--peerya-green-dark);
+        flex-shrink: 0;
+        margin-top: 1.4rem;
+        margin-left: -0.35rem;
+        font-size: 0.7rem;
+      }
+
+      .notice-item .avatar-wrap img {
+        width: 44px;
+        height: 44px;
+      }
+
+      .notice-copy { min-width: 0; flex: 1; }
+
+      .notice-copy p {
+        margin: 0.2rem 0 0;
+        font-size: 0.9rem;
+        color: #4a4a4a;
+        line-height: 1.4;
+      }
+
+      .notice-copy strong { color: var(--peerya-ink); }
+
+      .notice-time {
+        color: #b0b0b0;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        padding-top: 0.15rem;
+      }
+
+      .explore-head { display: none; }
+
+      .explore-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(11.8rem, 1fr));
+        gap: 1rem;
+      }
+
+      .peer-card {
+        background: #fff;
+        border-radius: 1.1rem;
+        box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+        padding: 1.15rem 0.95rem 1.05rem;
+        text-align: center;
+      }
+
+      .peer-card .avatar-wrap {
+        margin-bottom: 0.7rem;
+      }
+
+      .peer-card img {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #f0f4e8;
+      }
+
+      .peer-card .suggest-name {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      .peer-card .suggest-handle {
+        margin: 0.15rem 0 0.85rem;
+        color: #8a8a8a;
+        font-size: 0.8rem;
+      }
+
+      .add-friend-btn {
+        width: 100%;
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.82rem;
+      }
+
+      .add-friend-btn:disabled {
+        background: #ececec;
+        color: #9a9a9a;
+      }
+
+      .settings-card {
+        display: none;
+      }
+
+      .settings-card h1 {
+        margin: 0 0 1.1rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .avatar-edit {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .avatar-edit img {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #eee;
+        border: 3px solid #f0f4e8;
+      }
+
+      .avatar-edit .btn {
+        border-radius: 999px;
+        font-weight: 700;
+        background: var(--peerya-soft);
+        border-color: var(--peerya-line);
+        color: var(--peerya-ink);
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem 1rem;
+      }
+
+      .settings-grid .full { grid-column: 1 / -1; }
+
+      .settings-card .form-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #7a7a7a;
+        margin-bottom: 0.3rem;
+      }
+
+      .settings-card .form-control,
+      .settings-card .form-select {
+        border-color: #e8e8e8;
+        background: #fafafa;
+        min-height: 2.7rem;
+        border-radius: 0.7rem;
+      }
+
+      .settings-card textarea.form-control {
+        min-height: 7rem;
+        resize: vertical;
+      }
+
+      .settings-save {
+        margin-top: 1.1rem;
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.55rem 1.3rem;
+      }
+
+      .settings-note {
+        display: none;
+        margin: 0 0 0.9rem;
+        padding: 0.65rem 0.8rem;
+        border-radius: 0.6rem;
+        font-size: 0.88rem;
+      }
+
+      .settings-note.show { display: block; }
+      .settings-note.ok { background: #eef7e4; color: #3d6b12; }
+      .settings-note.err { background: #fdecea; color: #9b2c2c; }
+
+      .friends-card {
+        display: none;
       }
 
       .friends-head {
@@ -458,6 +670,10 @@
         .right-rail { display: none; }
       }
 
+      @media (max-width: 575.98px) {
+        .settings-grid { grid-template-columns: 1fr; }
+      }
+
       @media (max-width: 991.98px) {
         .home-topbar { display: flex; }
         .home-shell { padding: 1rem; }
@@ -496,14 +712,14 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="./" aria-current="page">
+            <a class="nav-link" href="../friends/">
               <i class="bi bi-people"></i> Friends
               <span class="nav-badge" id="badge-friends" hidden></span>
             </a>
           </li>
           <li class="nav-item"><a class="nav-link" href="../explore/"><i class="bi bi-compass"></i> Explore</a></li>
           <li class="nav-item">
-            <a class="nav-link" href="../notifications/">
+            <a class="nav-link active" href="./" aria-current="page">
               <i class="bi bi-bell"></i> Notifications
               <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
@@ -534,24 +750,13 @@
 
     <main class="home-shell">
       <section>
-      <div class="friends-card">
-        <div class="friends-head">
-          <h1>Friends</h1>
-          <button type="button" class="invite-btn" id="invite-btn"><i class="bi bi-qr-code"></i> Invite friends</button>
+        <div class="notice-card">
+          <div class="notice-head">
+            <h1>Notifications</h1>
+          </div>
+          <div class="notice-list" id="notice-list"></div>
+          <p class="feed-empty hidden" id="notice-empty">You're all caught up.</p>
         </div>
-        <p class="friends-status" id="friends-status"></p>
-        <div id="friends-empty" class="empty-friends hidden">No friends yet. Share your QR so a logged-in peer can join you.</div>
-        <div class="section-head">
-          <h2 class="section-title">Online</h2>
-          <span class="see-all" id="online-count">0</span>
-        </div>
-        <div class="friend-list" id="online-friends"></div>
-        <div class="section-head">
-          <h2 class="section-title">Offline</h2>
-          <span class="see-all" id="offline-count">0</span>
-        </div>
-        <div class="friend-list" id="offline-friends"></div>
-      </div>
       </section>
 
       <aside class="right-rail">
@@ -575,21 +780,7 @@
       </aside>
     </main>
 
-    <div class="invite-modal hidden" id="invite-modal">
-      <div class="invite-sheet">
-        <h2>Invite to Peerya</h2>
-        <p>Friends scan this QR while signed in to appear on your list.</p>
-        <div id="invite-qr"></div>
-        <input class="invite-link" id="invite-link" readonly>
-        <div class="invite-actions">
-          <button type="button" class="btn btn-copy" id="copy-invite">Copy link</button>
-          <button type="button" class="btn btn-outline-secondary" id="close-invite">Close</button>
-        </div>
-      </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script type="module">
       import {
         requireAuth,
@@ -599,11 +790,11 @@
         startPresence,
         applyCurrentUser,
         setNavBadge,
-        consumeInvite,
-        inviteLink,
-        otherFriend,
         toggleFollow,
-        watchNotices
+        otherFriend,
+        timeAgo,
+        watchNotices,
+        markNoticesRead
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -616,7 +807,6 @@
       const follows = new Map()
       let paint = () => {}
       const presence = startPresence(db, () => paint())
-      const status = document.getElementById("friends-status")
 
       document.querySelectorAll(".js-logout").forEach((button) => {
         button.addEventListener("click", async (event) => {
@@ -624,36 +814,6 @@
           await signOut(db)
         })
       })
-
-      const showStatus = (message, kind) => {
-        status.textContent = message || ""
-        status.classList.toggle("show", !!message)
-        status.classList.toggle("ok", kind === "ok")
-        status.classList.toggle("err", kind === "err")
-      }
-
-      const pendingInvite = sessionStorage.getItem("peerya.invite") || new URLSearchParams(location.search).get("invite")
-      try {
-        const added = await consumeInvite(db)
-        if (added) showStatus("You're now friends.", "ok")
-        else if (pendingInvite) showStatus("That invite could not be used.", "err")
-      } catch {
-        showStatus("That invite could not be used.", "err")
-      }
-
-      const friendButton = (address, isOn) => {
-        const btn = document.createElement("button")
-        btn.type = "button"
-        btn.className = "friend-item" + (isOn ? " online" : "")
-        btn.innerHTML =
-          '<div class="friend-avatar"><img alt=""><span class="presence' + (isOn ? " online" : "") + '"></span></div>' +
-          '<div class="friend-meta"><p class="suggest-name"></p><p class="friend-status"></p></div>'
-        btn.querySelector("img").src = avatarUrl(address, profiles)
-        btn.querySelector(".suggest-name").textContent = nameOf(db, profiles, address)
-        btn.querySelector(".friend-status").textContent = isOn ? "Active now" : "Offline"
-        btn.addEventListener("click", () => { location.href = "../messages/" })
-        return btn
-      }
 
       const renderPeople = (root, countEl, list, emptyText) => {
         root.innerHTML = ""
@@ -672,7 +832,7 @@
           row.innerHTML =
             '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="follow-btn"></button>'
-          row.querySelector("img").src = avatarUrl(person.address, profiles)
+          row.querySelector("img").src = avatarUrl(person.address, person)
           row.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))
           row.querySelector(".suggest-name").textContent = nameOf(db, profiles, person.address)
           row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
@@ -684,76 +844,79 @@
         }
       }
 
-      const render = () => {
-        const onlineList = document.getElementById("online-friends")
-        const offlineList = document.getElementById("offline-friends")
-        onlineList.innerHTML = ""
-        offlineList.innerHTML = ""
-        let on = 0
-        let off = 0
-        const friendAddrs = new Set()
-        for (const node of friends.values()) {
-          const address = otherFriend(node, me)
-          if (!address) continue
-          friendAddrs.add(String(address).toLowerCase())
-          const isOn = presence.online.has(String(address).toLowerCase())
-          if (isOn) {
-            onlineList.append(friendButton(address, true))
-            on += 1
-          } else {
-            offlineList.append(friendButton(address, false))
-            off += 1
-          }
+      const notices = new Map()
+      const labels = {
+        dm: "sent you a message",
+        like: "liked your post",
+        heart: "loved your post",
+        comment: "commented on your post",
+        reply: "replied to your comment",
+        friend: "added you as a friend"
+      }
+      const icons = {
+        dm: "bi-chat-dots-fill",
+        like: "bi-hand-thumbs-up-fill",
+        heart: "bi-heart-fill",
+        comment: "bi-chat-fill",
+        reply: "bi-reply-fill",
+        friend: "bi-person-plus-fill"
+      }
+      const hrefs = {
+        dm: "../messages/",
+        friend: "../friends/",
+        like: "../home/",
+        heart: "../home/",
+        comment: "../home/",
+        reply: "../home/"
+      }
+
+      const renderNotices = () => {
+        const list = document.getElementById("notice-list")
+        const empty = document.getElementById("notice-empty")
+        const rows = [...notices.values()].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        list.innerHTML = ""
+        empty.classList.toggle("hidden", rows.length > 0)
+        for (const notice of rows) {
+          const btn = document.createElement("button")
+          btn.type = "button"
+          btn.className = "notice-item" + (notice.read ? "" : " unread")
+          btn.innerHTML =
+            '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span>' +
+            '<div class="notice-copy"><p></p></div><span class="notice-time"></span>'
+          btn.querySelector("img").src = avatarUrl(notice.from, profiles)
+          btn.querySelector(".presence").classList.toggle("online", presence.online.has(String(notice.from).toLowerCase()))
+          const who = nameOf(db, profiles, notice.from)
+          const line = document.createElement("p")
+          line.innerHTML = "<strong></strong> "
+          line.querySelector("strong").textContent = who
+          line.append(document.createTextNode(labels[notice.kind] || "sent you an update"))
+          if (notice.text) line.append(document.createTextNode(" · " + notice.text))
+          btn.querySelector(".notice-copy").innerHTML = ""
+          btn.querySelector(".notice-copy").append(line)
+          btn.querySelector(".notice-time").textContent = timeAgo(notice.createdAt)
+          btn.addEventListener("click", () => { location.href = hrefs[notice.kind] || "../home/" })
+          list.append(btn)
         }
-        document.getElementById("online-count").textContent = String(on)
-        document.getElementById("offline-count").textContent = String(off)
-        document.getElementById("friends-empty").classList.toggle("hidden", on + off > 0)
+      }
+
+      const render = () => {
+        renderNotices()
         const people = [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
         const active = people.filter((person) => presence.online.has(String(person.address).toLowerCase()))
-        const suggested = people.filter((person) => !friendAddrs.has(String(person.address).toLowerCase()) && !presence.online.has(String(person.address).toLowerCase()))
+        const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()))
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friends.size)
       }
       paint = render
-      watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
 
-      const modal = document.getElementById("invite-modal")
-      const linkField = document.getElementById("invite-link")
-
-      document.getElementById("invite-btn").addEventListener("click", () => {
-        try {
-          let url = inviteLink(me)
-          db.sm.sign({ kind: "invite" }).then((envelope) => {
-            if (envelope) linkField.value = inviteLink(envelope)
-          }).catch(() => {})
-          linkField.value = url
-          const box = document.getElementById("invite-qr")
-          box.innerHTML = ""
-          new QRCode(box, {
-            text: url,
-            width: 220,
-            height: 220,
-            colorDark: "#3d6b12",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.M
-          })
-          modal.classList.remove("hidden")
-        } catch {
-          showStatus("Could not create a QR code.", "err")
-        }
-      })
-
-      document.getElementById("close-invite").addEventListener("click", () => modal.classList.add("hidden"))
-      modal.addEventListener("click", (event) => {
-        if (event.target === modal) modal.classList.add("hidden")
-      })
-      document.getElementById("copy-invite").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(linkField.value)
-          document.getElementById("copy-invite").textContent = "Copied"
-        } catch {}
+      watchNotices(db, (unread, items) => {
+        notices.clear()
+        items.forEach((value, key) => notices.set(key, value))
+        setNavBadge("badge-notifications", unread)
+        render()
+        if (unread) markNoticesRead(db, [...items.values()]).catch(() => {})
       })
 
       await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {

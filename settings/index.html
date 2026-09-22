@@ -593,7 +593,7 @@
           </li>
           <li class="nav-item"><a class="nav-link" href="../explore/"><i class="bi bi-compass"></i> Explore</a></li>
           <li class="nav-item">
-            <a class="nav-link" href="#notifications">
+            <a class="nav-link" href="../notifications/">
               <i class="bi bi-bell"></i> Notifications
               <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
@@ -702,7 +702,8 @@
         setNavBadge,
         toggleFollow,
         saveProfile,
-        compressImage
+        compressImage,
+        watchNotices
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -783,9 +784,9 @@
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friends.size)
-        setNavBadge("badge-notifications", 0)
       }
       paint = render
+      watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
 
       document.getElementById("avatar-btn").addEventListener("click", () => {
         document.getElementById("avatar-file").click()
