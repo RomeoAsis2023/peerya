@@ -542,7 +542,7 @@ export function goHome() {
 export async function bootAdmin(db) {
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js")
+      const { startSuperadmin } = await import("./admin.js?v=gdb1")
       await startSuperadmin(db)
     } catch {}
   }

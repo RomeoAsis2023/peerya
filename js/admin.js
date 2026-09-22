@@ -7,7 +7,7 @@ function loadCss() {
   const link = document.createElement("link")
   link.id = "scp-css"
   link.rel = "stylesheet"
-  link.href = new URL("../css/admin.css", import.meta.url).href
+  link.href = new URL("../css/admin.css?v=gdb1", import.meta.url).href
   document.head.append(link)
 }
 
