@@ -14,7 +14,7 @@ export const R2_CORS = [
     AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
     AllowedHeaders: ["*"],
     ExposeHeaders: ["ETag", "Content-Length"],
-    MaxAgeSec: 3600
+    MaxAgeSeconds: 3600
   }
 ]
 
