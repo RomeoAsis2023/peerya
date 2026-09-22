@@ -79,17 +79,22 @@ export async function saveProfile(db, fields) {
     createdAt: prev.createdAt || Date.now(),
     updatedAt: Date.now()
   }
-  if (fields && fields.avatar && fields.avatar.data) {
+  const photo = (fields && fields.avatar && fields.avatar.data)
+    ? fields.avatar
+    : (prev.avatar && prev.avatar.data ? prev.avatar : null)
+  if (photo && photo.data) {
+    value.avatar = photo
     value.hasAvatar = true
     await db.put({
       type: "avatar",
       address,
-      mime: fields.avatar.mime || "image/jpeg",
-      data: fields.avatar.data,
+      mime: photo.mime || "image/jpeg",
+      data: photo.data,
       updatedAt: Date.now()
-    }, "avatar:" + address)
+    }, "avatar:" + String(address).toLowerCase())
+  } else {
+    delete value.avatar
   }
-  delete value.avatar
   await db.put({ type: "username", username: name, address }, "username:" + name)
   await db.put(value, "profile:" + address)
   localStorage.setItem("peerya.username", name)
@@ -264,11 +269,20 @@ export function profileHref(profiles, address) {
   return new URL("p/" + encodeURIComponent(String(username).toLowerCase()), ROOT).href
 }
 
+function readAvatar(profile) {
+  if (!profile) return ""
+  const photo = profile.avatar
+  if (typeof photo === "string" && photo.indexOf("data:") === 0) return photo
+  if (photo && photo.data) return photo.data
+  return ""
+}
+
 export function avatarUrl(address, source) {
   const key = String(address || "").toLowerCase()
   let profile = source
   if (source && typeof source.get === "function") profile = source.get(key)
-  if (profile && profile.avatar && profile.avatar.data) return profile.avatar.data
+  const data = readAvatar(profile)
+  if (data) return data
   return new URL("default_avatar.png", ROOT).href
 }
 
@@ -286,8 +300,8 @@ export function attachProfiles(db, profiles, onChange) {
     } else if (value) {
       const prev = profiles.get(address) || {}
       const next = { ...prev, ...value, address: value.address || prev.address || address }
-      if (value.avatar && value.avatar.data) next.avatar = value.avatar
-      else if (prev.avatar) next.avatar = prev.avatar
+      const photo = readAvatar(value) ? value.avatar : (prev.avatar || null)
+      if (photo) next.avatar = photo
       else delete next.avatar
       profiles.set(address, next)
     }
@@ -298,7 +312,11 @@ export function attachProfiles(db, profiles, onChange) {
     if (!address) return
     const prev = profiles.get(address) || { address }
     if (action === "removed") delete prev.avatar
-    else if (value && value.data) prev.avatar = { mime: value.mime || "image/jpeg", data: value.data }
+    else if (value && (value.data || (value.avatar && value.avatar.data))) {
+      prev.avatar = value.data
+        ? { mime: value.mime || "image/jpeg", data: value.data }
+        : value.avatar
+    }
     profiles.set(address, prev)
     emit()
   })
