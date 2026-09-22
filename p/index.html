@@ -175,10 +175,8 @@
       }
 
       .home-shell {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 20rem;
-        gap: 1.75rem;
-        max-width: 62rem;
+        display: block;
+        max-width: 54rem;
         margin: 0 auto;
         padding: 1.25rem 1.5rem 2.5rem;
       }
@@ -935,26 +933,6 @@
           </div>
         </div>
       </section>
-
-      <aside class="right-rail">
-        <div class="account-switch">
-          <a class="avatar-link" id="me-profile-link"><span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span></a>
-          <div>
-            <p class="suggest-name" id="me-name">You</p>
-            <p class="suggest-handle" id="me-handle"></p>
-          </div>
-        </div>
-        <div class="section-head">
-          <h2 class="section-title">Suggested For You</h2>
-          <span class="see-all" id="suggested-count">0</span>
-        </div>
-        <div class="suggest-list" id="suggested-list"></div>
-        <div class="section-head">
-          <h2 class="section-title">Active Peers</h2>
-          <span class="see-all" id="peers-count">0</span>
-        </div>
-        <div class="suggest-list" id="peers-list"></div>
-      </aside>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
@@ -1154,11 +1132,6 @@
 
       const render = () => {
         renderProfile()
-        const people = [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
-        const active = people.filter((person) => presence.online.has(String(person.address).toLowerCase()))
-        const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()))
-        renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
-        renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friends.size)
       }
