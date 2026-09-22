@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-    <title>Peerya - Settings</title>
+    <title>Peerya - Explore</title>
     <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <style>
@@ -40,6 +40,7 @@
       }
 
       body.is-authed { visibility: visible; }
+      .hidden { display: none !important; }
 
       .hidden { display: none !important; }
 
@@ -257,13 +258,75 @@
         font-size: 0.85rem;
       }
 
-      .settings-card {
-        border: 0;
-        border-radius: 1.15rem;
-        box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+      .explore-head {
+        margin-bottom: 1.15rem;
+      }
+
+      .explore-head h1 {
+        margin: 0 0 0.35rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .explore-head p {
+        margin: 0;
+        color: #8a8a8a;
+        font-size: 0.92rem;
+      }
+
+      .explore-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(11.8rem, 1fr));
+        gap: 1rem;
+      }
+
+      .peer-card {
         background: #fff;
-        overflow: hidden;
-        padding: 1.2rem 1.25rem 1.4rem;
+        border-radius: 1.1rem;
+        box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+        padding: 1.15rem 0.95rem 1.05rem;
+        text-align: center;
+      }
+
+      .peer-card img {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 0.7rem;
+        border: 3px solid #f0f4e8;
+      }
+
+      .peer-card .suggest-name {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      .peer-card .suggest-handle {
+        margin: 0.15rem 0 0.85rem;
+        color: #8a8a8a;
+        font-size: 0.8rem;
+      }
+
+      .add-friend-btn {
+        width: 100%;
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.82rem;
+      }
+
+      .add-friend-btn:disabled {
+        background: #ececec;
+        color: #9a9a9a;
+      }
+
+      .settings-card {
+        display: none;
       }
 
       .settings-card h1 {
@@ -590,14 +653,14 @@
               <span class="nav-badge" id="badge-friends" hidden></span>
             </a>
           </li>
-          <li class="nav-item"><a class="nav-link" href="../explore/"><i class="bi bi-compass"></i> Explore</a></li>
+          <li class="nav-item"><a class="nav-link active" href="./" aria-current="page"><i class="bi bi-compass"></i> Explore</a></li>
           <li class="nav-item">
             <a class="nav-link" href="#notifications">
               <i class="bi bi-bell"></i> Notifications
               <span class="nav-badge" id="badge-notifications" hidden></span>
             </a>
           </li>
-          <li class="nav-item"><a class="nav-link active" href="./" aria-current="page"><i class="bi bi-gear"></i> Settings</a></li>
+          <li class="nav-item"><a class="nav-link" href="../settings/"><i class="bi bi-gear"></i> Settings</a></li>
           <li class="nav-item"><a class="nav-link" href="#help"><i class="bi bi-question-circle"></i> Help &amp; Support</a></li>
           <li class="nav-item"><a class="nav-link js-logout" href="../"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
         </ul>
@@ -623,49 +686,12 @@
 
     <main class="home-shell">
       <section>
-      <form class="settings-card" id="settings-form">
-        <h1>Settings</h1>
-        <p class="settings-note" id="settings-note"></p>
-        <div class="avatar-edit">
-          <img id="settings-avatar" src="../icon.svg" alt="Avatar">
-          <div>
-            <button type="button" class="btn" id="avatar-btn">Upload photo</button>
-            <input type="file" id="avatar-file" accept="image/*" hidden>
-          </div>
+        <div class="explore-head">
+          <h1>Explore</h1>
+          <p>Peers on Peerya who are not in your friends list yet.</p>
         </div>
-        <div class="settings-grid">
-          <div>
-            <label class="form-label" for="first-name">First name</label>
-            <input class="form-control" id="first-name" autocomplete="given-name">
-          </div>
-          <div>
-            <label class="form-label" for="last-name">Last name</label>
-            <input class="form-control" id="last-name" autocomplete="family-name">
-          </div>
-          <div class="full">
-            <label class="form-label" for="settings-email">Email</label>
-            <input type="email" class="form-control" id="settings-email" autocomplete="email">
-          </div>
-          <div>
-            <label class="form-label" for="birthday">Birthday</label>
-            <input type="date" class="form-control" id="birthday">
-          </div>
-          <div>
-            <label class="form-label" for="gender">Gender</label>
-            <select class="form-select" id="gender">
-              <option value="">Select</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="lgbt+">LGBT+</option>
-            </select>
-          </div>
-          <div class="full">
-            <label class="form-label" for="about">About me</label>
-            <textarea class="form-control" id="about" maxlength="500" placeholder="Tell peers a little about you"></textarea>
-          </div>
-        </div>
-        <button type="submit" class="settings-save">Save changes</button>
-      </form>
+        <div class="explore-grid" id="explore-grid"></div>
+        <p class="feed-empty hidden" id="explore-empty">No new peers to add right now.</p>
       </section>
 
       <aside class="right-rail">
@@ -700,8 +726,8 @@
         applyCurrentUser,
         setNavBadge,
         toggleFollow,
-        saveProfile,
-        compressImage
+        addFriend,
+        otherFriend
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -712,11 +738,8 @@
       const profiles = new Map()
       const friends = new Map()
       const follows = new Map()
-      let pendingAvatar = null
-      let filled = false
       let paint = () => {}
       const presence = startPresence(db, () => paint())
-      const note = document.getElementById("settings-note")
 
       document.querySelectorAll(".js-logout").forEach((button) => {
         button.addEventListener("click", async (event) => {
@@ -724,25 +747,6 @@
           await signOut(db)
         })
       })
-
-      const showNote = (message, kind) => {
-        note.textContent = message || ""
-        note.classList.toggle("show", !!message)
-        note.classList.toggle("ok", kind === "ok")
-        note.classList.toggle("err", kind === "err")
-      }
-
-      const fillForm = (profile) => {
-        if (!profile || filled) return
-        filled = true
-        document.getElementById("first-name").value = profile.firstName || ""
-        document.getElementById("last-name").value = profile.lastName || ""
-        document.getElementById("settings-email").value = typeof profile.email === "string" && !profile.email.startsWith("{") ? profile.email : ""
-        document.getElementById("birthday").value = profile.birthday || ""
-        document.getElementById("gender").value = profile.gender || ""
-        document.getElementById("about").value = profile.about || ""
-        document.getElementById("settings-avatar").src = avatarUrl(me, profile)
-      }
 
       const renderPeople = (root, countEl, list, emptyText) => {
         root.innerHTML = ""
@@ -772,11 +776,53 @@
         }
       }
 
+      const friendAddrs = () => {
+        const set = new Set()
+        for (const node of friends.values()) {
+          const other = otherFriend(node, me)
+          if (other) set.add(String(other).toLowerCase())
+        }
+        return set
+      }
+
+      const renderExplore = () => {
+        const grid = document.getElementById("explore-grid")
+        const empty = document.getElementById("explore-empty")
+        const taken = friendAddrs()
+        const people = [...profiles.values()].filter((profile) => {
+          const address = String(profile.address).toLowerCase()
+          return address && address !== me.toLowerCase() && !taken.has(address)
+        })
+        grid.innerHTML = ""
+        empty.classList.toggle("hidden", people.length > 0)
+        for (const person of people) {
+          const card = document.createElement("div")
+          card.className = "peer-card"
+          card.innerHTML =
+            '<img alt=""><p class="suggest-name"></p><p class="suggest-handle"></p>' +
+            '<button type="button" class="add-friend-btn">Add as a friend</button>'
+          card.querySelector("img").src = avatarUrl(person.address, person)
+          card.querySelector(".suggest-name").textContent = nameOf(db, profiles, person.address)
+          card.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
+          card.querySelector("button").addEventListener("click", async (event) => {
+            const btn = event.currentTarget
+            btn.disabled = true
+            try {
+              await addFriend(db, person.address)
+              btn.textContent = "Added"
+            } catch {
+              btn.disabled = false
+            }
+          })
+          grid.append(card)
+        }
+      }
+
       const render = () => {
-        fillForm(profiles.get(me.toLowerCase()))
+        renderExplore()
         const people = [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
         const active = people.filter((person) => presence.online.has(String(person.address).toLowerCase()))
-        const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()))
+        const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()) && !friendAddrs().has(String(person.address).toLowerCase()))
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
         applyCurrentUser(db, profiles)
@@ -784,39 +830,6 @@
         setNavBadge("badge-notifications", 0)
       }
       paint = render
-
-      document.getElementById("avatar-btn").addEventListener("click", () => {
-        document.getElementById("avatar-file").click()
-      })
-      document.getElementById("avatar-file").addEventListener("change", async () => {
-        const file = document.getElementById("avatar-file").files[0]
-        document.getElementById("avatar-file").value = ""
-        if (!file) return
-        const image = await compressImage(file)
-        if (!image) return
-        pendingAvatar = image
-        document.getElementById("settings-avatar").src = image.data
-      })
-
-      document.getElementById("settings-form").addEventListener("submit", async (event) => {
-        event.preventDefault()
-        try {
-          await saveProfile(db, {
-            username: localStorage.getItem("peerya.username") || "",
-            firstName: document.getElementById("first-name").value,
-            lastName: document.getElementById("last-name").value,
-            email: document.getElementById("settings-email").value,
-            birthday: document.getElementById("birthday").value,
-            gender: document.getElementById("gender").value,
-            about: document.getElementById("about").value,
-            avatar: pendingAvatar
-          })
-          pendingAvatar = null
-          showNote("Saved.", "ok")
-        } catch {
-          showNote("Could not save settings.", "err")
-        }
-      })
 
       await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
         const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()

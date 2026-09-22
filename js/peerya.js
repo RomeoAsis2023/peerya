@@ -195,6 +195,22 @@ export async function acceptInvite(db, raw) {
   return id
 }
 
+export async function addFriend(db, other) {
+  const me = db.sm.getActiveEthAddress()
+  if (!me || !other || String(other).toLowerCase() === me.toLowerCase()) return null
+  const id = friendIdFor(me, other)
+  const pair = [me.toLowerCase(), String(other).toLowerCase()].sort()
+  const { result } = await db.get(id)
+  if (result) return id
+  await db.put({
+    type: "friend",
+    a: pair[0],
+    b: pair[1],
+    createdAt: Date.now()
+  }, id)
+  return id
+}
+
 export async function consumeInvite(db) {
   const raw = sessionStorage.getItem("peerya.invite") || new URLSearchParams(location.search).get("invite")
   if (!raw) return null
