@@ -18,6 +18,56 @@ let dbPromise
 
 const MESH_APP = "peerya"
 const MESH_CHANNEL = "peerya-live"
+const MESH_NOSTR = [
+  "wss://relay.damus.io",
+  "wss://nos.lol",
+  "wss://relay.snort.social",
+  "wss://relay.primal.net",
+  "wss://offchain.pub"
+]
+const MESH_MQTT = [
+  "wss://broker.emqx.io:8084/mqtt",
+  "wss://test.mosquitto.org:8081"
+]
+const MESH_TRACKERS = [
+  "wss://tracker.webtorrent.dev",
+  "wss://tracker.openwebtorrent.com",
+  "wss://tracker.btorrent.xyz"
+]
+
+async function hmacSha1B64(secret, msg) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-1" }, false, ["sign"])
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg))
+  const bytes = new Uint8Array(sig)
+  let out = ""
+  for (let i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i])
+  return btoa(out)
+}
+
+async function meshIceServers() {
+  const stun = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun.cloudflare.com:3478" }
+  ]
+  try {
+    const username = String(Math.floor(Date.now() / 1000) + 86400)
+    const credential = await hmacSha1B64("openrelayprojectsecret", username)
+    return stun.concat({
+      urls: [
+        "turn:staticauth.openrelay.metered.ca:80",
+        "turn:staticauth.openrelay.metered.ca:80?transport=tcp",
+        "turn:staticauth.openrelay.metered.ca:443",
+        "turn:staticauth.openrelay.metered.ca:443?transport=tcp",
+        "turns:staticauth.openrelay.metered.ca:443?transport=tcp"
+      ],
+      username,
+      credential
+    })
+  } catch {
+    return stun
+  }
+}
 const meshCtx = {
   db: null,
   online: null,
@@ -168,8 +218,31 @@ function ensureMesh(db, extra) {
   if (meshReady) return meshReady
   const graph = meshCtx.db
   if (!graph) return Promise.resolve(null)
-  meshReady = import("https://cdn.jsdelivr.net/npm/webconnect/dist/esm/webconnect.js").then(({ default: webconnect }) => {
-    const connect = webconnect({ appName: MESH_APP, channelName: MESH_CHANNEL })
+  meshReady = Promise.all([
+    import("https://cdn.jsdelivr.net/npm/webconnect/dist/esm/webconnect.js"),
+    meshIceServers()
+  ]).then(([{ default: webconnect }, iceServers]) => {
+    const OrigPC = window.RTCPeerConnection
+    if (OrigPC && !OrigPC.__peeryaIce) {
+      const Wrapped = function (config) {
+        const next = Object.assign({}, config || {}, {
+          iceServers: [].concat((config && config.iceServers) || [], iceServers)
+        })
+        return Reflect.construct(OrigPC, [next], new.target || OrigPC)
+      }
+      Wrapped.prototype = OrigPC.prototype
+      Wrapped.__peeryaIce = true
+      Object.setPrototypeOf(Wrapped, OrigPC)
+      window.RTCPeerConnection = Wrapped
+    }
+    const connect = webconnect({
+      appName: MESH_APP,
+      channelName: MESH_CHANNEL,
+      iceConfiguration: { iceServers },
+      nostrRelays: MESH_NOSTR,
+      mqttBrokers: MESH_MQTT,
+      torrentTrackers: MESH_TRACKERS
+    })
     meshConnect = connect
     connect.onConnect(async (attr) => {
       meshHello(attr.connectId)
