@@ -16,6 +16,198 @@ export const PASSKEYS_AVAILABLE =
 
 let dbPromise
 
+const MESH_APP = "peerya"
+const MESH_CHANNEL = "peerya-live"
+const meshCtx = {
+  db: null,
+  online: null,
+  mark: null,
+  drop: null,
+  notify: null,
+  profiles: null,
+  profileChange: null
+}
+let meshConnect = null
+let meshReady = null
+let remoteDepth = 0
+const meshPeerUser = new Map()
+const meshAvatars = new Map()
+
+function wrapDb(db) {
+  if (!db || db.__put) return db
+  db.__put = db.put.bind(db)
+  db.__remove = db.remove.bind(db)
+  db.put = async (value, id) => {
+    const result = await db.__put(value, id)
+    if (remoteDepth === 0 && value && value.type) {
+      meshSend({ kind: "put", id: id || result, value })
+    }
+    return result
+  }
+  db.remove = async (id) => {
+    const result = await db.__remove(id)
+    if (remoteDepth === 0) meshSend({ kind: "remove", id })
+    return result
+  }
+  return db
+}
+
+function meshSend(payload, connectId) {
+  if (!meshConnect || !payload) return
+  try {
+    meshConnect.Send(payload, { connectId: connectId === undefined ? null : connectId })
+  } catch {}
+}
+
+function meshEmit() {
+  if (meshCtx.notify) meshCtx.notify()
+  if (meshCtx.profileChange) meshCtx.profileChange()
+}
+
+function mergeProfileMemory(id, value) {
+  if (!value) return
+  const type = value.type
+  if (type === "avatar") {
+    const address = String((value.address || String(id || "").replace(/^avatar:/, ""))).toLowerCase()
+    if (!address) return
+    const photo = value.data
+      ? { mime: value.mime || "image/jpeg", data: value.data }
+      : value.avatar
+    if (photo && (photo.data || typeof photo === "string")) meshAvatars.set(address, photo)
+    const profiles = meshCtx.profiles
+    if (!profiles) return
+    const prev = profiles.get(address) || { address }
+    prev.avatar = photo || prev.avatar
+    profiles.set(address, prev)
+    return
+  }
+  if (type !== "profile") return
+  const address = String((value.address || String(id || "").replace(/^profile:/, ""))).toLowerCase()
+  if (!address) return
+  const profiles = meshCtx.profiles
+  const photo = readAvatar(value) ? value.avatar : meshAvatars.get(address)
+  if (photo) meshAvatars.set(address, photo)
+  if (!profiles) return
+  const prev = profiles.get(address) || {}
+  const next = { ...prev, ...value, address: value.address || prev.address || address }
+  if (photo) next.avatar = photo
+  else if (prev.avatar) next.avatar = prev.avatar
+  profiles.set(address, next)
+}
+
+async function applyRemotePut(id, value) {
+  if (!value) return
+  const db = meshCtx.db
+  if (id && db && db.__put) {
+    try {
+      const { result } = await db.get(id)
+      const local = result && result.value
+      const localTs = local && (local.updatedAt || local.createdAt || 0)
+      const remoteTs = value.updatedAt || value.createdAt || 0
+      if (local && localTs > remoteTs) {
+        if (value.type === "avatar") mergeProfileMemory(id, value)
+        meshEmit()
+        return
+      }
+    } catch {}
+    remoteDepth++
+    try {
+      await db.__put(value, id)
+    } catch {
+      try {
+        await db.__put(value)
+      } catch {}
+    } finally {
+      remoteDepth--
+    }
+  }
+  mergeProfileMemory(id, value)
+  meshEmit()
+}
+
+async function collectNodes(db, type) {
+  try {
+    const out = await db.map({ query: { type } })
+    const rows = (out && out.results) || []
+    return rows.filter((row) => row && row.id && row.value).map((row) => ({ id: row.id, value: row.value }))
+  } catch {
+    return []
+  }
+}
+
+async function dumpTo(db, connectId) {
+  const types = ["profile", "avatar", "username", "friend", "post", "like", "heart", "comment", "follow", "notice", "thread", "dm"]
+  for (const type of types) {
+    const items = await collectNodes(db, type)
+    for (let i = 0; i < items.length; i += 4) {
+      meshSend({ kind: "snapshot", items: items.slice(i, i + 4) }, connectId)
+    }
+  }
+}
+
+function meshHello(connectId) {
+  const db = meshCtx.db
+  const me = db && db.sm && db.sm.getActiveEthAddress()
+  if (!me) return
+  const profile = meshCtx.profiles && meshCtx.profiles.get(me.toLowerCase())
+  meshSend({
+    kind: "hello",
+    address: me,
+    username: (profile && profile.username) || localStorage.getItem("peerya.username") || ""
+  }, connectId)
+}
+
+function ensureMesh(db, extra) {
+  if (extra) {
+    if (extra.online) meshCtx.online = extra.online
+    if (extra.mark) meshCtx.mark = extra.mark
+    if (extra.drop) meshCtx.drop = extra.drop
+    if (extra.notify) meshCtx.notify = extra.notify
+  }
+  if (db) meshCtx.db = wrapDb(db)
+  if (meshReady) return meshReady
+  const graph = meshCtx.db
+  if (!graph) return Promise.resolve(null)
+  meshReady = import("https://cdn.jsdelivr.net/npm/webconnect/dist/esm/webconnect.js").then(({ default: webconnect }) => {
+    const connect = webconnect({ appName: MESH_APP, channelName: MESH_CHANNEL })
+    meshConnect = connect
+    connect.onConnect(async (attr) => {
+      meshHello(attr.connectId)
+      await dumpTo(graph, attr.connectId)
+    })
+    connect.onDisconnect((attr) => {
+      const address = meshPeerUser.get(attr.connectId)
+      meshPeerUser.delete(attr.connectId)
+      if (address && meshCtx.drop) meshCtx.drop(address)
+    })
+    connect.onReceive(async (data, attr) => {
+      let msg = data
+      if (typeof data === "string") {
+        try { msg = JSON.parse(data) } catch { return }
+      }
+      if (!msg || typeof msg !== "object") return
+      if (msg.kind === "hello" && msg.address) {
+        meshPeerUser.set(attr.connectId, String(msg.address).toLowerCase())
+        if (meshCtx.mark) meshCtx.mark(msg.address, attr.connectId)
+      } else if (msg.kind === "put") {
+        await applyRemotePut(msg.id, msg.value)
+      } else if (msg.kind === "remove" && msg.id && graph.__remove) {
+        remoteDepth++
+        try { await graph.__remove(msg.id) } catch {}
+        remoteDepth--
+        meshEmit()
+      } else if (msg.kind === "snapshot" && Array.isArray(msg.items)) {
+        for (const item of msg.items) await applyRemotePut(item.id, item.value)
+      } else if (msg.kind === "need-sync") {
+        await dumpTo(graph, attr.connectId)
+      }
+    })
+    meshHello(null)
+    return connect
+  })
+  return meshReady
+}
+
 export function openDb() {
   if (!dbPromise) {
     dbPromise = import("https://cdn.jsdelivr.net/npm/genosdb@0.36.3/dist/index.js").then(({ gdb }) =>
@@ -33,7 +225,7 @@ export function openDb() {
           }
         }
       })
-    )
+    ).then(wrapDb)
   }
   return dbPromise
 }
@@ -176,7 +368,10 @@ export async function requireAuth() {
   const invite = new URLSearchParams(location.search).get("invite")
   if (invite) sessionStorage.setItem("peerya.invite", invite)
   const db = await openDb()
-  if (db.sm.isSecurityActive()) return db
+  if (db.sm.isSecurityActive()) {
+    ensureMesh(db)
+    return db
+  }
   goLogin()
   return null
 }
@@ -287,6 +482,14 @@ export function avatarUrl(address, source) {
 }
 
 export function attachProfiles(db, profiles, onChange) {
+  meshCtx.profiles = profiles
+  meshCtx.profileChange = onChange
+  ensureMesh(db)
+  for (const [address, photo] of meshAvatars) {
+    const prev = profiles.get(address) || { address }
+    prev.avatar = photo
+    profiles.set(address, prev)
+  }
   const emit = () => { if (onChange) onChange() }
   const keyOf = (id, value, prefix) =>
     String((value && value.address) || String(id || "").replace(prefix, "")).toLowerCase()
@@ -300,9 +503,11 @@ export function attachProfiles(db, profiles, onChange) {
     } else if (value) {
       const prev = profiles.get(address) || {}
       const next = { ...prev, ...value, address: value.address || prev.address || address }
-      const photo = readAvatar(value) ? value.avatar : (prev.avatar || null)
-      if (photo) next.avatar = photo
-      else delete next.avatar
+      const photo = readAvatar(value) ? value.avatar : (prev.avatar || meshAvatars.get(address) || null)
+      if (photo) {
+        next.avatar = photo
+        meshAvatars.set(address, photo)
+      } else delete next.avatar
       profiles.set(address, next)
     }
     emit()
@@ -316,6 +521,7 @@ export function attachProfiles(db, profiles, onChange) {
       prev.avatar = value.data
         ? { mime: value.mime || "image/jpeg", data: value.data }
         : value.avatar
+      meshAvatars.set(address, prev.avatar)
     }
     profiles.set(address, prev)
     emit()
@@ -418,6 +624,7 @@ export function startPresence(db, onChange) {
     } catch {}
   }
   if (me) mark(me, "self")
+  ensureMesh(db, { online, mark, drop, notify })
   if (!db.room) return { online, stop() {} }
   const channel = db.room.channel("presence")
   channel.on("message", (data, peerId) => {
