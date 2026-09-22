@@ -1,5 +1,5 @@
 import { startPresence, attachProfiles, avatarUrl, displayName } from "./peerya.js"
-import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl } from "./r2.js"
+import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl, R2_CORS } from "./r2.js"
 
 const SESSION = "peerya.scp"
 const TTL = 4 * 60 * 60 * 1000
@@ -618,9 +618,23 @@ function renderStorages(main, paint) {
           try {
             await r2Delete(row.key)
             await draw()
-          } catch (err) {
-            status.textContent = String(err.message || err)
-          }
+    } catch (err) {
+      const msg = String(err.message || err)
+      status.textContent = msg
+      if (/CORS|Failed to fetch/i.test(msg)) {
+        const pre = document.createElement("pre")
+        pre.className = "gdb-json"
+        pre.textContent = JSON.stringify(R2_CORS, null, 2)
+        tbody.innerHTML = ""
+        const tr = document.createElement("tr")
+        const td = document.createElement("td")
+        td.colSpan = 4
+        td.append(pre)
+        tr.append(td)
+        tbody.append(tr)
+      }
+    }
+  }
         })
         tbody.append(tr)
       })
