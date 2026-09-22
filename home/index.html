@@ -536,6 +536,12 @@
         font: inherit;
         font-weight: 700;
         cursor: pointer;
+        line-height: 1;
+      }
+
+      .react-count {
+        min-width: 1.1rem;
+        padding: 0.15rem 0.2rem;
       }
 
       .react-count:hover { text-decoration: underline; }
@@ -678,21 +684,22 @@
       .react-modal {
         position: fixed;
         inset: 0;
-        z-index: 40;
-        background: rgba(20, 24, 16, 0.38);
-        display: flex;
-        align-items: flex-end;
+        z-index: 5000;
+        background: rgba(20, 24, 16, 0.45);
+        display: none;
+        align-items: center;
         justify-content: center;
+        padding: 1rem;
       }
 
-      .react-modal.hidden { display: none; }
+      .react-modal.is-open { display: flex; }
 
       .react-sheet {
-        width: min(28rem, 100%);
+        width: min(26rem, 100%);
         max-height: 78dvh;
         background: #fff;
-        border-radius: 1.1rem 1.1rem 0 0;
-        box-shadow: 0 -12px 40px rgba(40, 50, 30, 0.16);
+        border-radius: 1.1rem;
+        box-shadow: 0 18px 50px rgba(40, 50, 30, 0.2);
         display: flex;
         flex-direction: column;
       }
@@ -1016,7 +1023,7 @@
       <button type="button" class="lightbox-next" id="lightbox-next" aria-label="Next"><i class="bi bi-chevron-right"></i></button>
     </div>
 
-    <div id="react-modal" class="react-modal hidden" role="dialog" aria-modal="true" aria-label="Reactions">
+    <div id="react-modal" class="react-modal" role="dialog" aria-modal="true" aria-label="Reactions">
       <div class="react-sheet">
         <div class="react-head">
           <button type="button" class="react-tab" id="react-tab-like" data-tab="like">Likes</button>
@@ -1095,8 +1102,10 @@
       let reactTarget = ""
       let reactTab = "like"
 
+      let reactLock = false
+
       const paintReactModal = () => {
-        if (reactModal.classList.contains("hidden") || !reactTarget) return
+        if (!reactModal.classList.contains("is-open") || !reactTarget) return
         document.getElementById("react-tab-like").classList.toggle("on", reactTab === "like")
         document.getElementById("react-tab-heart").classList.toggle("on", reactTab === "heart")
         const rows = listReactions(reactTab, reactTarget)
@@ -1129,18 +1138,32 @@
       const openReactModal = (targetId, tab) => {
         reactTarget = String(targetId || "")
         reactTab = tab === "heart" ? "heart" : "like"
-        reactModal.classList.remove("hidden")
+        reactLock = true
+        reactModal.classList.add("is-open")
         paintReactModal()
+        setTimeout(() => { reactLock = false }, 400)
       }
 
       const closeReactModal = () => {
-        reactModal.classList.add("hidden")
+        if (reactLock) return
+        reactModal.classList.remove("is-open")
         reactTarget = ""
       }
 
-      document.getElementById("react-close").addEventListener("click", closeReactModal)
+      document.getElementById("react-close").addEventListener("click", (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        reactLock = false
+        reactModal.classList.remove("is-open")
+        reactTarget = ""
+      })
       reactModal.addEventListener("click", (event) => {
+        if (reactLock) return
         if (event.target === reactModal) closeReactModal()
+      })
+      reactModal.querySelector(".react-sheet").addEventListener("click", (event) => event.stopPropagation())
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeReactModal()
       })
       document.getElementById("react-tab-like").addEventListener("click", () => {
         reactTab = "like"
@@ -1175,6 +1198,7 @@
         count.addEventListener("click", (event) => {
           event.preventDefault()
           event.stopPropagation()
+          event.stopImmediatePropagation()
           openReactModal(targetId, kind)
         })
         wrap.append(toggle, count)
