@@ -86,7 +86,7 @@ export async function saveProfile(db, fields) {
   localStorage.setItem("peerya.address", address)
 }
 
-export function applyCurrentUser(db, profiles) {
+export function applyCurrentUser(db, profiles, onlineMap) {
   const me = db.sm.getActiveEthAddress()
   if (!me) return
   const profile = profiles.get(me.toLowerCase())
@@ -117,6 +117,10 @@ export function applyCurrentUser(db, profiles) {
   set("me-handle", (el) => {
     el.textContent = handle
   })
+  const on = !onlineMap || onlineMap.has(me.toLowerCase())
+  set("side-presence", (el) => el.classList.toggle("online", on))
+  set("me-presence", (el) => el.classList.toggle("online", on))
+  set("settings-presence", (el) => el.classList.toggle("online", on))
 }
 
 export function setNavBadge(id, count) {
@@ -303,38 +307,63 @@ export function timeAgo(ms) {
 }
 
 export function startPresence(db, onChange) {
+  const TTL = 35000
   const online = new Map()
+  const lastSeen = new Map()
   const peerToUser = new Map()
+  const me = db.sm.getActiveEthAddress()
+  const notify = () => { if (onChange) onChange() }
+  const mark = (address, peerId) => {
+    const key = String(address).toLowerCase()
+    const was = online.has(key)
+    lastSeen.set(key, Date.now())
+    online.set(key, peerId || online.get(key) || "peer")
+    if (peerId && peerId !== "self") peerToUser.set(peerId, key)
+    if (!was) notify()
+  }
+  const drop = (address) => {
+    const key = String(address).toLowerCase()
+    if (me && key === me.toLowerCase()) return
+    if (!online.has(key)) return
+    online.delete(key)
+    lastSeen.delete(key)
+    notify()
+  }
   const announce = async () => {
+    if (me) mark(me, "self")
+    if (!db.room) return
     try {
-      const hello = await db.sm.sign({ room: "peerya" })
+      const hello = await db.sm.sign({ kind: "here" })
       db.room.channel("presence").send(hello)
     } catch {}
   }
-  const me = db.sm.getActiveEthAddress()
-  if (me) online.set(me.toLowerCase(), "self")
+  if (me) mark(me, "self")
   if (!db.room) return { online, stop() {} }
   const channel = db.room.channel("presence")
   channel.on("message", (data, peerId) => {
-    const from = db.sm.verify(data)
-    if (!from) return
-    peerToUser.set(peerId, from.toLowerCase())
-    online.set(from.toLowerCase(), peerId)
-    if (onChange) onChange()
+    const from = db.sm.verify(data, TTL)
+    if (from) mark(from, peerId)
   })
   db.room.on("peer:join", () => announce())
   db.room.on("peer:leave", (peerId) => {
     const address = peerToUser.get(peerId)
-    if (address) online.delete(address)
     peerToUser.delete(peerId)
-    if (onChange) onChange()
+    if (address) drop(address)
   })
   announce()
-  const timer = setInterval(announce, 25000)
+  const beat = setInterval(announce, 8000)
+  const prune = setInterval(() => {
+    const now = Date.now()
+    for (const [address, at] of lastSeen) {
+      if (me && address === me.toLowerCase()) continue
+      if (now - at >= TTL) drop(address)
+    }
+  }, 4000)
   return {
     online,
     stop() {
-      clearInterval(timer)
+      clearInterval(beat)
+      clearInterval(prune)
     }
   }
 }

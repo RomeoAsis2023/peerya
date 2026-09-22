@@ -10,6 +10,7 @@
     <title>Peerya - Home</title>
     <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../css/presence.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <style>
       :root {
@@ -802,7 +803,7 @@
           </div>
 
           <div class="sidebar-user">
-            <img id="side-avatar" src="../default_avatar.png" alt="">
+            <span class="avatar-wrap"><img id="side-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="side-presence"></span></span>
             <div class="meta">
               <p class="name" id="side-name">You</p>
               <p class="role" id="side-role">Peer</p>
@@ -839,7 +840,7 @@
 
       <aside class="right-rail">
         <div class="account-switch">
-          <img class="avatar" id="me-avatar" src="../default_avatar.png" alt="">
+          <span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span>
           <div>
             <p class="suggest-name" id="me-name">You</p>
             <p class="suggest-handle" id="me-handle"></p>
@@ -934,10 +935,10 @@
           slide.className = "swiper-slide"
           const online = presence.online.has(String(peer.address).toLowerCase()) || peer.address === me
           slide.innerHTML =
-            '<a class="story" href="../messages/"><div class="story-ring"><img alt=""></div><span class="story-name"></span></a>'
+            '<a class="story" href="../messages/"><div class="story-ring"><img alt=""><span class="presence"></span></div><span class="story-name"></span></a>'
           slide.querySelector("img").src = avatarUrl(peer.address, profiles)
           slide.querySelector(".story-name").textContent = peer.username || nameOf(peer.address)
-          if (!online) slide.querySelector(".story-ring").style.opacity = "0.55"
+          slide.querySelector(".presence").classList.toggle("online", online)
           track.append(slide)
         }
         if (swiper) swiper.update()
@@ -973,13 +974,14 @@
           const article = document.createElement("article")
           article.className = "card post-card" + (openComments.has(post.id) ? " open-comments" : "")
           article.innerHTML =
-            '<div class="post-header"><img class="avatar" alt=""><div><p class="post-user"></p><p class="post-meta"></p></div>' +
+            '<div class="post-header"><span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="post-user"></p><p class="post-meta"></p></div>' +
             '<button type="button" class="post-more" aria-label="More"><i class="bi bi-three-dots"></i></button></div>' +
             '<div class="post-media-grid"></div>' +
             '<p class="post-caption"><strong></strong><span></span></p>' +
             '<div class="post-actions"></div>' +
             '<div class="post-comments"></div>'
           article.querySelector(".avatar").src = avatarUrl(post.author, profiles)
+          article.querySelector(".post-header .presence").classList.toggle("online", presence.online.has(String(post.author).toLowerCase()))
           article.querySelector(".post-user").textContent = nameOf(post.author)
           article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
           const pics = Array.isArray(post.images) ? post.images.filter((image) => image && image.data) : []
@@ -1046,9 +1048,10 @@
             const row = document.createElement("div")
             row.className = "comment-item"
             row.innerHTML =
-              '<img class="avatar" alt=""><div class="comment-body"><div class="comment-meta"><strong></strong><span></span></div>' +
+              '<span class="avatar-wrap sm"><img class="avatar" alt=""><span class="presence"></span></span><div class="comment-body"><div class="comment-meta"><strong></strong><span></span></div>' +
               '<p class="comment-text"></p><button type="button" class="comment-reply">Reply</button></div>'
             row.querySelector("img").src = avatarUrl(node.author, profiles)
+            row.querySelector(".presence").classList.toggle("online", presence.online.has(String(node.author).toLowerCase()))
             row.querySelector("strong").textContent = nameOf(node.author)
             row.querySelector("span").textContent = timeAgo(node.createdAt)
             row.querySelector(".comment-text").textContent = node.text || ""
@@ -1093,9 +1096,10 @@
           const row = document.createElement("div")
           row.className = "suggest-item"
           row.innerHTML =
-            '<img class="avatar" alt=""><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
+            '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="follow-btn"></button>'
           row.querySelector("img").src = avatarUrl(person.address, profiles)
+          row.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))
           row.querySelector(".suggest-name").textContent = nameOf(person.address)
           row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
           const btn = row.querySelector(".follow-btn")
@@ -1114,7 +1118,7 @@
         renderFeed()
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
-        applyCurrentUser(db, profiles)
+        applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friendNodes.size)
         setNavBadge("badge-messages", threads.size)
         setNavBadge("badge-notifications", 0)

@@ -1,0 +1,38 @@
+.avatar-wrap,
+.friend-avatar,
+.story-ring {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.presence {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #c8c8c8;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+}
+
+.presence.online {
+  background: var(--peerya-green, #8bc34a);
+}
+
+.comment-item .presence,
+.avatar-wrap.sm .presence {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-width: 1.5px;
+}
+
+.account-switch .avatar-wrap .presence,
+.sidebar-user .avatar-wrap .presence {
+  width: 0.78rem;
+  height: 0.78rem;
+}

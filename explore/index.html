@@ -10,6 +10,7 @@
     <title>Peerya - Explore</title>
     <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../css/presence.css">
     <style>
       :root {
         --peerya-green: #8bc34a;
@@ -289,12 +290,15 @@
         text-align: center;
       }
 
+      .peer-card .avatar-wrap {
+        margin-bottom: 0.7rem;
+      }
+
       .peer-card img {
         width: 76px;
         height: 76px;
         border-radius: 50%;
         object-fit: cover;
-        margin-bottom: 0.7rem;
         border: 3px solid #f0f4e8;
       }
 
@@ -673,7 +677,7 @@
             <p class="mb-2 small text-secondary">Enjoy unlimited access to Peerya with only a small price monthly.</p>
           </div>
           <div class="sidebar-user">
-            <img id="side-avatar" src="../default_avatar.png" alt="">
+            <span class="avatar-wrap"><img id="side-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="side-presence"></span></span>
             <div class="meta">
               <p class="name" id="side-name">You</p>
               <p class="role" id="side-role">Peer</p>
@@ -696,7 +700,7 @@
 
       <aside class="right-rail">
         <div class="account-switch">
-          <img class="avatar" id="me-avatar" src="../default_avatar.png" alt="">
+          <span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span>
           <div>
             <p class="suggest-name" id="me-name">You</p>
             <p class="suggest-handle" id="me-handle"></p>
@@ -763,9 +767,10 @@
           const row = document.createElement("div")
           row.className = "suggest-item"
           row.innerHTML =
-            '<img class="avatar" alt=""><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
+            '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="follow-btn"></button>'
           row.querySelector("img").src = avatarUrl(person.address, person)
+          row.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))
           row.querySelector(".suggest-name").textContent = nameOf(db, profiles, person.address)
           row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
           const btn = row.querySelector(".follow-btn")
@@ -799,9 +804,10 @@
           const card = document.createElement("div")
           card.className = "peer-card"
           card.innerHTML =
-            '<img alt=""><p class="suggest-name"></p><p class="suggest-handle"></p>' +
+            '<span class="avatar-wrap"><img alt=""><span class="presence"></span></span><p class="suggest-name"></p><p class="suggest-handle"></p>' +
             '<button type="button" class="add-friend-btn">Add as a friend</button>'
           card.querySelector("img").src = avatarUrl(person.address, person)
+          card.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))
           card.querySelector(".suggest-name").textContent = nameOf(db, profiles, person.address)
           card.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
           card.querySelector("button").addEventListener("click", async (event) => {
@@ -825,7 +831,7 @@
         const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()) && !friendAddrs().has(String(person.address).toLowerCase()))
         renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
         renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
-        applyCurrentUser(db, profiles)
+        applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friends.size)
         setNavBadge("badge-notifications", 0)
       }
