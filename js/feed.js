@@ -8,7 +8,10 @@ import {
   addComment,
   countReactions,
   hasReaction,
-  listReactions
+  listReactions,
+  updatePost,
+  removePost,
+  reportContent
 } from "./peerya.js"
 
 let chromeBound = false
@@ -39,7 +42,14 @@ function ensureChrome() {
       '<button type="button" class="react-tab" id="react-tab-heart" data-tab="heart">Hearts</button>' +
       '<button type="button" class="react-close" id="react-close" aria-label="Close">&times;</button>' +
       '</div><div class="react-list" id="react-list"></div></div>'
-    document.body.append(modal)
+      document.body.append(modal)
+    }
+    if (!document.getElementById("post-dialog")) {
+      const dialog = document.createElement("div")
+      dialog.id = "post-dialog"
+      dialog.className = "post-dialog hidden"
+      document.body.append(dialog)
+    }
   }
 }
 
@@ -141,6 +151,85 @@ export function createFeed({ db, me, profiles, comments, presence, onRender }) {
     })
   }
 
+  const closeMenus = () => {
+    document.querySelectorAll(".post-menu.open").forEach((el) => el.classList.remove("open"))
+  }
+
+  if (!chromeBound) {
+    document.addEventListener("click", closeMenus)
+  }
+
+  const showDialog = (title, bodyHtml, onOk) => {
+    const dialog = document.getElementById("post-dialog")
+    dialog.innerHTML = '<form class="post-dialog-card"><h3></h3><div class="post-dialog-body"></div><div class="post-dialog-actions"><button type="button" class="no">Cancel</button><button type="submit" class="ok">Save</button></div></form>'
+    dialog.querySelector("h3").textContent = title
+    dialog.querySelector(".post-dialog-body").innerHTML = bodyHtml
+    dialog.classList.remove("hidden")
+    dialog.querySelector(".no").addEventListener("click", () => dialog.classList.add("hidden"))
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.classList.add("hidden")
+    })
+    dialog.querySelector("form").addEventListener("submit", async (event) => {
+      event.preventDefault()
+      await onOk(dialog)
+      dialog.classList.add("hidden")
+      onRender()
+    })
+  }
+
+  const bindPostMenu = (article, post) => {
+    const more = article.querySelector(".post-more")
+    const menu = document.createElement("div")
+    menu.className = "post-menu"
+    const mine = String(post.author).toLowerCase() === String(me).toLowerCase()
+    if (mine) {
+      menu.innerHTML = '<button type="button" data-act="edit">Edit</button><button type="button" class="danger" data-act="remove">Remove</button>'
+    } else {
+      menu.innerHTML = '<button type="button" data-act="report">Report this post</button>'
+    }
+    article.querySelector(".post-header").append(menu)
+    more.addEventListener("click", (event) => {
+      event.stopPropagation()
+      const open = menu.classList.contains("open")
+      closeMenus()
+      if (!open) menu.classList.add("open")
+    })
+    menu.addEventListener("click", (event) => event.stopPropagation())
+    menu.querySelector("[data-act='edit']")?.addEventListener("click", () => {
+      closeMenus()
+      showDialog("Edit post", '<textarea maxlength="500"></textarea>', async (dialog) => {
+        await updatePost(db, post.id, dialog.querySelector("textarea").value)
+      })
+      document.querySelector("#post-dialog textarea").value = post.caption || ""
+    })
+    menu.querySelector("[data-act='remove']")?.addEventListener("click", () => {
+      closeMenus()
+      showDialog("Remove post", "<p>This post will be removed.</p>", async () => {
+        await removePost(db, post.id)
+      })
+      const ok = document.querySelector("#post-dialog .ok")
+      if (ok) ok.textContent = "Remove"
+    })
+    menu.querySelector("[data-act='report']")?.addEventListener("click", () => {
+      closeMenus()
+      showDialog(
+        "Report this post",
+        '<select><option value="spam">Spam</option><option value="abuse">Abuse</option><option value="fake">Fake</option><option value="other">Other</option></select><textarea maxlength="280" placeholder="Optional details"></textarea>',
+        async (dialog) => {
+          await reportContent(db, {
+            targetType: "post",
+            targetId: post.id,
+            about: post.author,
+            reason: dialog.querySelector("select").value,
+            text: dialog.querySelector("textarea").value
+          })
+        }
+      )
+      const ok = document.querySelector("#post-dialog .ok")
+      if (ok) ok.textContent = "Report"
+    })
+  }
+
   const openLightbox = (images, index) => {
     lightboxImages = images
     lightboxIndex = index
@@ -206,6 +295,7 @@ export function createFeed({ db, me, profiles, comments, presence, onRender }) {
       article.querySelector(".post-header .presence").classList.toggle("online", presence.online.has(String(post.author).toLowerCase()))
       article.querySelector(".post-user").textContent = nameOf(post.author)
       article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
+      bindPostMenu(article, post)
       const pics = Array.isArray(post.images) ? post.images.filter((image) => image && image.data) : []
       const grid = article.querySelector(".post-media-grid")
       if (!pics.length) grid.remove()

@@ -2,7 +2,7 @@
   border: 0;
   border-radius: 1.15rem;
   box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 1.25rem;
   background: #fff;
 }
@@ -19,6 +19,7 @@
   gap: 0.7rem;
   padding-top: 0.9rem;
   padding-bottom: 0.75rem;
+  position: relative;
 }
 
 .post-header .avatar {
@@ -42,6 +43,97 @@
   border: 0;
   background: none;
   color: #999;
+  position: relative;
+}
+
+.post-menu {
+  display: none;
+  position: absolute;
+  right: 0.5rem;
+  top: 2.55rem;
+  z-index: 12;
+  min-width: 11.5rem;
+  background: #fff;
+  border-radius: 0.85rem;
+  box-shadow: 0 12px 32px rgba(40, 50, 30, 0.16);
+  padding: 0.35rem;
+}
+
+.post-menu.open { display: block; }
+
+.post-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.55rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #2f2f2f;
+}
+
+.post-menu button:hover { background: #f6f7f4; }
+.post-menu button.danger { color: #c0392b; }
+
+.post-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(20, 24, 16, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.post-dialog.hidden { display: none; }
+
+.post-dialog-card {
+  width: min(24rem, 100%);
+  background: #fff;
+  border-radius: 1.1rem;
+  padding: 1.15rem 1.2rem 1.05rem;
+  box-shadow: 0 18px 50px rgba(40, 50, 30, 0.18);
+}
+
+.post-dialog-card h3 {
+  margin: 0 0 0.7rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.post-dialog-card textarea,
+.post-dialog-card select {
+  width: 100%;
+  border: 1px solid #ececec;
+  border-radius: 0.7rem;
+  padding: 0.55rem 0.75rem;
+  margin-bottom: 0.7rem;
+  font: inherit;
+}
+
+.post-dialog-card textarea { min-height: 5.5rem; resize: vertical; }
+
+.post-dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.post-dialog-actions button {
+  flex: 1;
+  border-radius: 999px;
+  font-weight: 700;
+  min-height: 2.4rem;
+  border: 1px solid #ececec;
+  background: #fff;
+}
+
+.post-dialog-actions .ok {
+  background: var(--peerya-green, #8bc34a);
+  border-color: var(--peerya-green, #8bc34a);
+  color: #1f2a12;
 }
 
 .post-media-grid {

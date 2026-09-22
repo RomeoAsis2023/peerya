@@ -59,6 +59,7 @@ function clearSession() {
 const MENUS = [
   { id: "dashboard", label: "Dashboard", icon: "bi-grid-fill" },
   { id: "users", label: "All Users", icon: "bi-people-fill" },
+  { id: "flags", label: "Flags", icon: "bi-flag-fill" },
   { id: "genosdb", label: "GenosDB", icon: "bi-database-fill" },
   { id: "advertisers", label: "Advertisers", icon: "bi-megaphone-fill" },
   { id: "stores", label: "Stores", icon: "bi-shop" },
@@ -66,7 +67,7 @@ const MENUS = [
   { id: "settings", label: "Settings", icon: "bi-gear-fill" }
 ]
 
-const GDB_TYPES = ["profile", "username", "avatar", "post", "like", "heart", "comment", "friend", "follow", "notice", "thread", "dm"]
+const GDB_TYPES = ["profile", "username", "avatar", "post", "like", "heart", "comment", "friend", "follow", "notice", "thread", "dm", "report"]
 const GDB_PAGE = 25
 
 function comingSoon(title) {
@@ -121,6 +122,68 @@ async function nameTaken(db, username, exceptAddress) {
   } catch {
     return false
   }
+}
+
+async function listReports(db) {
+  try {
+    const out = await db.map({ query: { type: "report" } })
+    return ((out && out.results) || []).map((row) => ({ id: row.id, ...(row.value || {}) }))
+  } catch {
+    return []
+  }
+}
+
+function renderFlags(rows, tab) {
+  const filtered = rows.filter((row) => (row.targetType || "post") === tab)
+  if (!filtered.length) return "<h2>Flags</h2><p class=\"scp-empty\">No " + tab + " reports.</p>"
+  const body = filtered.map((row) => {
+    const when = row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"
+    return (
+      "<tr data-id=\"" + esc(row.id) + "\">" +
+      "<td>" + esc(row.targetId || "—") + "</td>" +
+      "<td>" + esc(row.reason || "other") + "</td>" +
+      "<td>" + esc(row.text || "") + "</td>" +
+      "<td>" + esc(String(row.from || "").slice(0, 10)) + "</td>" +
+      "<td>" + esc(row.status || "open") + "</td>" +
+      "<td>" + esc(when) + "</td>" +
+      "<td class=\"scp-actions\">" +
+      "<button type=\"button\" class=\"scp-act\" data-act=\"dismiss\">Dismiss</button>" +
+      (tab === "post" ? "<button type=\"button\" class=\"scp-act danger\" data-act=\"remove-post\">Remove post</button>" : "") +
+      "</td></tr>"
+    )
+  }).join("")
+  return (
+    "<h2>Flags</h2><div class=\"scp-flag-tabs\">" +
+    "<button type=\"button\" class=\"scp-act" + (tab === "post" ? " on" : "") + "\" data-tab=\"post\">Posts</button>" +
+    "<button type=\"button\" class=\"scp-act" + (tab === "user" ? " on" : "") + "\" data-tab=\"user\">Users</button>" +
+    "</div><div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>Target</th><th>Reason</th><th>Details</th><th>From</th><th>Status</th><th>When</th><th>Actions</th></tr></thead><tbody>" +
+    body + "</tbody></table></div>"
+  )
+}
+
+function bindFlagActions(main, db, rows, paint) {
+  const byId = new Map(rows.map((row) => [row.id, row]))
+  main.querySelectorAll("[data-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      main.dataset.flagTab = btn.dataset.tab
+      paint()
+    })
+  })
+  main.querySelectorAll("[data-act]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const row = btn.closest("tr")
+      const item = byId.get(row && row.dataset.id)
+      if (!item) return
+      if (btn.dataset.act === "dismiss") {
+        try { await db.put({ ...item, status: "dismissed" }, item.id) } catch {}
+      }
+      if (btn.dataset.act === "remove-post" && item.targetId) {
+        try { await db.remove(item.targetId) } catch {}
+        try { await db.put({ ...item, status: "removed" }, item.id) } catch {}
+      }
+      await paint()
+    })
+  })
 }
 
 async function listProfiles(db) {
@@ -525,6 +588,12 @@ export async function startSuperadmin(db) {
         const people = await listProfiles(db)
         main.innerHTML = renderUsers(people)
         bindUserActions(main, db, people, paint)
+      } else if (page === "flags") {
+        const rows = await listReports(db)
+        const tab = main.dataset.flagTab || "post"
+        main.innerHTML = renderFlags(rows, tab)
+        main.dataset.flagTab = tab
+        bindFlagActions(main, db, rows, paint)
       } else if (page === "genosdb") {
         if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(db)
         renderGenos(main, db, gdbState, paint)

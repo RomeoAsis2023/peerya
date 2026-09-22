@@ -1004,6 +1004,45 @@ export async function publishPost(db, caption, images) {
   })
 }
 
+export async function updatePost(db, postId, caption) {
+  const me = db.sm.getActiveEthAddress()
+  if (!me || !postId) return null
+  const { result } = await db.get(postId)
+  const prev = result && result.value
+  if (!prev || String(prev.author).toLowerCase() !== me.toLowerCase()) return null
+  return db.put({ ...prev, caption: String(caption || "").trim(), updatedAt: Date.now() }, postId)
+}
+
+export async function removePost(db, postId) {
+  const me = db.sm.getActiveEthAddress()
+  if (!me || !postId) return false
+  const { result } = await db.get(postId)
+  const prev = result && result.value
+  if (!prev || String(prev.author).toLowerCase() !== me.toLowerCase()) return false
+  await db.remove(postId)
+  return true
+}
+
+export async function reportContent(db, { targetType, targetId, about, reason, text }) {
+  const from = db.sm.getActiveEthAddress()
+  if (!from || !targetId) return null
+  const kind = targetType || "post"
+  const id = "report:" + kind + ":" + targetId + ":" + from.toLowerCase()
+  const { result } = await db.get(id)
+  if (result) return id
+  return db.put({
+    type: "report",
+    targetType: kind,
+    targetId,
+    about: about || "",
+    from,
+    reason: reason || "other",
+    text: String(text || "").slice(0, 280),
+    createdAt: Date.now(),
+    status: "open"
+  }, id)
+}
+
 export async function toggleFollow(db, target) {
   const from = db.sm.getActiveEthAddress()
   if (!from || !target) return false

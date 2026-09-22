@@ -343,6 +343,18 @@
   gap: 0.6rem;
 }
 
+.scp-flag-tabs {
+  display: flex;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.scp-flag-tabs .on {
+  background: #8bc34a;
+  border-color: #8bc34a;
+  color: #1f2a12;
+}
+
 .gdb-json {
   max-height: 18rem;
   overflow: auto;
