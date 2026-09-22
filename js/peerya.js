@@ -388,6 +388,7 @@ function ensureMesh(db, extra) {
 
 export function openDb() {
   if (!dbPromise) {
+    blockScpWebAuthn()
     dbPromise = import("https://cdn.jsdelivr.net/npm/genosdb@0.36.3/dist/index.js").then(({ gdb }) =>
       gdb(PEERYA.dbName, {
         rtc: true,
@@ -539,11 +540,36 @@ export function isScpApp() {
   return false
 }
 
+function blockScpWebAuthn() {
+  if (!isScpApp()) return
+  const fail = () => Promise.reject(new DOMException("Not allowed.", "NotAllowedError"))
+  try {
+    if (navigator.credentials) {
+      navigator.credentials.get = fail
+      navigator.credentials.create = fail
+    }
+    if (window.PublicKeyCredential) {
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = () => Promise.resolve(false)
+      if (PublicKeyCredential.isConditionalMediationAvailable) {
+        PublicKeyCredential.isConditionalMediationAvailable = () => Promise.resolve(false)
+      }
+    }
+  } catch {}
+}
+
+blockScpWebAuthn()
+
 export async function waitScpApp() {
-  if (isScpApp()) return true
+  if (isScpApp()) {
+    blockScpWebAuthn()
+    return true
+  }
   for (let i = 0; i < 50; i++) {
     await new Promise((resolve) => setTimeout(resolve, 50))
-    if (isScpApp()) return true
+    if (isScpApp()) {
+      blockScpWebAuthn()
+      return true
+    }
   }
   return isScpApp()
 }

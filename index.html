@@ -635,7 +635,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script type="module">
-      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken, bootAdmin, waitScpApp } from "./js/peerya.js?v=scp6"
+      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken, bootAdmin, waitScpApp } from "./js/peerya.js?v=scp7"
 
       const signupTab = document.getElementById("signup-tab")
       const signinTab = document.getElementById("signin-tab")
@@ -851,7 +851,10 @@
         setStatus("forgot-status")
         holdRedirect = true
         try {
-          const identity = await db.sm.loginOrRecoverUserWithMnemonic(mnemonic)
+          const identity = await Promise.race([
+            db.sm.loginOrRecoverUserWithMnemonic(mnemonic),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Recovery timed out in this app.")), 12000))
+          ])
           const addr = db.sm.getActiveEthAddress()
           if (!identity && !addr) {
             holdRedirect = false
@@ -919,7 +922,7 @@
           if (!scpApp) setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
         }
         try {
-          hasPasskey = !!(await db.sm.hasExistingWebAuthnRegistration())
+          hasPasskey = scpApp ? false : !!(await db.sm.hasExistingWebAuthnRegistration())
         } catch {
           hasPasskey = false
         }
