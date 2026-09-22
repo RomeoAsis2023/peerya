@@ -276,10 +276,68 @@
         font-size: 0.92rem;
       }
 
+      .explore-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin: 1rem 0 1.1rem;
+      }
+
+      .explore-search {
+        position: relative;
+        flex: 1;
+      }
+
+      .explore-search i {
+        position: absolute;
+        left: 0.9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9a9a9a;
+      }
+
+      .explore-search .form-control {
+        padding-left: 2.4rem;
+        border-radius: 999px;
+        background: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 24px rgba(40, 50, 30, 0.05);
+        min-height: 2.7rem;
+      }
+
+      .layout-toggle {
+        display: flex;
+        gap: 0.2rem;
+        background: #fff;
+        border-radius: 999px;
+        padding: 0.22rem;
+        box-shadow: 0 8px 24px rgba(40, 50, 30, 0.05);
+      }
+
+      .layout-toggle button {
+        border: 0;
+        background: none;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        color: #8a8a8a;
+      }
+
+      .layout-toggle button.active {
+        background: var(--peerya-soft);
+        color: var(--peerya-green-dark);
+      }
+
       .explore-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(11.8rem, 1fr));
         gap: 1rem;
+      }
+
+      .explore-grid.list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
       }
 
       .peer-card {
@@ -322,6 +380,62 @@
         font-weight: 700;
         padding: 0.45rem 0.7rem;
         font-size: 0.82rem;
+      }
+
+      .explore-grid.list .peer-card {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        gap: 0.85rem;
+        padding: 0.75rem 1rem;
+      }
+
+      .explore-grid.list .peer-card .avatar-wrap { margin: 0; }
+
+      .explore-grid.list .peer-card img {
+        width: 48px;
+        height: 48px;
+        border-width: 2px;
+      }
+
+      .explore-grid.list .peer-meta { flex: 1; min-width: 0; }
+
+      .explore-grid.list .peer-card .suggest-handle { margin: 0.1rem 0 0; }
+
+      .explore-grid.list .add-friend-btn {
+        width: auto;
+        padding: 0.4rem 0.95rem;
+        white-space: nowrap;
+      }
+
+      .explore-pager {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        margin-top: 1.15rem;
+      }
+
+      .explore-pager button {
+        border: 0;
+        background: #fff;
+        min-width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        color: #666;
+        font-weight: 700;
+        box-shadow: 0 6px 18px rgba(40, 50, 30, 0.05);
+      }
+
+      .explore-pager button.active,
+      .explore-pager button:hover {
+        background: var(--peerya-green);
+        color: #1f2a12;
+      }
+
+      .explore-pager button:disabled {
+        opacity: 0.45;
+        box-shadow: none;
       }
 
       .add-friend-btn:disabled {
@@ -694,8 +808,19 @@
           <h1>Explore</h1>
           <p>Peers on Peerya who are not in your friends list yet.</p>
         </div>
-        <div class="explore-grid" id="explore-grid"></div>
+        <div class="explore-toolbar">
+          <div class="explore-search">
+            <i class="bi bi-search"></i>
+            <input type="search" class="form-control" id="explore-search" placeholder="Search peers" aria-label="Search peers">
+          </div>
+          <div class="layout-toggle" role="group" aria-label="Layout">
+            <button type="button" id="layout-list" class="active" aria-label="List view"><i class="bi bi-list-ul"></i></button>
+            <button type="button" id="layout-cards" aria-label="Card view"><i class="bi bi-grid"></i></button>
+          </div>
+        </div>
+        <div class="explore-grid list" id="explore-grid"></div>
         <p class="feed-empty hidden" id="explore-empty">No new peers to add right now.</p>
+        <div class="explore-pager" id="explore-pager"></div>
       </section>
 
       <aside class="right-rail">
@@ -782,6 +907,11 @@
         }
       }
 
+      let query = ""
+      let layout = "list"
+      let page = 1
+      const PAGE_SIZE = 8
+
       const friendAddrs = () => {
         const set = new Set()
         for (const node of friends.values()) {
@@ -794,18 +924,29 @@
       const renderExplore = () => {
         const grid = document.getElementById("explore-grid")
         const empty = document.getElementById("explore-empty")
+        const pager = document.getElementById("explore-pager")
         const taken = friendAddrs()
+        const q = query.trim().toLowerCase()
         const people = [...profiles.values()].filter((profile) => {
           const address = String(profile.address).toLowerCase()
-          return address && address !== me.toLowerCase() && !taken.has(address)
+          if (!address || address === me.toLowerCase() || taken.has(address)) return false
+          if (!q) return true
+          const hay = (nameOf(db, profiles, profile.address) + " " + (profile.username || "") + " " + address).toLowerCase()
+          return hay.includes(q)
         })
+        const pages = Math.max(1, Math.ceil(people.length / PAGE_SIZE))
+        if (page > pages) page = pages
+        const slice = people.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+        grid.className = "explore-grid" + (layout === "list" ? " list" : "")
         grid.innerHTML = ""
         empty.classList.toggle("hidden", people.length > 0)
-        for (const person of people) {
+        pager.innerHTML = ""
+        for (const person of slice) {
           const card = document.createElement("div")
           card.className = "peer-card"
           card.innerHTML =
-            '<span class="avatar-wrap"><img alt=""><span class="presence"></span></span><p class="suggest-name"></p><p class="suggest-handle"></p>' +
+            '<span class="avatar-wrap"><img alt=""><span class="presence"></span></span>' +
+            '<div class="peer-meta"><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
             '<button type="button" class="add-friend-btn">Add as a friend</button>'
           card.querySelector("img").src = avatarUrl(person.address, person)
           card.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))
@@ -823,6 +964,28 @@
           })
           grid.append(card)
         }
+        if (people.length > PAGE_SIZE) {
+          const prev = document.createElement("button")
+          prev.type = "button"
+          prev.innerHTML = '<i class="bi bi-chevron-left"></i>'
+          prev.disabled = page <= 1
+          prev.addEventListener("click", () => { page -= 1; renderExplore() })
+          pager.append(prev)
+          for (let i = 1; i <= pages; i += 1) {
+            const btn = document.createElement("button")
+            btn.type = "button"
+            btn.textContent = String(i)
+            if (i === page) btn.className = "active"
+            btn.addEventListener("click", () => { page = i; renderExplore() })
+            pager.append(btn)
+          }
+          const next = document.createElement("button")
+          next.type = "button"
+          next.innerHTML = '<i class="bi bi-chevron-right"></i>'
+          next.disabled = page >= pages
+          next.addEventListener("click", () => { page += 1; renderExplore() })
+          pager.append(next)
+        }
       }
 
       const render = () => {
@@ -837,6 +1000,24 @@
       }
       paint = render
       watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
+
+      document.getElementById("explore-search").addEventListener("input", (event) => {
+        query = event.target.value
+        page = 1
+        renderExplore()
+      })
+      document.getElementById("layout-list").addEventListener("click", () => {
+        layout = "list"
+        document.getElementById("layout-list").classList.add("active")
+        document.getElementById("layout-cards").classList.remove("active")
+        renderExplore()
+      })
+      document.getElementById("layout-cards").addEventListener("click", () => {
+        layout = "cards"
+        document.getElementById("layout-cards").classList.add("active")
+        document.getElementById("layout-list").classList.remove("active")
+        renderExplore()
+      })
 
       await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
         const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
