@@ -6,7 +6,11 @@ const EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852
 
 export const R2_CORS = [
   {
-    AllowedOrigins: ["https://romeoasis2023.github.io"],
+    AllowedOrigins: [
+      "https://romeoasis2023.github.io",
+      "https://peerya.com",
+      "https://www.peerya.com"
+    ],
     AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
     AllowedHeaders: ["*"],
     ExposeHeaders: ["ETag", "Content-Length"],

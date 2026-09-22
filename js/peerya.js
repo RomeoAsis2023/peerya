@@ -534,7 +534,7 @@ export function isScpApp() {
   if (window.__PEERYA_SCP_APP__ === true) return true
   const ua = String(navigator.userAgent || "")
   if (/PeeryaSCP\/1\.0/.test(ua)) return true
-  if (/\bElectron\b/i.test(ua) && /romeoasis2023\.github\.io\/peerya/i.test(location.href)) return true
+  if (/\bElectron\b/i.test(ua) && /(romeoasis2023\.github\.io\/peerya|peerya\.com)/i.test(location.href)) return true
   return false
 }
 
@@ -561,7 +561,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=r2b")
+      const { startSuperadmin } = await import("./admin.js?v=r2c")
       await startSuperadmin(db)
     } catch {}
   }
