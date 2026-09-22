@@ -86,10 +86,47 @@ async function counts(db) {
   return tally
 }
 
+function esc(value) {
+  return String(value || "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[ch]))
+}
+
+function normName(username) {
+  return String(username || "").trim().toLowerCase()
+}
+
+function profileUrl(profile) {
+  const name = normName(profile && profile.username)
+  if (!name) return ""
+  return new URL("p/" + encodeURIComponent(name), new URL("../", import.meta.url)).href
+}
+
+async function nameTaken(db, username, exceptAddress) {
+  const name = normName(username)
+  if (!name) return false
+  try {
+    const { result } = await db.get("username:" + name)
+    const owner = result && result.value && result.value.address
+    if (!owner) return false
+    return owner.toLowerCase() !== String(exceptAddress || "").toLowerCase()
+  } catch {
+    return false
+  }
+}
+
 async function listProfiles(db) {
   try {
     const out = await db.map({ query: { type: "profile" } })
-    return ((out && out.results) || []).map((row) => row.value).filter(Boolean)
+    return ((out && out.results) || []).map((row) => {
+      const value = row.value || {}
+      const address = String(value.address || String(row.id || "").replace(/^profile:/, "")).toLowerCase()
+      return { ...value, address }
+    }).filter((row) => row.address)
   } catch {
     return []
   }
@@ -111,9 +148,168 @@ function renderUsers(people) {
     const name = [p.firstName, p.lastName].filter(Boolean).join(" ") || p.username || ""
     const addr = String(p.address || "")
     const short = addr ? addr.slice(0, 6) + "…" + addr.slice(-4) : "—"
-    return "<tr><td>@" + (p.username || "—") + "</td><td>" + name + "</td><td>" + short + "</td></tr>"
+    const href = profileUrl(p)
+    const url = href
+      ? "<a class=\"scp-url\" href=\"" + esc(href) + "\" target=\"_blank\" rel=\"noopener\">" + esc(href) + "</a>"
+      : "—"
+    return (
+      "<tr data-addr=\"" + esc(addr) + "\">" +
+      "<td>@" + esc(p.username || "—") + "</td>" +
+      "<td>" + esc(name) + "</td>" +
+      "<td>" + esc(short) + "</td>" +
+      "<td>" + url + "</td>" +
+      "<td class=\"scp-actions\">" +
+      "<button type=\"button\" class=\"scp-act\" data-act=\"edit\">Edit</button>" +
+      "<button type=\"button\" class=\"scp-act danger\" data-act=\"delete\">Delete</button>" +
+      "</td></tr>"
+    )
   }).join("")
-  return "<h2>All Users</h2><table class=\"scp-table\"><thead><tr><th>Username</th><th>Name</th><th>Address</th></tr></thead><tbody>" + rows + "</tbody></table>"
+  return "<h2>All Users</h2><table class=\"scp-table\"><thead><tr><th>Username</th><th>Name</th><th>Address</th><th>Profile URL</th><th>Actions</th></tr></thead><tbody>" + rows + "</tbody></table>"
+}
+
+function closeModal() {
+  const el = document.getElementById("scp-modal")
+  if (el) el.remove()
+}
+
+function openModal(html) {
+  closeModal()
+  const el = document.createElement("div")
+  el.id = "scp-modal"
+  el.className = "scp-gate"
+  el.innerHTML = html
+  document.body.append(el)
+  return el
+}
+
+async function saveUser(db, address, fields) {
+  const key = "profile:" + address
+  const { result } = await db.get(key)
+  const prev = (result && result.value) || {}
+  const name = normName(fields.username || prev.username)
+  if (!name) throw new Error("username required")
+  const oldName = normName(prev.username)
+  if (await nameTaken(db, name, address)) throw new Error("username taken")
+  if (oldName && oldName !== name) {
+    try { await db.remove("username:" + oldName) } catch {}
+  }
+  await db.put({ type: "username", username: name, address }, "username:" + name)
+  await db.put({
+    ...prev,
+    type: "profile",
+    username: name,
+    address,
+    firstName: String(fields.firstName || "").trim(),
+    lastName: String(fields.lastName || "").trim(),
+    email: String(fields.email || "").trim(),
+    birthday: fields.birthday || "",
+    gender: fields.gender || "",
+    about: String(fields.about || "").trim(),
+    updatedAt: Date.now(),
+    createdAt: prev.createdAt || Date.now()
+  }, key)
+}
+
+async function deleteUser(db, profile) {
+  const address = String(profile.address || "").toLowerCase()
+  const name = normName(profile.username)
+  if (name) try { await db.remove("username:" + name) } catch {}
+  try { await db.remove("avatar:" + address) } catch {}
+  await db.remove("profile:" + address)
+}
+
+function openEdit(db, profile, paint) {
+  const el = openModal(
+    "<form class=\"scp-card scp-edit\">" +
+    "<h1>Edit user</h1>" +
+    "<p>Update this profile, then save.</p>" +
+    "<label for=\"scp-username\">Username</label>" +
+    "<input id=\"scp-username\" value=\"" + esc(profile.username || "") + "\" required>" +
+    "<div class=\"scp-edit-row\">" +
+    "<div><label for=\"scp-first\">First name</label><input id=\"scp-first\" value=\"" + esc(profile.firstName || "") + "\"></div>" +
+    "<div><label for=\"scp-last\">Last name</label><input id=\"scp-last\" value=\"" + esc(profile.lastName || "") + "\"></div>" +
+    "</div>" +
+    "<label for=\"scp-email\">Email</label>" +
+    "<input id=\"scp-email\" type=\"email\" value=\"" + esc(typeof profile.email === "string" && !String(profile.email).startsWith("{") ? profile.email : "") + "\">" +
+    "<div class=\"scp-edit-row\">" +
+    "<div><label for=\"scp-bday\">Birthday</label><input id=\"scp-bday\" type=\"date\" value=\"" + esc(profile.birthday || "") + "\"></div>" +
+    "<div><label for=\"scp-gender\">Gender</label><select id=\"scp-gender\">" +
+    "<option value=\"\">Select</option>" +
+    "<option value=\"male\">Male</option>" +
+    "<option value=\"female\">Female</option>" +
+    "<option value=\"lgbt+\">LGBT+</option>" +
+    "</select></div></div>" +
+    "<label for=\"scp-about\">About</label>" +
+    "<textarea id=\"scp-about\" maxlength=\"500\">" + esc(profile.about || "") + "</textarea>" +
+    "<p class=\"scp-err\" id=\"scp-edit-err\"></p>" +
+    "<div class=\"scp-edit-actions\">" +
+    "<button type=\"button\" class=\"scp-act\" id=\"scp-edit-cancel\">Cancel</button>" +
+    "<button type=\"submit\" class=\"btn\">Save</button>" +
+    "</div></form>"
+  )
+  const gender = el.querySelector("#scp-gender")
+  if (profile.gender) gender.value = profile.gender
+  el.querySelector("#scp-edit-cancel").addEventListener("click", closeModal)
+  el.querySelector("form").addEventListener("submit", async (event) => {
+    event.preventDefault()
+    const err = el.querySelector("#scp-edit-err")
+    err.textContent = ""
+    try {
+      await saveUser(db, profile.address, {
+        username: el.querySelector("#scp-username").value,
+        firstName: el.querySelector("#scp-first").value,
+        lastName: el.querySelector("#scp-last").value,
+        email: el.querySelector("#scp-email").value,
+        birthday: el.querySelector("#scp-bday").value,
+        gender: el.querySelector("#scp-gender").value,
+        about: el.querySelector("#scp-about").value
+      })
+      closeModal()
+      await paint()
+    } catch (e) {
+      err.textContent = e && e.message === "username taken" ? "Username is taken." : "Could not save."
+    }
+  })
+}
+
+function openDelete(db, profile, paint) {
+  const handle = "@" + (profile.username || "user")
+  const el = openModal(
+    "<form class=\"scp-card scp-edit\">" +
+    "<h1>Delete user</h1>" +
+    "<p>Remove " + esc(handle) + " and their profile records.</p>" +
+    "<p class=\"scp-err\" id=\"scp-del-err\"></p>" +
+    "<div class=\"scp-edit-actions\">" +
+    "<button type=\"button\" class=\"scp-act\" id=\"scp-del-cancel\">Cancel</button>" +
+    "<button type=\"submit\" class=\"btn scp-del\">Delete</button>" +
+    "</div></form>"
+  )
+  el.querySelector("#scp-del-cancel").addEventListener("click", closeModal)
+  el.querySelector("form").addEventListener("submit", async (event) => {
+    event.preventDefault()
+    const err = el.querySelector("#scp-del-err")
+    err.textContent = ""
+    try {
+      await deleteUser(db, profile)
+      closeModal()
+      await paint()
+    } catch {
+      err.textContent = "Could not delete."
+    }
+  })
+}
+
+function bindUserActions(main, db, people, paint) {
+  const byAddr = new Map(people.map((p) => [String(p.address || "").toLowerCase(), p]))
+  main.querySelectorAll("[data-act]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const row = btn.closest("tr")
+      const profile = byAddr.get(String((row && row.dataset.addr) || "").toLowerCase())
+      if (!profile) return
+      if (btn.dataset.act === "edit") openEdit(db, profile, paint)
+      if (btn.dataset.act === "delete") openDelete(db, profile, paint)
+    })
+  })
 }
 
 export async function startSuperadmin(db) {
@@ -150,7 +346,11 @@ export async function startSuperadmin(db) {
       nav.querySelectorAll("button").forEach((btn) => btn.classList.toggle("on", btn.dataset.id === page))
       const main = document.getElementById("scp-main")
       if (page === "dashboard") main.innerHTML = renderDash(await counts(db))
-      else if (page === "users") main.innerHTML = renderUsers(await listProfiles(db))
+      else if (page === "users") {
+        const people = await listProfiles(db)
+        main.innerHTML = renderUsers(people)
+        bindUserActions(main, db, people, paint)
+      }
       else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
       else if (page === "stores") main.innerHTML = comingSoon("Stores")
       else if (page === "livestreams") main.innerHTML = comingSoon("Livestreams")
@@ -171,6 +371,7 @@ export async function startSuperadmin(db) {
     quit.className = "quit"
     quit.innerHTML = "<i class=\"bi bi-box-arrow-left\"></i><span>Quit Superadmin CP</span>"
     quit.addEventListener("click", () => {
+      closeModal()
       clearSession()
       setNoindex(false)
       document.body.style.overflow = ""

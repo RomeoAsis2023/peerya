@@ -177,7 +177,7 @@
   width: 100%;
   background: #fff;
   border-radius: 1rem;
-  overflow: hidden;
+  overflow: auto;
   box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
 }
 
@@ -198,6 +198,63 @@
   color: #9a9a9a;
   padding: 1.5rem 0;
 }
+
+.scp-url {
+  color: #7cb342;
+  word-break: break-all;
+  font-size: 0.78rem;
+}
+
+.scp-actions {
+  display: flex;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.scp-act {
+  border: 1px solid #ececec;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4a4a4a;
+}
+
+.scp-act.danger { color: #c0392b; border-color: #f3d0cc; }
+
+.scp-card.scp-edit { width: min(28rem, calc(100vw - 2rem)); }
+
+.scp-card.scp-edit label {
+  display: block;
+  color: #8a8a8a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+.scp-card.scp-edit textarea,
+.scp-card.scp-edit select {
+  width: 100%;
+  border: 1px solid #ececec;
+  border-radius: 0.7rem;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.8rem;
+  margin-bottom: 0.7rem;
+}
+
+.scp-card.scp-edit textarea { min-height: 4.2rem; resize: vertical; }
+
+.scp-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.scp-edit-actions { display: flex; gap: 0.5rem; }
+.scp-edit-actions .btn,
+.scp-edit-actions .scp-act { flex: 1; min-height: 2.4rem; }
+.scp-del { background: #c0392b !important; border-color: #c0392b !important; color: #fff !important; }
 
 @media (max-width: 767.98px) {
   .scp-side { width: 4.2rem; padding: 0.8rem 0.4rem; }
