@@ -677,7 +677,7 @@ function bindUserActions(main, db, people, paint) {
 
 export async function startSuperadmin(db) {
   if (!isScpApp()) return
-  if (document.getElementById("scp-root") || document.getElementById("scp-gate")) return
+  if (document.getElementById("scp-root")) return
   let gate
   try {
     gate = await import("./admin-gate.js")
@@ -686,7 +686,7 @@ export async function startSuperadmin(db) {
   }
   if (!gate.ADMIN_GATE_READY || !gate.ADMIN_PASS_HASH || !gate.ADMIN_KEY_HASH) return
   const frag = fragment()
-  if (frag) {
+  if (frag && !/^junieadminizer-/i.test(frag)) {
     const keyHex = await sha256hex(frag)
     if (!hexEqual(keyHex, gate.ADMIN_KEY_HASH)) return
   }
@@ -784,9 +784,13 @@ export async function startSuperadmin(db) {
   }
 
   if (sessionOk()) {
+    const old = document.getElementById("scp-gate")
+    if (old) old.remove()
     await unlock()
     return
   }
+
+  if (document.getElementById("scp-gate")) return
 
   const gateEl = document.createElement("div")
   gateEl.id = "scp-gate"

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>Peerya Superadmin</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/admin.css?v=scp9">
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #fafafa; }
+    </style>
+  </head>
+  <body>
+    <div id="scp-gate" class="scp-gate">
+      <form class="scp-card" id="scp-form">
+        <img alt="Peerya" src="logo_full.svg">
+        <h1>Superadmin</h1>
+        <p>Enter the passcode to continue.</p>
+        <p class="scp-err" id="scp-err"></p>
+        <input type="password" id="scp-pass" autocomplete="current-password" placeholder="Passcode">
+        <button type="submit" class="btn">Unlock</button>
+      </form>
+    </div>
+    <script>
+      window.__PEERYA_SCP_APP__ = true
+    </script>
+    <script type="module">
+      import { ADMIN_PASS_HASH } from "./js/admin-gate.js"
+
+      async function sha256hex(text) {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
+        return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("")
+      }
+
+      document.getElementById("scp-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        const err = document.getElementById("scp-err")
+        const input = document.getElementById("scp-pass")
+        const hex = await sha256hex(input.value)
+        if (hex !== ADMIN_PASS_HASH) {
+          err.textContent = "Wrong passcode."
+          input.value = ""
+          input.focus()
+          return
+        }
+        sessionStorage.setItem("peerya.scp", JSON.stringify({ t: Date.now() }))
+        err.textContent = "Starting…"
+        input.disabled = true
+        event.target.querySelector("button").disabled = true
+        try {
+          const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp9")
+          const db = await Promise.race([
+            openDb(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Database timed out")), 20000))
+          ])
+          await bootAdmin(db)
+        } catch (e) {
+          err.textContent = String((e && e.message) || "Could not start Superadmin.")
+          input.disabled = false
+          event.target.querySelector("button").disabled = false
+        }
+      })
+    </script>
+  </body>
+</html>
