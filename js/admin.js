@@ -79,8 +79,16 @@ function comingSoon(title) {
   return "<h2>" + title + "</h2><p class=\"scp-empty\">Nothing here yet.</p>"
 }
 
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms))
+  ])
+}
+
 async function counts(db) {
   const tally = { users: 0, posts: 0, friends: 0, notices: 0 }
+  if (!db || !db.map) return tally
   const types = [
     ["profile", "users"],
     ["post", "posts"],
@@ -89,7 +97,7 @@ async function counts(db) {
   ]
   for (const [type, key] of types) {
     try {
-      const out = await db.map({ query: { type } })
+      const out = await withTimeout(db.map({ query: { type } }), 5000, { results: [] })
       tally[key] = ((out && out.results) || []).length
     } catch {}
   }
@@ -131,7 +139,7 @@ async function nameTaken(db, username, exceptAddress) {
 
 async function listReports(db) {
   try {
-    const out = await db.map({ query: { type: "report" } })
+    const out = await withTimeout(db.map({ query: { type: "report" } }), 8000, { results: [] })
     return ((out && out.results) || []).map((row) => ({ id: row.id, ...(row.value || {}) }))
   } catch {
     return []
@@ -193,7 +201,7 @@ function bindFlagActions(main, db, rows, paint) {
 
 async function listProfiles(db) {
   try {
-    const out = await db.map({ query: { type: "profile" } })
+    const out = await withTimeout(db.map({ query: { type: "profile" } }), 8000, { results: [] })
     return ((out && out.results) || []).map((row) => {
       const value = row.value || {}
       const address = String(value.address || String(row.id || "").replace(/^profile:/, "")).toLowerCase()
@@ -392,7 +400,7 @@ function rowHay(row) {
 
 async function loadGdbTable(db, type) {
   try {
-    const out = await db.map({ query: { type } })
+    const out = await withTimeout(db.map({ query: { type } }), 8000, { results: [] })
     return ((out && out.results) || []).map((row) => {
       const value = row.value || {}
       return { id: row.id, ...value }
@@ -715,47 +723,60 @@ export async function startSuperadmin(db) {
   }
 
   const unlock = async () => {
-    await grantScpRole()
     setNoindex(true)
     const root = document.createElement("div")
     root.id = "scp-root"
     root.className = "scp-root"
     root.innerHTML =
-      "<aside class=\"scp-side\"><a class=\"scp-brand\" href=\"#\"><img alt=\"Peerya\"><span>Superadmin</span></a><nav><ul class=\"scp-nav\"></ul></nav></aside><section class=\"scp-main\" id=\"scp-main\"></section>"
+      "<aside class=\"scp-side\"><a class=\"scp-brand\" href=\"#\"><img alt=\"Peerya\"><span>Superadmin</span></a><nav><ul class=\"scp-nav\"></ul></nav></aside><section class=\"scp-main\" id=\"scp-main\"><h2>Dashboard</h2><p class=\"scp-empty\">Connecting to peers and GenosDB…</p></section>"
     root.querySelector(".scp-brand img").src = LOGO
     const nav = root.querySelector(".scp-nav")
     document.body.append(root)
     document.body.style.overflow = "hidden"
+    const oldGate = document.getElementById("scp-gate")
+    if (oldGate) oldGate.remove()
+
+    grantScpRole().catch(() => {})
 
     let page = "dashboard"
     const profiles = new Map()
     let paint = () => {}
-    const presence = startPresence(db, () => paint())
-    attachProfiles(db, profiles, () => paint())
+    let presence = { online: new Map(), stop() {} }
+    try {
+      presence = startPresence(db, () => paint()) || presence
+    } catch {}
+    try {
+      if (db) attachProfiles(db, profiles, () => paint())
+    } catch {}
     const gdbState = { table: "profile", q: "", page: 1, cache: {} }
     paint = async () => {
       nav.querySelectorAll("button").forEach((btn) => btn.classList.toggle("on", btn.dataset.id === page))
       const main = document.getElementById("scp-main")
-      if (page === "dashboard") main.innerHTML = renderDash(await counts(db))
-      else if (page === "peers") renderLivePeers(main, db, profiles, presence)
-      else if (page === "users") {
-        const people = await listProfiles(db)
-        main.innerHTML = renderUsers(people)
-        bindUserActions(main, db, people, paint)
-      } else if (page === "flags") {
-        const rows = await listReports(db)
-        const tab = main.dataset.flagTab || "post"
-        main.innerHTML = renderFlags(rows, tab)
-        main.dataset.flagTab = tab
-        bindFlagActions(main, db, rows, paint)
-      } else if (page === "genosdb") {
-        if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(db)
-        renderGenos(main, db, gdbState, paint)
-      } else if (page === "storages") renderStorages(main, paint)
-      else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
-      else if (page === "stores") main.innerHTML = comingSoon("Stores")
-      else if (page === "livestreams") main.innerHTML = comingSoon("Livestreams")
-      else if (page === "settings") main.innerHTML = comingSoon("Settings")
+      if (!main) return
+      try {
+        if (page === "dashboard") main.innerHTML = renderDash(await counts(db))
+        else if (page === "peers") renderLivePeers(main, db, profiles, presence)
+        else if (page === "users") {
+          const people = await listProfiles(db)
+          main.innerHTML = renderUsers(people)
+          bindUserActions(main, db, people, paint)
+        } else if (page === "flags") {
+          const rows = await listReports(db)
+          const tab = main.dataset.flagTab || "post"
+          main.innerHTML = renderFlags(rows, tab)
+          main.dataset.flagTab = tab
+          bindFlagActions(main, db, rows, paint)
+        } else if (page === "genosdb") {
+          if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(db)
+          renderGenos(main, db, gdbState, paint)
+        } else if (page === "storages") renderStorages(main, paint)
+        else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
+        else if (page === "stores") main.innerHTML = comingSoon("Stores")
+        else if (page === "livestreams") main.innerHTML = comingSoon("Livestreams")
+        else if (page === "settings") main.innerHTML = comingSoon("Settings")
+      } catch (err) {
+        main.innerHTML = "<h2>Dashboard</h2><p class=\"scp-empty\">" + esc(err && err.message || "Could not load this page.") + "</p>"
+      }
     }
 
     MENUS.forEach((item) => {

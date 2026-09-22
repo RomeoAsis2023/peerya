@@ -390,8 +390,8 @@ export function openDb() {
   if (!dbPromise) {
     blockScpWebAuthn()
     dbPromise = import("https://cdn.jsdelivr.net/npm/genosdb@0.36.3/dist/index.js").then(({ gdb }) =>
-      gdb(PEERYA.dbName, {
-        rtc: true,
+        gdb(PEERYA.dbName, {
+        rtc: !isScpApp(),
         sm: {
           superAdmins: [BOOTSTRAP_ADMIN],
           acls: true,
@@ -588,7 +588,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=scp9")
+      const { startSuperadmin } = await import("./admin.js?v=scp10")
       await startSuperadmin(db)
     } catch {}
   }
@@ -898,6 +898,10 @@ export function startPresence(db, onChange) {
   const online = new Map()
   const lastSeen = new Map()
   const peerToUser = new Map()
+  if (!db || !db.sm) {
+    if (db) ensureMesh(db, { online, notify: () => { if (onChange) onChange() } })
+    return { online, stop() {} }
+  }
   const me = db.sm.getActiveEthAddress()
   const notify = () => { if (onChange) onChange() }
   const mark = (address, peerId) => {
