@@ -985,6 +985,11 @@
       )
 
       render()
+      const pendingChat = sessionStorage.getItem("peerya.openChat")
+      if (pendingChat) {
+        sessionStorage.removeItem("peerya.openChat")
+        openThread(threadIdFor(me, pendingChat))
+      }
     </script>
   </body>
 </html>

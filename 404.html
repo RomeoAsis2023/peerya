@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="icon" href="../icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+    <title>Peerya - Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-RjeFzczeuZHCyS+Gvz+kleETzBF/o84ZRHukze/yv6o=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../css/presence.css">
+    <style>
+      :root {
+        --peerya-green: #8bc34a;
+        --peerya-green-dark: #7cb342;
+        --peerya-ink: #2f2f2f;
+        --peerya-muted: #6f6f6f;
+        --peerya-line: #ececec;
+        --peerya-soft: #f6f7f4;
+        --bs-sidebar-width: 17.5rem;
+        --bs-sidebar-bg: #ffffff;
+        --bs-body-font-family: "Manrope", system-ui, sans-serif;
+        --bs-body-color: var(--peerya-ink);
+        --bs-primary: var(--peerya-green);
+        --bs-link-color: var(--peerya-green-dark);
+        --bs-heading-font-family: "Inter", system-ui, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { min-height: 100%; min-height: 100dvh; }
+
+      body {
+        margin: 0;
+        background: #fafafa;
+        color: var(--peerya-ink);
+        font-family: "Manrope", system-ui, sans-serif;
+        visibility: hidden;
+      }
+
+      body.is-authed { visibility: visible; }
+      .hidden { display: none !important; }
+
+      .hidden { display: none !important; }
+
+      h1, h2, .sidebar-brand, .suggest-name, .section-title {
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      .sidebar {
+        --bs-offcanvas-width: var(--bs-sidebar-width);
+        border-right: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--peerya-ink);
+        text-decoration: none;
+      }
+
+      .sidebar-brand img { width: auto; height: 1.75rem; }
+
+      .sidebar-search { position: relative; }
+
+      .sidebar-search i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9a9a9a;
+      }
+
+      .sidebar-search .form-control {
+        padding-left: 2.3rem;
+        border-radius: 999px;
+        background: #f4f4f4;
+        border-color: transparent;
+      }
+
+      .sidebar-nav { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+
+      .sidebar-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        color: #4a4a4a;
+        border-radius: 0.7rem;
+        font-weight: 600;
+      }
+
+      .sidebar-nav .nav-link i { font-size: 1.15rem; width: 1.3rem; text-align: center; }
+      .sidebar-nav .nav-link:hover, .sidebar-nav .nav-link.active { background: var(--peerya-soft); }
+      .sidebar-nav .nav-link.active { color: var(--peerya-green-dark); }
+
+      .nav-badge[hidden] { display: none !important; }
+
+      .nav-badge {
+        margin-left: auto;
+        min-width: 1.4rem;
+        height: 1.4rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: #ecebff;
+        color: #6b63d6;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .promo-card {
+        border: 1px solid var(--peerya-line);
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        background: #fff;
+      }
+
+      .promo-icon {
+        width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 50%;
+        background: #fff6e8;
+        color: #e6a23c;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding-top: 0.85rem;
+        margin-top: 0.85rem;
+        border-top: 1px solid var(--peerya-line);
+      }
+
+      .sidebar-user img, .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .sidebar-user .name, .suggest-name {
+        font-weight: 700;
+        font-size: 0.92rem;
+        margin: 0;
+      }
+
+      .sidebar-user .role, .friend-status {
+        color: #8a8a8a;
+        font-size: 0.78rem;
+        margin: 0;
+      }
+
+      .home-topbar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: #fff;
+        border-bottom: 1px solid var(--peerya-line);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .home-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        gap: 1.75rem;
+        max-width: 62rem;
+        margin: 0 auto;
+        padding: 1.25rem 1.5rem 2.5rem;
+      }
+
+      .right-rail {
+        position: sticky;
+        top: 1.25rem;
+        align-self: start;
+      }
+
+      .account-switch,
+      .suggest-item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+      }
+
+      .account-switch {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .account-switch img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .follow-btn {
+        margin-left: auto;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--peerya-green-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+
+      .follow-btn.following {
+        color: #9a9a9a;
+        font-weight: 600;
+      }
+
+      .suggest-handle {
+        color: #8a8a8a;
+        font-size: 0.78rem;
+        margin: 0;
+      }
+
+      .right-rail .section-head {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.9rem;
+        padding: 0;
+      }
+
+      .suggest-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.95rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .suggest-item img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .feed-empty {
+        text-align: center;
+        color: #9a9a9a;
+        padding: 0.5rem 0;
+        margin: 0;
+        font-size: 0.85rem;
+      }
+
+      .profile-card {
+        background: #fff;
+        border-radius: 1.15rem;
+        box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+        overflow: hidden;
+      }
+
+      .profile-hero {
+        display: grid;
+        grid-template-columns: 16.5rem minmax(0, 1fr);
+        min-height: 22rem;
+      }
+
+      .profile-photo {
+        background: #eef3e6;
+        min-height: 22rem;
+      }
+
+      .profile-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .profile-main { padding: 1.4rem 1.4rem 1.2rem; }
+
+      .profile-name {
+        margin: 0;
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .profile-handle {
+        margin: 0.2rem 0 1rem;
+        color: var(--peerya-green-dark);
+        font-weight: 600;
+        font-size: 0.92rem;
+      }
+
+      .profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.2rem;
+      }
+
+      .profile-actions .btn {
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        padding: 0.45rem 0.9rem;
+      }
+
+      .btn-edit {
+        background: var(--peerya-green);
+        border-color: var(--peerya-green);
+        color: #1f2a12;
+      }
+
+      .profile-tabs {
+        display: flex;
+        gap: 1.25rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .profile-tabs button {
+        border: 0;
+        background: none;
+        padding: 0.7rem 0;
+        font-weight: 700;
+        color: #9a9a9a;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+
+      .profile-tabs button.active {
+        color: var(--peerya-green-dark);
+        border-bottom-color: var(--peerya-green);
+      }
+
+      .profile-panel { padding: 1.15rem 0 0.2rem; }
+
+      .about-row {
+        display: grid;
+        grid-template-columns: 7rem minmax(0, 1fr);
+        gap: 0.6rem;
+        padding: 0.45rem 0;
+        font-size: 0.92rem;
+      }
+
+      .about-row dt { color: #8a8a8a; font-weight: 600; }
+      .about-row dd { margin: 0; color: var(--peerya-ink); }
+
+      .feed-post {
+        padding: 0.85rem 0;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .feed-post:last-child { border-bottom: 0; }
+
+      .feed-post .meta {
+        color: #9a9a9a;
+        font-size: 0.78rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .feed-post p { margin: 0; font-size: 0.92rem; color: #4a4a4a; }
+
+      .feed-thumbs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.4rem;
+        margin-top: 0.6rem;
+      }
+
+      .feed-thumbs img {
+        width: 100%;
+        height: 5.5rem;
+        object-fit: cover;
+        border-radius: 0.6rem;
+      }
+
+      @media (max-width: 767.98px) {
+        .profile-hero { grid-template-columns: 1fr; }
+        .profile-photo { min-height: 16rem; }
+      }
+
+      .explore-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin: 1rem 0 1.1rem;
+      }
+
+      .explore-search {
+        position: relative;
+        flex: 1;
+      }
+
+      .explore-search i {
+        position: absolute;
+        left: 0.9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9a9a9a;
+      }
+
+      .explore-search .form-control {
+        padding-left: 2.4rem;
+        border-radius: 999px;
+        background: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 24px rgba(40, 50, 30, 0.05);
+        min-height: 2.7rem;
+      }
+
+      .layout-toggle {
+        display: flex;
+        gap: 0.2rem;
+        background: #fff;
+        border-radius: 999px;
+        padding: 0.22rem;
+        box-shadow: 0 8px 24px rgba(40, 50, 30, 0.05);
+      }
+
+      .layout-toggle button {
+        border: 0;
+        background: none;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        color: #8a8a8a;
+      }
+
+      .layout-toggle button.active {
+        background: var(--peerya-soft);
+        color: var(--peerya-green-dark);
+      }
+
+      .explore-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(11.8rem, 1fr));
+        gap: 1rem;
+      }
+
+      .explore-grid.list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .peer-card {
+        background: #fff;
+        border-radius: 1.1rem;
+        box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+        padding: 1.15rem 0.95rem 1.05rem;
+        text-align: center;
+      }
+
+      .peer-card .avatar-wrap {
+        margin-bottom: 0.7rem;
+      }
+
+      .peer-card img {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #f0f4e8;
+      }
+
+      .peer-card .suggest-name {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      .peer-card .suggest-handle {
+        margin: 0.15rem 0 0.85rem;
+        color: #8a8a8a;
+        font-size: 0.8rem;
+      }
+
+      .add-friend-btn {
+        width: 100%;
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.82rem;
+      }
+
+      .explore-grid.list .peer-card {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        gap: 0.85rem;
+        padding: 0.75rem 1rem;
+      }
+
+      .explore-grid.list .peer-card .avatar-wrap { margin: 0; }
+
+      .explore-grid.list .peer-card img {
+        width: 48px;
+        height: 48px;
+        border-width: 2px;
+      }
+
+      .explore-grid.list .peer-meta { flex: 1; min-width: 0; }
+
+      .explore-grid.list .peer-card .suggest-handle { margin: 0.1rem 0 0; }
+
+      .explore-grid.list .add-friend-btn {
+        width: auto;
+        padding: 0.4rem 0.95rem;
+        white-space: nowrap;
+      }
+
+      .explore-pager {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        margin-top: 1.15rem;
+      }
+
+      .explore-pager button {
+        border: 0;
+        background: #fff;
+        min-width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        color: #666;
+        font-weight: 700;
+        box-shadow: 0 6px 18px rgba(40, 50, 30, 0.05);
+      }
+
+      .explore-pager button.active,
+      .explore-pager button:hover {
+        background: var(--peerya-green);
+        color: #1f2a12;
+      }
+
+      .explore-pager button:disabled {
+        opacity: 0.45;
+        box-shadow: none;
+      }
+
+      .add-friend-btn:disabled {
+        background: #ececec;
+        color: #9a9a9a;
+      }
+
+      .settings-card {
+        display: none;
+      }
+
+      .settings-card h1 {
+        margin: 0 0 1.1rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .avatar-edit {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .avatar-edit img {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #eee;
+        border: 3px solid #f0f4e8;
+      }
+
+      .avatar-edit .btn {
+        border-radius: 999px;
+        font-weight: 700;
+        background: var(--peerya-soft);
+        border-color: var(--peerya-line);
+        color: var(--peerya-ink);
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem 1rem;
+      }
+
+      .settings-grid .full { grid-column: 1 / -1; }
+
+      .settings-card .form-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #7a7a7a;
+        margin-bottom: 0.3rem;
+      }
+
+      .settings-card .form-control,
+      .settings-card .form-select {
+        border-color: #e8e8e8;
+        background: #fafafa;
+        min-height: 2.7rem;
+        border-radius: 0.7rem;
+      }
+
+      .settings-card textarea.form-control {
+        min-height: 7rem;
+        resize: vertical;
+      }
+
+      .settings-save {
+        margin-top: 1.1rem;
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.55rem 1.3rem;
+      }
+
+      .settings-note {
+        display: none;
+        margin: 0 0 0.9rem;
+        padding: 0.65rem 0.8rem;
+        border-radius: 0.6rem;
+        font-size: 0.88rem;
+      }
+
+      .settings-note.show { display: block; }
+      .settings-note.ok { background: #eef7e4; color: #3d6b12; }
+      .settings-note.err { background: #fdecea; color: #9b2c2c; }
+
+      .friends-card {
+        display: none;
+      }
+
+      .friends-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1.15rem 1.2rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .friends-head h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--peerya-green-dark);
+      }
+
+      .invite-btn {
+        border: 0;
+        border-radius: 999px;
+        background: var(--peerya-green);
+        color: #1f2a12;
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .friends-status {
+        display: none;
+        margin: 0;
+        padding: 0.7rem 1.2rem;
+        font-size: 0.88rem;
+      }
+
+      .friends-status.show { display: block; }
+      .friends-status.ok { background: #eef7e4; color: #3d6b12; }
+      .friends-status.err { background: #fdecea; color: #9b2c2c; }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        padding: 0.95rem 1.2rem 0.35rem;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #7a7a7a;
+      }
+
+      .see-all {
+        margin-left: auto;
+        color: var(--peerya-green-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+
+      .friend-list {
+        display: flex;
+        flex-direction: column;
+        padding: 0.2rem 0.7rem 0.9rem;
+        gap: 0.15rem;
+      }
+
+      .friend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        border: 0;
+        background: none;
+        text-align: left;
+        padding: 0.7rem 0.55rem;
+        border-radius: 0.85rem;
+        color: inherit;
+      }
+
+      .friend-item:hover { background: var(--peerya-soft); }
+
+      .friend-avatar { position: relative; width: 44px; height: 44px; flex-shrink: 0; }
+
+      .friend-avatar img {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .presence {
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        width: 0.72rem;
+        height: 0.72rem;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        background: #c8c8c8;
+      }
+
+      .presence.online { background: var(--peerya-green); }
+      .friend-item.online .friend-status { color: var(--peerya-green-dark); font-weight: 600; }
+
+      .friend-meta { min-width: 0; flex: 1; }
+
+      .empty-friends {
+        text-align: center;
+        color: #9a9a9a;
+        padding: 2rem 1.2rem 1.5rem;
+      }
+
+      .invite-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgba(20, 20, 20, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .invite-modal.hidden { display: none; }
+
+      .invite-sheet {
+        width: min(24rem, 100%);
+        background: #fff;
+        border-radius: 1.2rem;
+        padding: 1.4rem 1.3rem 1.25rem;
+        text-align: center;
+        box-shadow: 0 18px 50px rgba(20, 30, 10, 0.18);
+      }
+
+      .invite-sheet h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1.2rem;
+      }
+
+      .invite-sheet p {
+        margin: 0 0 1rem;
+        color: #7a7a7a;
+        font-size: 0.9rem;
+      }
+
+      #invite-qr {
+        width: 220px;
+        height: 220px;
+        margin: 0 auto 1rem;
+      }
+
+      #invite-qr img,
+      #invite-qr canvas,
+      #invite-qr table {
+        width: 220px !important;
+        height: 220px !important;
+      }
+
+      .invite-link {
+        width: 100%;
+        border: 1px solid var(--peerya-line);
+        border-radius: 0.7rem;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.75rem;
+        color: #666;
+        background: #f7f7f7;
+        margin-bottom: 0.75rem;
+      }
+
+      .invite-actions { display: flex; gap: 0.5rem; }
+
+      .invite-actions .btn {
+        flex: 1;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+
+      .btn-copy {
+        background: var(--peerya-green);
+        border-color: var(--peerya-green);
+        color: #1f2a12;
+      }
+
+      @media (max-width: 1199.98px) {
+        .home-shell {
+          grid-template-columns: minmax(0, 1fr);
+          max-width: 40rem;
+        }
+
+        .right-rail { display: none; }
+      }
+
+      @media (max-width: 575.98px) {
+        .settings-grid { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 991.98px) {
+        .home-topbar { display: flex; }
+        .home-shell { padding: 1rem; }
+      }
+    </style>
+  </head>
+  <body class="ps-lg-sbwidth">
+    <header class="home-topbar">
+      <a class="sidebar-brand" href="../home/">
+        <img src="../logo_full.svg" alt="Peerya">
+      </a>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-light js-logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+        <button type="button" class="btn btn-light" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar"><i class="bi bi-list"></i></button>
+      </div>
+    </header>
+
+    <nav class="sidebar offcanvas-start offcanvas-lg" tabindex="-1" id="sidebar" aria-label="Main navigation">
+      <div class="offcanvas-header">
+        <a class="sidebar-brand" href="../home/">
+          <img src="../logo_full.svg" alt="Peerya">
+        </a>
+        <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column">
+        <div class="sidebar-search mb-3">
+          <i class="bi bi-search"></i>
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+        </div>
+        <ul class="sidebar-nav">
+          <li class="nav-item"><a class="nav-link" href="../home/"><i class="bi bi-house-door"></i> Home</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="../messages/">
+              <i class="bi bi-chat-dots"></i> Messages
+              <span class="nav-badge" id="badge-messages" hidden></span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="../friends/">
+              <i class="bi bi-people"></i> Friends
+              <span class="nav-badge" id="badge-friends" hidden></span>
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="../explore/"><i class="bi bi-compass"></i> Explore</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="../notifications/">
+              <i class="bi bi-bell"></i> Notifications
+              <span class="nav-badge" id="badge-notifications" hidden></span>
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="../settings/"><i class="bi bi-gear"></i> Settings</a></li>
+          <li class="nav-item"><a class="nav-link" href="#help"><i class="bi bi-question-circle"></i> Help &amp; Support</a></li>
+          <li class="nav-item"><a class="nav-link js-logout" href="../"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+        <div class="mt-auto">
+          <div class="promo-card mb-3">
+            <div class="d-flex align-items-start justify-content-between mb-2">
+              <span class="promo-icon"><i class="bi bi-exclamation-circle"></i></span>
+              <button type="button" class="btn-close" aria-label="Dismiss promo"></button>
+            </div>
+            <p class="mb-2 small text-secondary">Enjoy unlimited access to Peerya with only a small price monthly.</p>
+          </div>
+          <div class="sidebar-user">
+            <span class="avatar-wrap"><img id="side-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="side-presence"></span></span>
+            <div class="meta">
+              <p class="name" id="side-name">You</p>
+              <p class="role" id="side-role">Peer</p>
+            </div>
+            <a href="../" class="ms-auto text-secondary js-logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="home-shell">
+      <section>
+        <div class="profile-card" id="profile-card">
+          <div class="profile-hero">
+            <div class="profile-photo">
+              <img id="profile-photo" src="../default_avatar.png" alt="">
+            </div>
+            <div class="profile-main">
+              <h1 class="profile-name" id="profile-name">Profile</h1>
+              <p class="profile-handle" id="profile-handle"></p>
+              <div class="profile-actions" id="profile-actions"></div>
+              <div class="profile-tabs">
+                <button type="button" class="active" data-tab="feeds">Feeds</button>
+                <button type="button" data-tab="about">About</button>
+              </div>
+              <div class="profile-panel" id="panel-feeds"></div>
+              <div class="profile-panel hidden" id="panel-about"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="right-rail">
+        <div class="account-switch">
+          <span class="avatar-wrap"><img class="avatar" id="me-avatar" src="../default_avatar.png" alt=""><span class="presence online" id="me-presence"></span></span>
+          <div>
+            <p class="suggest-name" id="me-name">You</p>
+            <p class="suggest-handle" id="me-handle"></p>
+          </div>
+        </div>
+        <div class="section-head">
+          <h2 class="section-title">Suggested For You</h2>
+          <span class="see-all" id="suggested-count">0</span>
+        </div>
+        <div class="suggest-list" id="suggested-list"></div>
+        <div class="section-head">
+          <h2 class="section-title">Active Peers</h2>
+          <span class="see-all" id="peers-count">0</span>
+        </div>
+        <div class="suggest-list" id="peers-list"></div>
+      </aside>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
+    <script type="module">
+      import {
+        requireAuth,
+        signOut,
+        avatarUrl,
+        displayName as nameOf,
+        startPresence,
+        applyCurrentUser,
+        setNavBadge,
+        toggleFollow,
+        addFriend,
+        otherFriend,
+        watchNotices,
+        timeAgo,
+        threadIdFor
+      } from "../js/peerya.js"
+
+      const db = await requireAuth()
+      if (!db) throw new Error("unauthorized")
+      document.body.classList.add("is-authed")
+
+      const me = db.sm.getActiveEthAddress()
+      const profiles = new Map()
+      const friends = new Map()
+      const follows = new Map()
+      const posts = new Map()
+      let paint = () => {}
+      const presence = startPresence(db, () => paint())
+
+      document.querySelectorAll(".js-logout").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault()
+          await signOut(db)
+        })
+      })
+
+      const renderPeople = (root, countEl, list, emptyText) => {
+        root.innerHTML = ""
+        countEl.textContent = String(list.length)
+        if (!list.length) {
+          const empty = document.createElement("p")
+          empty.className = "feed-empty"
+          empty.textContent = emptyText
+          root.append(empty)
+          return
+        }
+        for (const person of list) {
+          const followed = follows.has("follow:" + me.toLowerCase() + ":" + String(person.address).toLowerCase())
+          const row = document.createElement("div")
+          row.className = "suggest-item"
+          row.innerHTML =
+            '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>' +
+            '<button type="button" class="follow-btn"></button>'
+          row.querySelector("img").src = avatarUrl(person.address, person)
+          row.querySelector(".presence").classList.toggle("online", presence.online.has(String(person.address).toLowerCase()))
+          row.querySelector(".suggest-name").textContent = nameOf(db, profiles, person.address)
+          row.querySelector(".suggest-handle").textContent = "@" + (person.username || db.sm.abbrAddr(person.address))
+          const btn = row.querySelector(".follow-btn")
+          btn.classList.toggle("following", followed)
+          btn.textContent = followed ? "Followed" : "Follow"
+          btn.addEventListener("click", () => toggleFollow(db, person.address))
+          root.append(row)
+        }
+      }
+
+      const profileUsername = () => {
+        const q = new URLSearchParams(location.search).get("u")
+        if (q) return decodeURIComponent(q).toLowerCase()
+        const parts = location.pathname.split("/").filter(Boolean)
+        const i = parts.indexOf("p")
+        if (i >= 0 && parts[i + 1] && parts[i + 1] !== "index.html") return decodeURIComponent(parts[i + 1]).toLowerCase()
+        return ""
+      }
+
+      const handle = profileUsername()
+      if (!handle) {
+        const root = location.pathname.split("/").filter(Boolean)[0] === "peerya" ? "/peerya/" : "/"
+        location.replace(root + "home/")
+      }
+
+      const isFriend = (address) => {
+        const key = String(address).toLowerCase()
+        for (const node of friends.values()) {
+          if (otherFriend(node, me) && String(otherFriend(node, me)).toLowerCase() === key) return true
+        }
+        return false
+      }
+
+      const findProfile = () => [...profiles.values()].find((profile) => String(profile.username || "").toLowerCase() === handle)
+
+      const renderProfile = () => {
+        const profile = findProfile()
+        const nameEl = document.getElementById("profile-name")
+        const handleEl = document.getElementById("profile-handle")
+        const photo = document.getElementById("profile-photo")
+        const actions = document.getElementById("profile-actions")
+        const about = document.getElementById("panel-about")
+        const feeds = document.getElementById("panel-feeds")
+        actions.innerHTML = ""
+        about.innerHTML = ""
+        feeds.innerHTML = ""
+        if (!profile) {
+          nameEl.textContent = "Profile not found"
+          handleEl.textContent = "@" + handle
+          photo.src = "../default_avatar.png"
+          return
+        }
+        const address = profile.address
+        const mine = String(address).toLowerCase() === me.toLowerCase()
+        nameEl.textContent = nameOf(db, profiles, address)
+        handleEl.textContent = "@" + (profile.username || "")
+        photo.src = avatarUrl(address, profile)
+        document.title = "Peerya - " + nameEl.textContent
+        if (mine) {
+          const edit = document.createElement("a")
+          edit.className = "btn btn-edit"
+          edit.href = "../settings/"
+          edit.textContent = "Edit profile"
+          actions.append(edit)
+        } else {
+          const msg = document.createElement("button")
+          msg.type = "button"
+          msg.className = "btn btn-outline-secondary"
+          msg.innerHTML = '<i class="bi bi-chat"></i> Send message'
+          msg.addEventListener("click", () => {
+            sessionStorage.setItem("peerya.openChat", address)
+            location.href = "../messages/"
+          })
+          actions.append(msg)
+          const add = document.createElement("button")
+          add.type = "button"
+          add.className = "btn btn-edit"
+          if (isFriend(address)) {
+            add.textContent = "Friends"
+            add.disabled = true
+          } else {
+            add.textContent = "Add as a friend"
+            add.addEventListener("click", async () => {
+              add.disabled = true
+              await addFriend(db, address)
+              add.textContent = "Friends"
+            })
+          }
+          actions.append(add)
+        }
+        const rows = [
+          ["Username", profile.username ? "@" + profile.username : "—"],
+          ["Email", profile.email && typeof profile.email === "string" && !profile.email.startsWith("{") ? profile.email : "—"],
+          ["Birthday", profile.birthday || "—"],
+          ["Gender", profile.gender || "—"],
+          ["About", profile.about || "—"]
+        ]
+        const dl = document.createElement("dl")
+        for (const [label, value] of rows) {
+          const row = document.createElement("div")
+          row.className = "about-row"
+          row.innerHTML = "<dt></dt><dd></dd>"
+          row.querySelector("dt").textContent = label
+          row.querySelector("dd").textContent = value
+          dl.append(row)
+        }
+        about.append(dl)
+        const minePosts = [...posts.values()].filter((post) => String(post.author).toLowerCase() === String(address).toLowerCase())
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        if (!minePosts.length) {
+          const empty = document.createElement("p")
+          empty.className = "feed-empty"
+          empty.textContent = "No posts yet."
+          feeds.append(empty)
+        } else {
+          for (const post of minePosts) {
+            const item = document.createElement("div")
+            item.className = "feed-post"
+            item.innerHTML = '<div class="meta"></div><p></p>'
+            item.querySelector(".meta").textContent = timeAgo(post.createdAt)
+            item.querySelector("p").textContent = post.caption || ""
+            const pics = Array.isArray(post.images) ? post.images.filter((image) => image && image.data) : []
+            if (pics.length) {
+              const thumbs = document.createElement("div")
+              thumbs.className = "feed-thumbs"
+              pics.slice(0, 3).forEach((image) => {
+                const img = document.createElement("img")
+                img.src = image.data
+                img.alt = ""
+                thumbs.append(img)
+              })
+              item.append(thumbs)
+            }
+            feeds.append(item)
+          }
+        }
+      }
+
+      const render = () => {
+        renderProfile()
+        const people = [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
+        const active = people.filter((person) => presence.online.has(String(person.address).toLowerCase()))
+        const suggested = people.filter((person) => !presence.online.has(String(person.address).toLowerCase()))
+        renderPeople(document.getElementById("suggested-list"), document.getElementById("suggested-count"), suggested, "No other peers yet.")
+        renderPeople(document.getElementById("peers-list"), document.getElementById("peers-count"), active, "No peers online.")
+        applyCurrentUser(db, profiles, presence.online)
+        setNavBadge("badge-friends", friends.size)
+      }
+      paint = render
+      watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
+
+      document.querySelectorAll(".profile-tabs button").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".profile-tabs button").forEach((item) => item.classList.remove("active"))
+          button.classList.add("active")
+          document.getElementById("panel-feeds").classList.toggle("hidden", button.dataset.tab !== "feeds")
+          document.getElementById("panel-about").classList.toggle("hidden", button.dataset.tab !== "about")
+        })
+      })
+
+      await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
+        const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
+        if (action === "removed") profiles.delete(address)
+        else if (value) profiles.set(address, value)
+        render()
+      })
+
+      await db.map({ query: { type: "follow" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") follows.delete(id)
+        else if (value) follows.set(id, { ...value, id })
+        render()
+      })
+
+      await db.map({ query: { type: "friend" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") friends.delete(id)
+        else if (value && (String(value.a).toLowerCase() === me.toLowerCase() || String(value.b).toLowerCase() === me.toLowerCase())) {
+          friends.set(id, value)
+        }
+        render()
+      })
+
+      await db.map({ query: { type: "post" }, realtime: true }, ({ id, value, action }) => {
+        if (action === "removed") posts.delete(id)
+        else if (value) posts.set(id, { ...value, id })
+        render()
+      })
+
+      render()
+    </script>
+  </body>
+</html>
