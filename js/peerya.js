@@ -75,7 +75,8 @@ const meshCtx = {
   drop: null,
   notify: null,
   profiles: null,
-  profileChange: null
+  profileChange: null,
+  liveMaps: new Map()
 }
 let meshConnect = null
 let meshReady = null
@@ -89,14 +90,19 @@ function wrapDb(db) {
   db.__remove = db.remove.bind(db)
   db.put = async (value, id) => {
     const result = await db.__put(value, id)
+    const nodeId = id || result
+    liveSet(nodeId, value)
     if (remoteDepth === 0 && value && value.type) {
-      meshSend({ kind: "put", id: id || result, value })
+      meshSend({ kind: "put", id: nodeId, value })
     }
+    meshEmit()
     return result
   }
   db.remove = async (id) => {
     const result = await db.__remove(id)
+    liveRemove(id)
     if (remoteDepth === 0) meshSend({ kind: "remove", id })
+    meshEmit()
     return result
   }
   return db
@@ -112,6 +118,52 @@ function meshSend(payload, connectId) {
 function meshEmit() {
   if (meshCtx.notify) meshCtx.notify()
   if (meshCtx.profileChange) meshCtx.profileChange()
+}
+
+function liveSet(id, value) {
+  if (!id || !value || !value.type) return
+  const map = meshCtx.liveMaps.get(value.type)
+  if (map) map.set(id, { ...value, id })
+}
+
+function liveRemove(id) {
+  if (!id) return
+  for (const map of meshCtx.liveMaps.values()) map.delete(id)
+}
+
+export function bindLiveMap(type, map) {
+  meshCtx.liveMaps.set(type, map)
+}
+
+export function reactionId(kind, targetId, from) {
+  return kind + ":" + String(targetId) + ":" + String(from || "").toLowerCase()
+}
+
+export function countReactions(map, kind, targetId, targetType) {
+  const id = String(targetId || "")
+  const prefix = kind + ":" + id + ":"
+  const want = targetType || "post"
+  let n = 0
+  for (const [key, item] of map) {
+    if (!item) continue
+    const typed = item.targetType || "post"
+    const aimed = String(item.targetId || "") === id
+      || String(key).startsWith(prefix)
+      || (want === "post" && typed === "post" && String(item.postId || "") === id)
+    if (aimed && typed === want) n += 1
+  }
+  return n
+}
+
+export function hasReaction(map, kind, targetId, from) {
+  const who = String(from || "").toLowerCase()
+  const id = String(targetId || "")
+  if (map.has(reactionId(kind, id, who))) return true
+  for (const [key, item] of map) {
+    if (String(item.targetId || "") === id && String(item.from || "").toLowerCase() === who) return true
+    if (String(key).startsWith(kind + ":" + id + ":") && String(key).toLowerCase().endsWith(":" + who)) return true
+  }
+  return false
 }
 
 function mergeProfileMemory(id, value) {
@@ -172,6 +224,7 @@ async function applyRemotePut(id, value) {
     }
   }
   mergeProfileMemory(id, value)
+  liveSet(id, value)
   meshEmit()
 }
 
@@ -268,6 +321,7 @@ function ensureMesh(db, extra) {
         remoteDepth++
         try { await graph.__remove(msg.id) } catch {}
         remoteDepth--
+        liveRemove(msg.id)
         meshEmit()
       } else if (msg.kind === "snapshot" && Array.isArray(msg.items)) {
         for (const item of msg.items) await applyRemotePut(item.id, item.value)
@@ -819,32 +873,36 @@ export async function toggleFollow(db, target) {
 export async function toggleReaction(db, kind, targetId, targetType) {
   const from = db.sm.getActiveEthAddress()
   const type = targetType || "post"
-  if (!from || !targetId || (kind !== "like" && kind !== "heart")) return false
-  const id = kind + ":" + targetId + ":" + from.toLowerCase()
-  const { result } = await db.get(id)
-  if (result) {
+  const target = String(targetId || "")
+  if (!from || !target || (kind !== "like" && kind !== "heart")) return false
+  const id = reactionId(kind, target, from)
+  let existed = false
+  try {
+    const { result } = await db.get(id)
+    existed = !!(result && result.value)
+  } catch {}
+  if (existed) {
     await db.remove(id)
     return false
   }
-  let postId = targetId
-  let to = ""
-  try {
-    const { result: node } = await db.get(targetId)
-    const value = node && node.value
-    if (value) {
-      to = value.author || ""
-      if (type === "comment") postId = value.postId || targetId
-    }
-  } catch {}
-  await db.put({
+  const value = {
     type: kind,
-    postId,
-    targetId,
+    postId: target,
+    targetId: target,
     targetType: type,
     from,
     createdAt: Date.now()
-  }, id)
-  if (to) await createNotice(db, { kind, from, to, postId })
+  }
+  try {
+    const { result: node } = await db.get(target)
+    const doc = node && node.value
+    if (doc && doc.author) {
+      if (type === "comment") value.postId = doc.postId || target
+      value.to = doc.author
+    }
+  } catch {}
+  await db.put(value, id)
+  if (value.to) await createNotice(db, { kind, from, to: value.to, postId: value.postId })
   return true
 }
 
