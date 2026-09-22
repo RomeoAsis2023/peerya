@@ -1,3 +1,3 @@
-export const ADMIN_PASS_HASH = ""
-export const ADMIN_KEY_HASH = ""
-export const ADMIN_GATE_READY = false
+export const ADMIN_PASS_HASH = "88ff71ad93fea7585b8a3ff8f92e3a8349610f70d7282ca4122fed11e198bf82"
+export const ADMIN_KEY_HASH = "82f6ffa82b3d569d89967a9a41c944d9648f017117dd8976f75d2c66444189ed"
+export const ADMIN_GATE_READY = true
