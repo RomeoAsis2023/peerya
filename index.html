@@ -635,7 +635,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script type="module">
-      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken, bootAdmin, waitScpApp } from "./js/peerya.js?v=scp3"
+      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken, bootAdmin, waitScpApp } from "./js/peerya.js?v=scp4"
 
       const signupTab = document.getElementById("signup-tab")
       const signinTab = document.getElementById("signin-tab")
@@ -687,6 +687,7 @@
           }
         }
         goHome()
+        if (await waitScpApp()) await bootAdmin(db)
       }
 
       document.getElementById("create-account-link").addEventListener("click", (event) => {
@@ -887,14 +888,18 @@
           return
         }
         if (await waitScpApp()) {
-          await bootAdmin(db)
-          return
+          db.sm.setSecurityStateChangeCallback((state) => {
+            if (holdRedirect) return
+            if (state.isActive) bootAdmin(db)
+          })
+          if (db.sm.isSecurityActive()) await bootAdmin(db)
+        } else {
+          db.sm.setSecurityStateChangeCallback((state) => {
+            if (holdRedirect) return
+            if (state.isActive) goHome()
+          })
+          if (db.sm.isSecurityActive()) goHome()
         }
-        db.sm.setSecurityStateChangeCallback((state) => {
-          if (holdRedirect) return
-          if (state.isActive) goHome()
-        })
-        if (db.sm.isSecurityActive()) goHome()
         if (!PASSKEYS_AVAILABLE) {
           setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
         }

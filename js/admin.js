@@ -489,11 +489,21 @@ export async function startSuperadmin(db) {
     const keyHex = await sha256hex(frag)
     if (!hexEqual(keyHex, gate.ADMIN_KEY_HASH)) return
   }
-  if (!db) return
+  if (!db || !db.sm || !db.sm.isSecurityActive()) return
 
   loadCss()
 
+  const grantScpRole = async () => {
+    const me = db.sm.getActiveEthAddress()
+    if (!me) return
+    try { await db.sm.assignRole(me, "superadmin") } catch {}
+    try {
+      await db.put({ type: "scp-admin", address: me, updatedAt: Date.now() }, "scp-admin:" + String(me).toLowerCase())
+    } catch {}
+  }
+
   const unlock = async () => {
+    await grantScpRole()
     setNoindex(true)
     const root = document.createElement("div")
     root.id = "scp-root"
