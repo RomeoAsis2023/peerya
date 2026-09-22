@@ -334,6 +334,36 @@
         padding-top: 0.15rem;
       }
 
+      .notice-pager {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        padding: 0.35rem 0.45rem 1rem;
+      }
+
+      .notice-pager button {
+        border: 0;
+        background: #fff;
+        min-width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        color: #666;
+        font-weight: 700;
+        box-shadow: 0 6px 18px rgba(40, 50, 30, 0.05);
+      }
+
+      .notice-pager button.active,
+      .notice-pager button:hover {
+        background: var(--peerya-green);
+        color: #1f2a12;
+      }
+
+      .notice-pager button:disabled {
+        opacity: 0.45;
+        box-shadow: none;
+      }
+
       .explore-head { display: none; }
 
       .explore-grid {
@@ -755,6 +785,7 @@
             <h1>Notifications</h1>
           </div>
           <div class="notice-list" id="notice-list"></div>
+          <div class="notice-pager" id="notice-pager"></div>
           <p class="feed-empty hidden" id="notice-empty">You're all caught up.</p>
         </div>
       </section>
@@ -872,13 +903,48 @@
         reply: "../home/"
       }
 
+      const PAGE_SIZE = 15
+      let noticePage = 1
+
+      const renderPager = (pager, pages) => {
+        pager.innerHTML = ""
+        if (pages <= 1) return
+        const prev = document.createElement("button")
+        prev.type = "button"
+        prev.setAttribute("aria-label", "Previous")
+        prev.innerHTML = '<i class="bi bi-chevron-left"></i>'
+        prev.disabled = noticePage <= 1
+        prev.addEventListener("click", () => { noticePage -= 1; renderNotices() })
+        pager.append(prev)
+        for (let i = 1; i <= pages; i += 1) {
+          const btn = document.createElement("button")
+          btn.type = "button"
+          btn.textContent = String(i)
+          if (i === noticePage) btn.className = "active"
+          btn.addEventListener("click", () => { noticePage = i; renderNotices() })
+          pager.append(btn)
+        }
+        const next = document.createElement("button")
+        next.type = "button"
+        next.setAttribute("aria-label", "Next")
+        next.innerHTML = '<i class="bi bi-chevron-right"></i>'
+        next.disabled = noticePage >= pages
+        next.addEventListener("click", () => { noticePage += 1; renderNotices() })
+        pager.append(next)
+      }
+
       const renderNotices = () => {
         const list = document.getElementById("notice-list")
         const empty = document.getElementById("notice-empty")
+        const pager = document.getElementById("notice-pager")
         const rows = [...notices.values()].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+        if (noticePage > pages) noticePage = pages
+        const slice = rows.slice((noticePage - 1) * PAGE_SIZE, noticePage * PAGE_SIZE)
         list.innerHTML = ""
         empty.classList.toggle("hidden", rows.length > 0)
-        for (const notice of rows) {
+        renderPager(pager, rows.length ? pages : 0)
+        for (const notice of slice) {
           const btn = document.createElement("button")
           btn.type = "button"
           btn.className = "notice-item" + (notice.read ? "" : " unread")
