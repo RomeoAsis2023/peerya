@@ -470,7 +470,12 @@ function bindUserActions(main, db, people, paint) {
   })
 }
 
+function isScpApp() {
+  return window.__PEERYA_SCP_APP__ === true || /PeeryaSCP\/1\.0/.test(String(navigator.userAgent || ""))
+}
+
 export async function startSuperadmin(db) {
+  if (!isScpApp()) return
   if (document.getElementById("scp-root") || document.getElementById("scp-gate")) return
   let gate
   try {
