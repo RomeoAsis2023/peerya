@@ -1,5 +1,3 @@
-import { ADMIN_PHRASE_HASH } from "./admin-gate.js"
-
 const STORE = "peerya.scp.address"
 
 function ethersApi() {
@@ -21,9 +19,12 @@ export function bindAdmin(address) {
   localStorage.setItem("peerya.address", addr)
 }
 
-async function sha256hex(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("")
+export function resetAdmin() {
+  localStorage.removeItem(STORE)
+}
+
+export function canCreateSuperadmin() {
+  return !boundAdmin()
 }
 
 export async function addressFromPhrase(mnemonic) {
@@ -35,12 +36,8 @@ export async function addressFromPhrase(mnemonic) {
   return String(wallet.address).toLowerCase()
 }
 
-export function canCreateSuperadmin() {
-  return !ADMIN_PHRASE_HASH && !boundAdmin()
-}
-
 export async function createSuperadmin() {
-  if (!canCreateSuperadmin()) throw new Error("Superadmin phrase is already set.")
+  resetAdmin()
   const { HDNodeWallet } = await ethersApi()
   const wallet = HDNodeWallet.createRandom()
   return {
@@ -55,15 +52,7 @@ export function confirmSuperadmin(address) {
 }
 
 export async function unlockWithPhrase(mnemonic) {
-  const phrase = normalizeMnemonic(mnemonic)
-  const address = await addressFromPhrase(phrase)
-  if (ADMIN_PHRASE_HASH) {
-    const hex = await sha256hex(phrase)
-    if (hex !== ADMIN_PHRASE_HASH) throw new Error("This phrase is not Superadmin.")
-  } else {
-    const bound = boundAdmin()
-    if (bound && bound !== address) throw new Error("This phrase is not the Superadmin identity on this app.")
-  }
+  const address = await addressFromPhrase(mnemonic)
   bindAdmin(address)
   return address
 }

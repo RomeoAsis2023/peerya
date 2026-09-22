@@ -54,6 +54,7 @@
         <p class="scp-err" id="scp-phrase-err"></p>
         <textarea id="scp-phrase" placeholder="twelve word recovery phrase" autocomplete="off"></textarea>
         <button type="submit" class="btn">Unlock</button>
+        <button type="button" class="btn ghost" id="scp-recreate">Create new Superadmin phrase</button>
       </form>
     </div>
     <script>
@@ -78,7 +79,7 @@
       }
 
       async function startCp() {
-        const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp15")
+        const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp16")
         await bootAdmin(null)
         if (!document.getElementById("scp-root")) throw new Error("Control panel did not start.")
         openDb().then((gdb) => bootAdmin(gdb)).catch((e) => {
@@ -151,6 +152,25 @@
           err.style.color = "#c0392b"
           err.textContent = String((e && e.message) || "Could not start Superadmin.")
         }
+      })
+
+      async function showNewPhrase() {
+        const err = document.getElementById("scp-register-err")
+        err.textContent = ""
+        document.getElementById("scp-saved").checked = false
+        try {
+          pending = await createSuperadmin()
+          document.getElementById("scp-new-phrase").value = pending.mnemonic
+          show("scp-register-form")
+        } catch (e) {
+          err.style.color = "#c0392b"
+          err.textContent = String((e && e.message) || "Could not create Superadmin.")
+          show("scp-register-form")
+        }
+      }
+
+      document.getElementById("scp-recreate").addEventListener("click", () => {
+        showNewPhrase()
       })
 
       document.getElementById("scp-phrase-form").addEventListener("submit", async (event) => {
