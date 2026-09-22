@@ -60,7 +60,7 @@
         input.disabled = true
         btn.disabled = true
         try {
-          const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp10")
+          const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp11")
           const db = await Promise.race([
             openDb(),
             new Promise((_, reject) => setTimeout(() => reject(new Error("Database timed out")), 15000))

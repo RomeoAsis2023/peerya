@@ -386,26 +386,74 @@ function ensureMesh(db, extra) {
   return meshReady
 }
 
+function gdbOptions() {
+  return {
+    rtc: !isScpApp(),
+    sm: {
+      superAdmins: [BOOTSTRAP_ADMIN],
+      acls: true,
+      resume: !isScpApp(),
+      customRoles: {
+        superadmin: { can: ["assignRole", "deleteAny"], inherits: ["admin"] },
+        admin: { can: ["delete"], inherits: ["manager"] },
+        manager: { can: ["publish"], inherits: ["user"] },
+        user: { can: ["write", "link", "sync"], inherits: ["guest"] },
+        guest: { can: ["read", "write", "link", "sync"] }
+      }
+    }
+  }
+}
+
+function deleteDb(name) {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.deleteDatabase(name)
+      req.onsuccess = () => resolve()
+      req.onerror = () => resolve()
+      req.onblocked = () => setTimeout(resolve, 400)
+    } catch {
+      resolve()
+    }
+  })
+}
+
+async function resetPeeryaStorage() {
+  try {
+    if (indexedDB.databases) {
+      const dbs = await indexedDB.databases()
+      const names = (dbs || []).map((row) => row && row.name).filter((name) => /peerya|genos|gdb/i.test(String(name || "")))
+      await Promise.all((names.length ? names : [PEERYA.dbName]).map(deleteDb))
+    } else {
+      await deleteDb(PEERYA.dbName)
+    }
+  } catch {
+    await deleteDb(PEERYA.dbName)
+  }
+}
+
+function isStaleIdb(err) {
+  return /state cached in an interface object|state had changed since it was read from disk/i.test(String((err && err.message) || err || ""))
+}
+
+async function openGdb() {
+  const { gdb } = await import("https://cdn.jsdelivr.net/npm/genosdb@0.36.3/dist/index.js")
+  try {
+    return wrapDb(await gdb(PEERYA.dbName, gdbOptions()))
+  } catch (err) {
+    if (!isStaleIdb(err)) throw err
+    await resetPeeryaStorage()
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    return wrapDb(await gdb(PEERYA.dbName, gdbOptions()))
+  }
+}
+
 export function openDb() {
   if (!dbPromise) {
     blockScpWebAuthn()
-    dbPromise = import("https://cdn.jsdelivr.net/npm/genosdb@0.36.3/dist/index.js").then(({ gdb }) =>
-        gdb(PEERYA.dbName, {
-        rtc: !isScpApp(),
-        sm: {
-          superAdmins: [BOOTSTRAP_ADMIN],
-          acls: true,
-          resume: !isScpApp(),
-          customRoles: {
-            superadmin: { can: ["assignRole", "deleteAny"], inherits: ["admin"] },
-            admin: { can: ["delete"], inherits: ["manager"] },
-            manager: { can: ["publish"], inherits: ["user"] },
-            user: { can: ["write", "link", "sync"], inherits: ["guest"] },
-            guest: { can: ["read", "write", "link", "sync"] }
-          }
-        }
-      })
-    ).then(wrapDb)
+    dbPromise = openGdb().catch((err) => {
+      dbPromise = null
+      throw err
+    })
   }
   return dbPromise
 }
@@ -588,7 +636,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=scp10")
+      const { startSuperadmin } = await import("./admin.js?v=scp11")
       await startSuperadmin(db)
     } catch {}
   }
