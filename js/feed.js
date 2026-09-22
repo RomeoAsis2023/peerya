@@ -42,14 +42,13 @@ function ensureChrome() {
       '<button type="button" class="react-tab" id="react-tab-heart" data-tab="heart">Hearts</button>' +
       '<button type="button" class="react-close" id="react-close" aria-label="Close">&times;</button>' +
       '</div><div class="react-list" id="react-list"></div></div>'
-      document.body.append(modal)
-    }
-    if (!document.getElementById("post-dialog")) {
-      const dialog = document.createElement("div")
-      dialog.id = "post-dialog"
-      dialog.className = "post-dialog hidden"
-      document.body.append(dialog)
-    }
+    document.body.append(modal)
+  }
+  if (!document.getElementById("post-dialog")) {
+    const dialog = document.createElement("div")
+    dialog.id = "post-dialog"
+    dialog.className = "post-dialog hidden"
+    document.body.append(dialog)
   }
 }
 
@@ -195,14 +194,16 @@ export function createFeed({ db, me, profiles, comments, presence, onRender }) {
       if (!open) menu.classList.add("open")
     })
     menu.addEventListener("click", (event) => event.stopPropagation())
-    menu.querySelector("[data-act='edit']")?.addEventListener("click", () => {
+    const editBtn = menu.querySelector("[data-act='edit']")
+    if (editBtn) editBtn.addEventListener("click", () => {
       closeMenus()
       showDialog("Edit post", '<textarea maxlength="500"></textarea>', async (dialog) => {
         await updatePost(db, post.id, dialog.querySelector("textarea").value)
       })
       document.querySelector("#post-dialog textarea").value = post.caption || ""
     })
-    menu.querySelector("[data-act='remove']")?.addEventListener("click", () => {
+    const removeBtn = menu.querySelector("[data-act='remove']")
+    if (removeBtn) removeBtn.addEventListener("click", () => {
       closeMenus()
       showDialog("Remove post", "<p>This post will be removed.</p>", async () => {
         await removePost(db, post.id)
@@ -210,7 +211,8 @@ export function createFeed({ db, me, profiles, comments, presence, onRender }) {
       const ok = document.querySelector("#post-dialog .ok")
       if (ok) ok.textContent = "Remove"
     })
-    menu.querySelector("[data-act='report']")?.addEventListener("click", () => {
+    const reportBtn = menu.querySelector("[data-act='report']")
+    if (reportBtn) reportBtn.addEventListener("click", () => {
       closeMenus()
       showDialog(
         "Report this post",
