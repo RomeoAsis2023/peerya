@@ -61,7 +61,7 @@
     </script>
     <script type="module">
       import { ADMIN_PASS_HASH } from "./js/admin-gate.js"
-      import { boundAdmin, createSuperadmin, confirmSuperadmin, unlockWithPhrase } from "./js/scp-auth.js"
+      import { canCreateSuperadmin, createSuperadmin, confirmSuperadmin, unlockWithPhrase } from "./js/scp-auth.js"
 
       let pending = null
 
@@ -78,7 +78,7 @@
       }
 
       async function startCp() {
-        const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp14")
+        const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp15")
         await bootAdmin(null)
         if (!document.getElementById("scp-root")) throw new Error("Control panel did not start.")
         openDb().then((gdb) => bootAdmin(gdb)).catch((e) => {
@@ -99,7 +99,7 @@
           return
         }
         sessionStorage.setItem("peerya.scp", JSON.stringify({ t: Date.now() }))
-        if (boundAdmin()) {
+        if (!canCreateSuperadmin()) {
           show("scp-phrase-form")
           document.getElementById("scp-phrase").focus()
           return
