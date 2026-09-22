@@ -531,11 +531,26 @@ export function setNavBadge(id, count) {
 }
 
 export function goHome() {
+  const hash = location.hash || ""
   if (sessionStorage.getItem("peerya.invite")) {
-    window.location.replace(new URL("friends/", ROOT).href)
+    window.location.replace(new URL("friends/", ROOT).href + hash)
     return
   }
-  window.location.replace(PEERYA.home)
+  window.location.replace(PEERYA.home + hash)
+}
+
+export async function bootAdmin(db) {
+  const run = async () => {
+    try {
+      const { startSuperadmin } = await import("./admin.js")
+      await startSuperadmin(db)
+    } catch {}
+  }
+  await run()
+  if (!window.__peeryaAdminHash) {
+    window.__peeryaAdminHash = true
+    window.addEventListener("hashchange", run)
+  }
 }
 
 export function goLogin() {
@@ -548,6 +563,7 @@ export async function requireAuth() {
   const db = await openDb()
   if (db.sm.isSecurityActive()) {
     ensureMesh(db)
+    bootAdmin(db)
     return db
   }
   goLogin()
