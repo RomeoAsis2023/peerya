@@ -1,4 +1,5 @@
 import { startPresence, attachProfiles, avatarUrl, displayName } from "./peerya.js"
+import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl } from "./r2.js"
 
 const SESSION = "peerya.scp"
 const TTL = 4 * 60 * 60 * 1000
@@ -64,6 +65,7 @@ const MENUS = [
   { id: "users", label: "All Users", icon: "bi-people-fill" },
   { id: "flags", label: "Flags", icon: "bi-flag-fill" },
   { id: "genosdb", label: "GenosDB", icon: "bi-database-fill" },
+  { id: "storages", label: "Storages", icon: "bi-cloud-arrow-up-fill" },
   { id: "advertisers", label: "Advertisers", icon: "bi-megaphone-fill" },
   { id: "stores", label: "Stores", icon: "bi-shop" },
   { id: "livestreams", label: "Livestreams", icon: "bi-broadcast" },
@@ -549,6 +551,103 @@ function renderLivePeers(main, db, profiles, presence) {
   })
 }
 
+function formatSize(bytes) {
+  const n = Number(bytes) || 0
+  if (n < 1024) return n + " B"
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB"
+  return (n / (1024 * 1024)).toFixed(1) + " MB"
+}
+
+function renderStorages(main, paint) {
+  const keys = loadR2Keys()
+  main.innerHTML = "<h2>Storages</h2><p class=\"scp-empty\">Cloudflare R2 · peeryar2storage · pyr.antserver1.eu.org</p><div id=\"r2-box\"></div>"
+  const box = main.querySelector("#r2-box")
+  if (!keys) {
+    box.innerHTML =
+      "<form class=\"scp-card scp-edit\" id=\"r2-form\">" +
+      "<h1>Connect R2</h1><p>Keys stay in this app only. They are not saved in the Peerya site.</p>" +
+      "<label>Access Key ID</label><input id=\"r2-id\" autocomplete=\"off\">" +
+      "<label>Secret Access Key</label><input id=\"r2-secret\" type=\"password\" autocomplete=\"off\">" +
+      "<p class=\"scp-err\" id=\"r2-err\"></p>" +
+      "<button type=\"submit\" class=\"btn\">Save keys</button></form>"
+    box.querySelector("form").addEventListener("submit", (event) => {
+      event.preventDefault()
+      const id = box.querySelector("#r2-id").value.trim()
+      const secret = box.querySelector("#r2-secret").value.trim()
+      if (!id || !secret) {
+        box.querySelector("#r2-err").textContent = "Both keys are required."
+        return
+      }
+      saveR2Keys(id, secret)
+      paint()
+    })
+    return
+  }
+  box.innerHTML =
+    "<div class=\"gdb-toolbar\">" +
+    "<button type=\"button\" class=\"scp-act\" id=\"r2-refresh\">Refresh</button>" +
+    "<label class=\"scp-act\" id=\"r2-upload-lab\">Upload<input type=\"file\" id=\"r2-file\" hidden accept=\"image/*,video/*,audio/*\"></label>" +
+    "<button type=\"button\" class=\"scp-act danger\" id=\"r2-forget\">Remove keys</button>" +
+    "<span class=\"gdb-count\" id=\"r2-status\"></span></div>" +
+    "<div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>File</th><th>Size</th><th>Public URL</th><th></th></tr></thead><tbody id=\"r2-rows\"></tbody></table></div>"
+  const status = box.querySelector("#r2-status")
+  const tbody = box.querySelector("#r2-rows")
+  const draw = async () => {
+    status.textContent = "Loading…"
+    tbody.innerHTML = ""
+    try {
+      const rows = await r2List()
+      status.textContent = rows.length + " objects"
+      if (!rows.length) {
+        tbody.innerHTML = "<tr><td colspan=\"4\" class=\"scp-empty\">Empty bucket.</td></tr>"
+        return
+      }
+      rows.forEach((row) => {
+        const tr = document.createElement("tr")
+        const href = publicUrl(row.key)
+        tr.innerHTML =
+          "<td></td><td></td><td><a class=\"scp-url\" target=\"_blank\" rel=\"noopener\"></a></td>" +
+          "<td class=\"scp-actions\"><button type=\"button\" class=\"scp-act danger\">Delete</button></td>"
+        tr.children[0].textContent = row.key
+        tr.children[1].textContent = formatSize(row.size)
+        const a = tr.querySelector("a")
+        a.href = href
+        a.textContent = href
+        tr.querySelector("button").addEventListener("click", async () => {
+          if (!confirm("Delete " + row.key + "?")) return
+          try {
+            await r2Delete(row.key)
+            await draw()
+          } catch (err) {
+            status.textContent = String(err.message || err)
+          }
+        })
+        tbody.append(tr)
+      })
+    } catch (err) {
+      status.textContent = String(err.message || err)
+    }
+  }
+  box.querySelector("#r2-refresh").addEventListener("click", draw)
+  box.querySelector("#r2-forget").addEventListener("click", () => {
+    clearR2Keys()
+    paint()
+  })
+  box.querySelector("#r2-file").addEventListener("change", async (event) => {
+    const file = event.target.files && event.target.files[0]
+    event.target.value = ""
+    if (!file) return
+    status.textContent = "Uploading…"
+    try {
+      await r2Put(file)
+      await draw()
+    } catch (err) {
+      status.textContent = String(err.message || err)
+    }
+  })
+  draw()
+}
+
 function bindUserActions(main, db, people, paint) {
   const byAddr = new Map(people.map((p) => [String(p.address || "").toLowerCase(), p]))
   main.querySelectorAll("[data-act]").forEach((btn) => {
@@ -631,7 +730,7 @@ export async function startSuperadmin(db) {
       } else if (page === "genosdb") {
         if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(db)
         renderGenos(main, db, gdbState, paint)
-      }
+      } else if (page === "storages") renderStorages(main, paint)
       else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
       else if (page === "stores") main.innerHTML = comingSoon("Stores")
       else if (page === "livestreams") main.innerHTML = comingSoon("Livestreams")

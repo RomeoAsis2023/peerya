@@ -561,7 +561,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=peers1")
+      const { startSuperadmin } = await import("./admin.js?v=r2")
       await startSuperadmin(db)
     } catch {}
   }
