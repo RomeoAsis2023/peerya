@@ -1,3 +1,5 @@
+import { startPresence, attachProfiles, avatarUrl, displayName } from "./peerya.js"
+
 const SESSION = "peerya.scp"
 const TTL = 4 * 60 * 60 * 1000
 const LOGO = new URL("../logo_full.svg", import.meta.url).href
@@ -7,7 +9,7 @@ function loadCss() {
   const link = document.createElement("link")
   link.id = "scp-css"
   link.rel = "stylesheet"
-  link.href = new URL("../css/admin.css?v=gdb1", import.meta.url).href
+  link.href = new URL("../css/admin.css?v=peers1", import.meta.url).href
   document.head.append(link)
 }
 
@@ -58,6 +60,7 @@ function clearSession() {
 
 const MENUS = [
   { id: "dashboard", label: "Dashboard", icon: "bi-grid-fill" },
+  { id: "peers", label: "Live Peer Connections", icon: "bi-wifi" },
   { id: "users", label: "All Users", icon: "bi-people-fill" },
   { id: "flags", label: "Flags", icon: "bi-flag-fill" },
   { id: "genosdb", label: "GenosDB", icon: "bi-database-fill" },
@@ -520,6 +523,32 @@ function renderGenos(main, db, state, paint) {
   pager.append(prev, label, next)
 }
 
+function renderLivePeers(main, db, profiles, presence) {
+  const keys = [...(presence && presence.online ? presence.online.keys() : [])]
+  main.innerHTML =
+    "<div class=\"scp-peer-hero\"><p>Live Peer Connections</p><strong></strong><span>connected now</span></div>" +
+    "<div class=\"scp-peer-grid\"></div>"
+  main.querySelector("strong").textContent = String(keys.length)
+  const grid = main.querySelector(".scp-peer-grid")
+  if (!keys.length) {
+    const empty = document.createElement("p")
+    empty.className = "scp-empty"
+    empty.textContent = "No peers connected right now."
+    grid.append(empty)
+    return
+  }
+  keys.forEach((addr) => {
+    const profile = profiles.get(addr)
+    const card = document.createElement("div")
+    card.className = "scp-peer-card"
+    card.innerHTML = '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence online"></span></span><p class="suggest-name"></p><p class="suggest-handle"></p>'
+    card.querySelector("img").src = avatarUrl(addr, profiles)
+    card.querySelector(".suggest-name").textContent = displayName(db, profiles, addr)
+    card.querySelector(".suggest-handle").textContent = (profile && profile.username) ? "@" + profile.username : String(addr).slice(0, 10) + "…"
+    grid.append(card)
+  })
+}
+
 function bindUserActions(main, db, people, paint) {
   const byAddr = new Map(people.map((p) => [String(p.address || "").toLowerCase(), p]))
   main.querySelectorAll("[data-act]").forEach((btn) => {
@@ -579,11 +608,16 @@ export async function startSuperadmin(db) {
     document.body.style.overflow = "hidden"
 
     let page = "dashboard"
+    const profiles = new Map()
+    let paint = () => {}
+    const presence = startPresence(db, () => paint())
+    attachProfiles(db, profiles, () => paint())
     const gdbState = { table: "profile", q: "", page: 1, cache: {} }
-    const paint = async () => {
+    paint = async () => {
       nav.querySelectorAll("button").forEach((btn) => btn.classList.toggle("on", btn.dataset.id === page))
       const main = document.getElementById("scp-main")
       if (page === "dashboard") main.innerHTML = renderDash(await counts(db))
+      else if (page === "peers") renderLivePeers(main, db, profiles, presence)
       else if (page === "users") {
         const people = await listProfiles(db)
         main.innerHTML = renderUsers(people)

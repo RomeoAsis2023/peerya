@@ -343,6 +343,67 @@
   gap: 0.6rem;
 }
 
+.scp-peer-hero {
+  background: linear-gradient(135deg, #8bc34a 0%, #689f38 100%);
+  color: #1f2a12;
+  border-radius: 1.15rem;
+  padding: 1.35rem 1.4rem 1.2rem;
+  margin-bottom: 1.1rem;
+  box-shadow: 0 12px 32px rgba(80, 120, 30, 0.18);
+}
+
+.scp-peer-hero p {
+  margin: 0;
+  font-weight: 800;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.95rem;
+}
+
+.scp-peer-hero strong {
+  display: block;
+  font-size: 2.6rem;
+  line-height: 1.1;
+  margin: 0.2rem 0 0.1rem;
+}
+
+.scp-peer-hero span { font-weight: 700; font-size: 0.82rem; opacity: 0.85; }
+
+.scp-peer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.85rem;
+}
+
+.scp-peer-card {
+  background: #fff;
+  border-radius: 1.05rem;
+  box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+  padding: 1.05rem 0.8rem 0.95rem;
+  text-align: center;
+}
+
+.scp-peer-card img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #eef5e0;
+}
+
+.scp-peer-card .avatar-wrap { display: inline-block; margin-bottom: 0.55rem; }
+
+.scp-peer-card .suggest-name {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+.scp-peer-card .suggest-handle {
+  margin: 0.15rem 0 0;
+  color: #8a8a8a;
+  font-size: 0.75rem;
+}
+
 .scp-flag-tabs {
   display: flex;
   gap: 0.45rem;
