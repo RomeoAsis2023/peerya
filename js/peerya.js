@@ -708,11 +708,30 @@ export function attachProfiles(db, profiles, onChange) {
 
 const dmOverlay = new Map()
 
+function persistDms() {
+  try {
+    localStorage.setItem("peerya.dms", JSON.stringify([...dmOverlay.values()].slice(-800)))
+  } catch {}
+}
+
+export function hydrateDms() {
+  try {
+    const rows = JSON.parse(localStorage.getItem("peerya.dms") || "[]")
+    if (!Array.isArray(rows)) return
+    for (const row of rows) {
+      if (!row) continue
+      const id = row.id || ("dm:" + (row.threadId || "") + ":" + (row.createdAt || "") + ":" + String(row.from || "").toLowerCase())
+      ingestDm(id, row)
+    }
+  } catch {}
+}
+
 export function ingestDm(id, value, action) {
   if (action === "removed") {
     dmOverlay.delete(id)
     const map = meshCtx.liveMaps.get("dm")
     if (map) map.delete(id)
+    persistDms()
     return
   }
   if (!value) return
@@ -726,6 +745,7 @@ export function ingestDm(id, value, action) {
   dmOverlay.set(id, next)
   const map = meshCtx.liveMaps.get("dm")
   if (map) map.set(id, next)
+  persistDms()
 }
 
 export async function sendDm(db, to, text) {
@@ -751,7 +771,8 @@ export async function sendDm(db, to, text) {
       from,
       to,
       createdAt,
-      smId
+      smId,
+      text: body
     }, id)
   } catch {}
   const pair = [from.toLowerCase(), to.toLowerCase()].sort()

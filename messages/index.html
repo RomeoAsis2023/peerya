@@ -365,6 +365,14 @@
         border-color: var(--peerya-green);
         color: #1f2a12;
         font-weight: 700;
+        width: 2.6rem;
+        height: 2.6rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
       }
 
       .messages-head {
@@ -712,7 +720,7 @@
             </div>
             <form class="chat-form" id="chat-form">
               <input type="text" class="form-control" id="chat-input" placeholder="Message…" autocomplete="off" disabled>
-              <button type="submit" class="btn" id="chat-send" disabled>Send</button>
+              <button type="submit" class="btn" id="chat-send" disabled aria-label="Send"><i class="bi bi-send-fill"></i></button>
             </form>
           </div>
         </div>
@@ -760,7 +768,8 @@
         profileHref,
         attachProfiles,
         bindLiveMap,
-        ingestDm
+        ingestDm,
+        hydrateDms
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -774,6 +783,7 @@
       const friends = new Map()
       bindLiveMap("dm", dms)
       bindLiveMap("friend", friends)
+      hydrateDms()
       let query = ""
       let activeThread = ""
       let paint = () => {}
