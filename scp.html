@@ -7,7 +7,7 @@
     <title>Peerya Superadmin</title>
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="css/admin.css?v=scp10">
+    <link rel="stylesheet" href="css/admin.css?v=scp13">
     <style>
       html, body { margin: 0; min-height: 100%; background: #f3f4f0; font-family: system-ui, sans-serif; }
       .scp-gate { position: fixed; inset: 0; z-index: 8100; display: flex; align-items: center; justify-content: center; background: rgba(20, 24, 16, 0.55); }
@@ -15,19 +15,30 @@
       .scp-card img { height: 1.7rem; width: auto; margin-bottom: 0.85rem; }
       .scp-card h1 { font-size: 1.15rem; font-weight: 800; margin: 0 0 0.35rem; }
       .scp-card p { color: #8a8a8a; font-size: 0.88rem; margin: 0 0 0.9rem; }
-      .scp-card input { width: 100%; box-sizing: border-box; border: 1px solid #ececec; border-radius: 0.7rem; min-height: 2.6rem; padding: 0 0.8rem; margin-bottom: 0.7rem; }
+      .scp-card input, .scp-card textarea { width: 100%; box-sizing: border-box; border: 1px solid #ececec; border-radius: 0.7rem; padding: 0.7rem 0.8rem; margin-bottom: 0.7rem; font: inherit; }
+      .scp-card input { min-height: 2.6rem; }
+      .scp-card textarea { min-height: 6.2rem; resize: vertical; }
       .scp-card .btn { width: 100%; border: 0; border-radius: 999px; background: #8bc34a; color: #1f2a12; font-weight: 700; min-height: 2.6rem; cursor: pointer; }
       .scp-err { color: #c0392b; font-size: 0.82rem; min-height: 1.1rem; margin: 0 0 0.55rem; }
+      .hidden { display: none !important; }
     </style>
   </head>
   <body>
     <div id="scp-gate" class="scp-gate">
-      <form class="scp-card" id="scp-form">
+      <form class="scp-card" id="scp-pass-form">
         <img alt="Peerya" src="logo_full.svg">
         <h1>Superadmin</h1>
         <p>Enter the passcode to continue.</p>
-        <p class="scp-err" id="scp-err"></p>
+        <p class="scp-err" id="scp-pass-err"></p>
         <input type="password" id="scp-pass" autocomplete="current-password" placeholder="Passcode">
+        <button type="submit" class="btn">Continue</button>
+      </form>
+      <form class="scp-card hidden" id="scp-phrase-form">
+        <img alt="Peerya" src="logo_full.svg">
+        <h1>Superadmin</h1>
+        <p>Paste the Superadmin 12-word recovery phrase. This app does not use a PIN.</p>
+        <p class="scp-err" id="scp-phrase-err"></p>
+        <textarea id="scp-phrase" placeholder="twelve word recovery phrase" autocomplete="off"></textarea>
         <button type="submit" class="btn">Unlock</button>
       </form>
     </div>
@@ -36,17 +47,27 @@
     </script>
     <script type="module">
       import { ADMIN_PASS_HASH } from "./js/admin-gate.js"
+      import { unlockWithPhrase } from "./js/scp-auth.js"
 
       async function sha256hex(text) {
         const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
         return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("")
       }
 
-      document.getElementById("scp-form").addEventListener("submit", async (event) => {
+      async function startCp() {
+        const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp13")
+        await bootAdmin(null)
+        if (!document.getElementById("scp-root")) throw new Error("Control panel did not start.")
+        openDb().then((gdb) => bootAdmin(gdb)).catch((e) => {
+          const main = document.getElementById("scp-main")
+          if (main) main.innerHTML = "<h2>Dashboard</h2><p class=\"scp-empty\">" + String((e && e.message) || "Could not open GenosDB.") + "</p>"
+        })
+      }
+
+      document.getElementById("scp-pass-form").addEventListener("submit", async (event) => {
         event.preventDefault()
-        const err = document.getElementById("scp-err")
+        const err = document.getElementById("scp-pass-err")
         const input = document.getElementById("scp-pass")
-        const btn = event.target.querySelector("button")
         const hex = await sha256hex(input.value)
         if (hex !== ADMIN_PASS_HASH) {
           err.textContent = "Wrong passcode."
@@ -55,23 +76,27 @@
           return
         }
         sessionStorage.setItem("peerya.scp", JSON.stringify({ t: Date.now() }))
-        err.style.color = "#5a7a2a"
-        err.textContent = "Starting control panel…"
-        input.disabled = true
+        document.getElementById("scp-pass-form").classList.add("hidden")
+        document.getElementById("scp-phrase-form").classList.remove("hidden")
+        document.getElementById("scp-phrase").focus()
+      })
+
+      document.getElementById("scp-phrase-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        const err = document.getElementById("scp-phrase-err")
+        const input = document.getElementById("scp-phrase")
+        const btn = event.target.querySelector("button")
+        err.textContent = ""
         btn.disabled = true
+        input.disabled = true
         try {
-          const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp12")
-          await bootAdmin(null)
-          if (!document.getElementById("scp-root")) {
-            throw new Error("Control panel did not start.")
-          }
-          openDb().then((gdb) => bootAdmin(gdb)).catch((e) => {
-            const main = document.getElementById("scp-main")
-            if (main) main.innerHTML = "<h2>Dashboard</h2><p class=\"scp-empty\">" + String((e && e.message) || "Could not open GenosDB.") + "</p>"
-          })
+          await unlockWithPhrase(input.value)
+          err.style.color = "#5a7a2a"
+          err.textContent = "Starting control panel…"
+          await startCp()
         } catch (e) {
           err.style.color = "#c0392b"
-          err.textContent = String((e && e.message) || "Could not start Superadmin.")
+          err.textContent = String((e && e.message) || "Could not unlock.")
           input.disabled = false
           btn.disabled = false
         }

@@ -213,8 +213,10 @@ async function listProfiles(db) {
 }
 
 function renderDash(tally) {
+  const admin = String(localStorage.getItem("peerya.scp.address") || "")
+  const who = admin ? "<p class=\"scp-empty\">Superadmin " + esc(admin.slice(0, 6) + "…" + admin.slice(-4)) + "</p>" : ""
   return (
-    "<h2>Dashboard</h2><div class=\"scp-grid\">" +
+    "<h2>Dashboard</h2>" + who + "<div class=\"scp-grid\">" +
     [["Users", tally.users], ["Posts", tally.posts], ["Friend links", tally.friends], ["Notices", tally.notices]].map(([label, n]) =>
       "<div class=\"scp-stat\"><span>" + label + "</span><strong>" + n + "</strong></div>"
     ).join("") +
@@ -705,13 +707,11 @@ export async function startSuperadmin(db) {
   loadCss()
 
   const grantScpRole = async (cur) => {
-    if (!cur || !cur.sm) return
-    const me = cur.sm.getActiveEthAddress()
-    if (!me) return
-    try { await cur.sm.assignRole(me, "superadmin") } catch {}
-    try {
-      await cur.put({ type: "scp-admin", address: me, updatedAt: Date.now() }, "scp-admin:" + String(me).toLowerCase())
-    } catch {}
+    if (!cur) return
+    const admin = String(localStorage.getItem("peerya.scp.address") || (cur.sm && cur.sm.getActiveEthAddress()) || "").toLowerCase()
+    if (!admin) return
+    try { if (cur.sm) await cur.sm.assignRole(admin, "superadmin") } catch {}
+    try { await cur.put({ type: "scp-admin", address: admin, updatedAt: Date.now() }, "scp-admin:" + admin) } catch {}
   }
 
   const unlock = async () => {

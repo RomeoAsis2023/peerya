@@ -1,0 +1,33 @@
+const STORE = "peerya.scp.address"
+
+export function normalizeMnemonic(raw) {
+  return String(raw || "").toLowerCase().replace(/[^a-z]+/g, " ").trim()
+}
+
+export function boundAdmin() {
+  return String(localStorage.getItem(STORE) || "").toLowerCase()
+}
+
+export function bindAdmin(address) {
+  const addr = String(address || "").toLowerCase()
+  if (!addr) return
+  localStorage.setItem(STORE, addr)
+  localStorage.setItem("peerya.address", addr)
+}
+
+export async function addressFromPhrase(mnemonic) {
+  const phrase = normalizeMnemonic(mnemonic)
+  const words = phrase ? phrase.split(" ") : []
+  if (words.length !== 12 && words.length !== 24) throw new Error("Use 12 or 24 words.")
+  const { HDNodeWallet } = await import("https://cdn.jsdelivr.net/npm/ethers@6.13.5/+esm")
+  const wallet = HDNodeWallet.fromPhrase(phrase)
+  return String(wallet.address).toLowerCase()
+}
+
+export async function unlockWithPhrase(mnemonic) {
+  const address = await addressFromPhrase(mnemonic)
+  const bound = boundAdmin()
+  if (bound && bound !== address) throw new Error("This phrase is not the Superadmin identity on this app.")
+  bindAdmin(address)
+  return address
+}
