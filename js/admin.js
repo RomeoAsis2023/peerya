@@ -485,10 +485,11 @@ export async function startSuperadmin(db) {
   }
   if (!gate.ADMIN_GATE_READY || !gate.ADMIN_PASS_HASH || !gate.ADMIN_KEY_HASH) return
   const frag = fragment()
-  if (!frag) return
-  const keyHex = await sha256hex(frag)
-  if (!hexEqual(keyHex, gate.ADMIN_KEY_HASH)) return
-  if (!db || !db.sm || !db.sm.isSecurityActive()) return
+  if (frag) {
+    const keyHex = await sha256hex(frag)
+    if (!hexEqual(keyHex, gate.ADMIN_KEY_HASH)) return
+  }
+  if (!db) return
 
   loadCss()
 

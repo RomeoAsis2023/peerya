@@ -530,7 +530,12 @@ export function setNavBadge(id, count) {
   el.textContent = String(n)
 }
 
+export function isScpApp() {
+  return window.__PEERYA_SCP_APP__ === true || /PeeryaSCP\/1\.0/.test(String(navigator.userAgent || ""))
+}
+
 export function goHome() {
+  if (isScpApp()) return
   const hash = location.hash || ""
   if (sessionStorage.getItem("peerya.invite")) {
     window.location.replace(new URL("friends/", ROOT).href + hash)
@@ -542,7 +547,7 @@ export function goHome() {
 export async function bootAdmin(db) {
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=scp1")
+      const { startSuperadmin } = await import("./admin.js?v=scp2")
       await startSuperadmin(db)
     } catch {}
   }
