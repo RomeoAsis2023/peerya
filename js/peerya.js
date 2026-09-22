@@ -394,6 +394,7 @@ export function openDb() {
         sm: {
           superAdmins: [BOOTSTRAP_ADMIN],
           acls: true,
+          resume: !isScpApp(),
           customRoles: {
             superadmin: { can: ["assignRole", "deleteAny"], inherits: ["admin"] },
             admin: { can: ["delete"], inherits: ["manager"] },
@@ -561,7 +562,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=r2d")
+      const { startSuperadmin } = await import("./admin.js?v=scp6")
       await startSuperadmin(db)
     } catch {}
   }

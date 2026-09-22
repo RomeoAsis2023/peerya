@@ -1,4 +1,4 @@
-import { startPresence, attachProfiles, avatarUrl, displayName } from "./peerya.js"
+import { startPresence, attachProfiles, avatarUrl, displayName, isScpApp } from "./peerya.js"
 import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl, R2_CORS } from "./r2.js"
 
 const SESSION = "peerya.scp"
@@ -675,10 +675,6 @@ function bindUserActions(main, db, people, paint) {
   })
 }
 
-function isScpApp() {
-  return window.__PEERYA_SCP_APP__ === true || /PeeryaSCP\/1\.0/.test(String(navigator.userAgent || ""))
-}
-
 export async function startSuperadmin(db) {
   if (!isScpApp()) return
   if (document.getElementById("scp-root") || document.getElementById("scp-gate")) return
@@ -694,7 +690,8 @@ export async function startSuperadmin(db) {
     const keyHex = await sha256hex(frag)
     if (!hexEqual(keyHex, gate.ADMIN_KEY_HASH)) return
   }
-  if (!db || !db.sm || !db.sm.isSecurityActive()) return
+  if (!db || !db.sm) return
+  if (!db.sm.isSecurityActive() && !db.sm.getActiveEthAddress()) return
 
   loadCss()
 
