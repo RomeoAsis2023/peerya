@@ -236,7 +236,7 @@ export function avatarUrl(address, source) {
   let profile = source
   if (source && typeof source.get === "function") profile = source.get(String(address).toLowerCase())
   if (profile && profile.avatar && profile.avatar.data) return profile.avatar.data
-  return "https://i.pravatar.cc/80?u=" + encodeURIComponent(address || "peerya")
+  return new URL("default_avatar.png", ROOT).href
 }
 
 export async function sendDm(db, to, text) {
