@@ -531,7 +531,20 @@ export function setNavBadge(id, count) {
 }
 
 export function isScpApp() {
-  return window.__PEERYA_SCP_APP__ === true || /PeeryaSCP\/1\.0/.test(String(navigator.userAgent || ""))
+  if (window.__PEERYA_SCP_APP__ === true) return true
+  const ua = String(navigator.userAgent || "")
+  if (/PeeryaSCP\/1\.0/.test(ua)) return true
+  if (/\bElectron\b/i.test(ua) && /romeoasis2023\.github\.io\/peerya/i.test(location.href)) return true
+  return false
+}
+
+export async function waitScpApp() {
+  if (isScpApp()) return true
+  for (let i = 0; i < 50; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    if (isScpApp()) return true
+  }
+  return isScpApp()
 }
 
 export function goHome() {
@@ -547,7 +560,7 @@ export function goHome() {
 export async function bootAdmin(db) {
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=scp2")
+      const { startSuperadmin } = await import("./admin.js?v=scp3")
       await startSuperadmin(db)
     } catch {}
   }
