@@ -706,13 +706,7 @@ export async function startSuperadmin(db) {
 
   loadCss()
 
-  const grantScpRole = async (cur) => {
-    if (!cur) return
-    const admin = String(localStorage.getItem("peerya.scp.address") || (cur.sm && cur.sm.getActiveEthAddress()) || "").toLowerCase()
-    if (!admin) return
-    try { if (cur.sm) await cur.sm.assignRole(admin, "superadmin") } catch {}
-    try { await cur.put({ type: "scp-admin", address: admin, updatedAt: Date.now() }, "scp-admin:" + admin) } catch {}
-  }
+  const grantScpRole = async () => {}
 
   const unlock = async () => {
     setNoindex(true)
