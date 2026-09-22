@@ -92,6 +92,7 @@ function wrapDb(db) {
     const result = await db.__put(value, id)
     const nodeId = id || result
     liveSet(nodeId, value)
+    ingestReaction(nodeId, value)
     if (remoteDepth === 0 && value && value.type) {
       meshSend({ kind: "put", id: nodeId, value })
     }
@@ -101,6 +102,7 @@ function wrapDb(db) {
   db.remove = async (id) => {
     const result = await db.__remove(id)
     liveRemove(id)
+    ingestReaction(id, null, "removed")
     if (remoteDepth === 0) meshSend({ kind: "remove", id })
     meshEmit()
     return result
@@ -135,35 +137,60 @@ export function bindLiveMap(type, map) {
   meshCtx.liveMaps.set(type, map)
 }
 
+const reactionOverlay = new Map()
+
+export function reactionKey(kind, targetId, from) {
+  return "rx:" + kind + ":" + String(targetId) + ":" + String(from || "").toLowerCase()
+}
+
 export function reactionId(kind, targetId, from) {
-  return kind + ":" + String(targetId) + ":" + String(from || "").toLowerCase()
+  return reactionKey(kind, targetId, from)
 }
 
-export function countReactions(map, kind, targetId, targetType) {
-  const id = String(targetId || "")
-  const prefix = kind + ":" + id + ":"
-  const want = targetType || "post"
-  let n = 0
-  for (const [key, item] of map) {
-    if (!item) continue
-    const typed = item.targetType || "post"
-    const aimed = String(item.targetId || "") === id
-      || String(key).startsWith(prefix)
-      || (want === "post" && typed === "post" && String(item.postId || "") === id)
-    if (aimed && typed === want) n += 1
+export function ingestReaction(id, value, action) {
+  if (action === "removed") {
+    reactionOverlay.delete(id)
+    if (value) {
+      const kind = value.kind || value.type
+      const target = value.targetId || value.postId
+      if (kind && target && value.from) reactionOverlay.delete(reactionKey(kind, target, value.from))
+    }
+    return
   }
-  return n
+  if (!value) return
+  const kind = value.kind || value.type
+  if (kind !== "like" && kind !== "heart") return
+  const target = String(value.targetId || value.postId || "")
+  const from = value.from
+  if (!target || !from) return
+  const key = reactionKey(kind, target, from)
+  reactionOverlay.set(key, {
+    kind,
+    type: kind,
+    targetId: target,
+    targetType: value.targetType || "post",
+    from,
+    createdAt: value.createdAt || Date.now(),
+    id: key
+  })
 }
 
-export function hasReaction(map, kind, targetId, from) {
-  const who = String(from || "").toLowerCase()
+export function listReactions(kind, targetId) {
   const id = String(targetId || "")
-  if (map.has(reactionId(kind, id, who))) return true
-  for (const [key, item] of map) {
-    if (String(item.targetId || "") === id && String(item.from || "").toLowerCase() === who) return true
-    if (String(key).startsWith(kind + ":" + id + ":") && String(key).toLowerCase().endsWith(":" + who)) return true
+  const rows = []
+  for (const item of reactionOverlay.values()) {
+    if (item.kind === kind && String(item.targetId) === id) rows.push(item)
   }
-  return false
+  rows.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+  return rows
+}
+
+export function countReactions(kind, targetId) {
+  return listReactions(kind, targetId).length
+}
+
+export function hasReaction(kind, targetId, from) {
+  return reactionOverlay.has(reactionKey(kind, targetId, from))
 }
 
 function mergeProfileMemory(id, value) {
@@ -225,6 +252,7 @@ async function applyRemotePut(id, value) {
   }
   mergeProfileMemory(id, value)
   liveSet(id, value)
+  ingestReaction(id, value)
   meshEmit()
 }
 
@@ -245,6 +273,10 @@ async function dumpTo(db, connectId) {
     for (let i = 0; i < items.length; i += 4) {
       meshSend({ kind: "snapshot", items: items.slice(i, i + 4) }, connectId)
     }
+  }
+  const rx = [...reactionOverlay.entries()].map(([id, value]) => ({ id, value }))
+  for (let i = 0; i < rx.length; i += 8) {
+    meshSend({ kind: "snapshot", items: rx.slice(i, i + 8) }, connectId)
   }
 }
 
@@ -315,6 +347,18 @@ function ensureMesh(db, extra) {
       if (msg.kind === "hello" && msg.address) {
         meshPeerUser.set(attr.connectId, String(msg.address).toLowerCase())
         if (meshCtx.mark) meshCtx.mark(msg.address, attr.connectId)
+      } else if (msg.kind === "reaction" && msg.value) {
+        ingestReaction(msg.id, msg.value)
+        await applyRemotePut(msg.id, msg.value)
+      } else if (msg.kind === "reaction-remove" && msg.id) {
+        ingestReaction(msg.id, null, "removed")
+        liveRemove(msg.id)
+        if (graph.__remove) {
+          remoteDepth++
+          try { await graph.__remove(msg.id) } catch {}
+          remoteDepth--
+        }
+        meshEmit()
       } else if (msg.kind === "put") {
         await applyRemotePut(msg.id, msg.value)
       } else if (msg.kind === "remove" && msg.id && graph.__remove) {
@@ -875,18 +919,17 @@ export async function toggleReaction(db, kind, targetId, targetType) {
   const type = targetType || "post"
   const target = String(targetId || "")
   if (!from || !target || (kind !== "like" && kind !== "heart")) return false
-  const id = reactionId(kind, target, from)
-  let existed = false
-  try {
-    const { result } = await db.get(id)
-    existed = !!(result && result.value)
-  } catch {}
-  if (existed) {
-    await db.remove(id)
+  const id = reactionKey(kind, target, from)
+  if (reactionOverlay.has(id)) {
+    reactionOverlay.delete(id)
+    meshSend({ kind: "reaction-remove", id })
+    meshEmit()
+    try { await db.remove(id) } catch {}
     return false
   }
   const value = {
     type: kind,
+    kind,
     postId: target,
     targetId: target,
     targetType: type,
@@ -896,13 +939,18 @@ export async function toggleReaction(db, kind, targetId, targetType) {
   try {
     const { result: node } = await db.get(target)
     const doc = node && node.value
-    if (doc && doc.author) {
-      if (type === "comment") value.postId = doc.postId || target
-      value.to = doc.author
+    if (doc) {
+      if (type === "comment" && doc.postId) value.postId = doc.postId
+      if (doc.author) value.to = doc.author
     }
   } catch {}
-  await db.put(value, id)
-  if (value.to) await createNotice(db, { kind, from, to: value.to, postId: value.postId })
+  ingestReaction(id, value)
+  meshSend({ kind: "reaction", id, value })
+  meshEmit()
+  try { await db.put(value, id) } catch {}
+  if (value.to) {
+    try { await createNotice(db, { kind, from, to: value.to, postId: value.postId }) } catch {}
+  }
   return true
 }
 

@@ -511,7 +511,8 @@
         padding: 0.35rem 1rem 0.95rem;
       }
 
-      .post-stat {
+      .post-stat,
+      .react-pair {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
@@ -523,10 +524,29 @@
         font-size: 0.86rem;
       }
 
-      .post-stat i { font-size: 1.12rem; }
+      .post-stat i,
+      .react-icon i { font-size: 1.12rem; }
 
-      .post-stat.on-like { color: var(--peerya-green-dark); }
-      .post-stat.on-heart { color: #e74c3c; }
+      .react-icon,
+      .react-count {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: inherit;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .react-count:hover { text-decoration: underline; }
+
+      .post-stat.on-like,
+      .react-pair.on-like,
+      .comment-stat.on-like { color: var(--peerya-green-dark); }
+
+      .post-stat.on-heart,
+      .react-pair.on-heart,
+      .comment-stat.on-heart { color: #e74c3c; }
 
       .post-caption {
         padding: 0.7rem 1rem 0.15rem;
@@ -651,15 +671,90 @@
 
       .comment-reply { color: var(--peerya-green-dark); }
 
-      .comment-reply:hover,
-      .comment-stat:hover { text-decoration: underline; }
+      .comment-reply:hover { text-decoration: underline; }
 
-      .comment-stat { cursor: pointer; }
+      .comment-stat .react-icon i { font-size: 0.92rem; }
 
-      .comment-stat i { font-size: 0.92rem; }
+      .react-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgba(20, 24, 16, 0.38);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+      }
 
-      .comment-stat.on-like { color: var(--peerya-green-dark); }
-      .comment-stat.on-heart { color: #e74c3c; }
+      .react-modal.hidden { display: none; }
+
+      .react-sheet {
+        width: min(28rem, 100%);
+        max-height: 78dvh;
+        background: #fff;
+        border-radius: 1.1rem 1.1rem 0 0;
+        box-shadow: 0 -12px 40px rgba(40, 50, 30, 0.16);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .react-head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.85rem 1rem 0.65rem;
+        border-bottom: 1px solid var(--peerya-line);
+      }
+
+      .react-tab {
+        border: 0;
+        background: none;
+        padding: 0.25rem 0.55rem;
+        font-weight: 800;
+        font-size: 0.92rem;
+        color: #9a9a9a;
+      }
+
+      .react-tab.on { color: var(--peerya-ink); }
+
+      .react-close {
+        margin-left: auto;
+        border: 0;
+        background: none;
+        font-size: 1.2rem;
+        color: #888;
+      }
+
+      .react-list {
+        overflow: auto;
+        padding: 0.4rem 0.6rem 1.1rem;
+      }
+
+      .react-row {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        width: 100%;
+        border: 0;
+        background: none;
+        padding: 0.55rem 0.5rem;
+        text-align: left;
+        color: inherit;
+      }
+
+      .react-row img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .react-empty {
+        color: #9a9a9a;
+        font-size: 0.88rem;
+        padding: 1.4rem 1rem;
+        margin: 0;
+        text-align: center;
+      }
 
       .comment-replies {
         margin: 0.2rem 0 0 0.2rem;
@@ -921,6 +1016,17 @@
       <button type="button" class="lightbox-next" id="lightbox-next" aria-label="Next"><i class="bi bi-chevron-right"></i></button>
     </div>
 
+    <div id="react-modal" class="react-modal hidden" role="dialog" aria-modal="true" aria-label="Reactions">
+      <div class="react-sheet">
+        <div class="react-head">
+          <button type="button" class="react-tab" id="react-tab-like" data-tab="like">Likes</button>
+          <button type="button" class="react-tab" id="react-tab-heart" data-tab="heart">Hearts</button>
+          <button type="button" class="react-close" id="react-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="react-list" id="react-list"></div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script type="module">
@@ -939,6 +1045,8 @@
         bindLiveMap,
         countReactions,
         hasReaction,
+        listReactions,
+        ingestReaction,
         applyCurrentUser,
         compressImage,
         MAX_POST_IMAGES,
@@ -982,6 +1090,96 @@
       let paint = () => {}
       const presence = startPresence(db, () => paint())
       const nameOf = (address) => displayName(db, profiles, address)
+      const reactModal = document.getElementById("react-modal")
+      const reactList = document.getElementById("react-list")
+      let reactTarget = ""
+      let reactTab = "like"
+
+      const paintReactModal = () => {
+        if (reactModal.classList.contains("hidden") || !reactTarget) return
+        document.getElementById("react-tab-like").classList.toggle("on", reactTab === "like")
+        document.getElementById("react-tab-heart").classList.toggle("on", reactTab === "heart")
+        const rows = listReactions(reactTab, reactTarget)
+        reactList.innerHTML = ""
+        if (!rows.length) {
+          const empty = document.createElement("p")
+          empty.className = "react-empty"
+          empty.textContent = reactTab === "heart" ? "No hearts yet." : "No likes yet."
+          reactList.append(empty)
+          return
+        }
+        for (const item of rows) {
+          const row = document.createElement("button")
+          row.type = "button"
+          row.className = "react-row"
+          const href = profileHref(profiles, item.from)
+          row.innerHTML = '<span class="avatar-wrap"><img class="avatar" alt=""><span class="presence"></span></span><div><p class="suggest-name"></p><p class="suggest-handle"></p></div>'
+          row.querySelector("img").src = avatarUrl(item.from, profiles)
+          row.querySelector(".presence").classList.toggle("online", presence.online.has(String(item.from).toLowerCase()))
+          row.querySelector(".suggest-name").textContent = nameOf(item.from)
+          const profile = profiles.get(String(item.from).toLowerCase())
+          row.querySelector(".suggest-handle").textContent = "@" + ((profile && profile.username) || db.sm.abbrAddr(item.from))
+          row.addEventListener("click", () => {
+            if (href) location.href = href
+          })
+          reactList.append(row)
+        }
+      }
+
+      const openReactModal = (targetId, tab) => {
+        reactTarget = String(targetId || "")
+        reactTab = tab === "heart" ? "heart" : "like"
+        reactModal.classList.remove("hidden")
+        paintReactModal()
+      }
+
+      const closeReactModal = () => {
+        reactModal.classList.add("hidden")
+        reactTarget = ""
+      }
+
+      document.getElementById("react-close").addEventListener("click", closeReactModal)
+      reactModal.addEventListener("click", (event) => {
+        if (event.target === reactModal) closeReactModal()
+      })
+      document.getElementById("react-tab-like").addEventListener("click", () => {
+        reactTab = "like"
+        paintReactModal()
+      })
+      document.getElementById("react-tab-heart").addEventListener("click", () => {
+        reactTab = "heart"
+        paintReactModal()
+      })
+
+      const makeReactPair = (kind, targetId, targetType, postId) => {
+        const on = hasReaction(kind, targetId, me)
+        const wrap = document.createElement("div")
+        wrap.className = "react-pair" + (targetType === "comment" ? " comment-stat" : " post-stat") + (on ? (kind === "heart" ? " on-heart" : " on-like") : "")
+        const toggle = document.createElement("button")
+        toggle.type = "button"
+        toggle.className = "react-icon"
+        toggle.setAttribute("aria-label", kind === "heart" ? "Heart" : "Like")
+        const filled = kind === "heart" ? "bi-heart-fill" : "bi-hand-thumbs-up-fill"
+        const empty = kind === "heart" ? "bi-heart" : "bi-hand-thumbs-up"
+        toggle.innerHTML = '<i class="bi ' + (on ? filled : empty) + '"></i>'
+        toggle.addEventListener("click", async (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          if (postId) openComments.add(postId)
+          await (kind === "heart" ? toggleHeart : toggleLike)(db, targetId, targetType)
+        })
+        const count = document.createElement("button")
+        count.type = "button"
+        count.className = "react-count"
+        count.textContent = String(countReactions(kind, targetId))
+        count.addEventListener("click", (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          openReactModal(targetId, kind)
+        })
+        wrap.append(toggle, count)
+        return wrap
+      }
 
       const others = () =>
         [...profiles.values()].filter((profile) => String(profile.address).toLowerCase() !== me.toLowerCase())
@@ -1030,10 +1228,6 @@
           return
         }
         for (const post of rows) {
-          const liked = hasReaction(likes, "like", post.id, me)
-          const hearted = hasReaction(hearts, "heart", post.id, me)
-          const likeCount = countReactions(likes, "like", post.id, "post")
-          const heartCount = countReactions(hearts, "heart", post.id, "post")
           const postComments = [...comments.values()].filter((item) => item.postId === post.id)
           const article = document.createElement("article")
           article.className = "card post-card" + (openComments.has(post.id) ? " open-comments" : "")
@@ -1077,19 +1271,7 @@
             else openComments.add(post.id)
             render()
           })
-          const likeBtn = document.createElement("button")
-          likeBtn.type = "button"
-          likeBtn.className = "post-stat" + (liked ? " on-like" : "")
-          likeBtn.innerHTML = '<i class="bi ' + (liked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up") + '"></i><span></span>'
-          likeBtn.querySelector("span").textContent = String(likeCount)
-          likeBtn.addEventListener("click", () => toggleLike(db, post.id))
-          const heartBtn = document.createElement("button")
-          heartBtn.type = "button"
-          heartBtn.className = "post-stat" + (hearted ? " on-heart" : "")
-          heartBtn.innerHTML = '<i class="bi ' + (hearted ? "bi-heart-fill" : "bi-heart") + '"></i><span></span>'
-          heartBtn.querySelector("span").textContent = String(heartCount)
-          heartBtn.addEventListener("click", () => toggleHeart(db, post.id))
-          actions.append(commentBtn, likeBtn, heartBtn)
+          actions.append(commentBtn, makeReactPair("like", post.id, "post"), makeReactPair("heart", post.id, "post"))
 
           const box = article.querySelector(".post-comments")
           const form = document.createElement("form")
@@ -1117,36 +1299,14 @@
               '<span class="avatar-wrap sm"><img class="avatar" alt=""><span class="presence"></span></span>' +
               (profileHref(profiles, node.author) ? "</a>" : "") +
               '<div class="comment-main"><div class="comment-body"><div class="comment-meta"><strong></strong><span class="comment-time"></span></div>' +
-              '<p class="comment-text"></p></div><div class="comment-actions"><button type="button" class="comment-reply">Reply</button><button type="button" class="comment-stat js-comment-like"><i></i><span></span></button><button type="button" class="comment-stat js-comment-heart"><i></i><span></span></button></div></div>'
+              '<p class="comment-text"></p></div><div class="comment-actions"><button type="button" class="comment-reply">Reply</button></div></div>'
             row.querySelector("img").src = avatarUrl(node.author, profiles)
             row.querySelector(".presence").classList.toggle("online", presence.online.has(String(node.author).toLowerCase()))
             row.querySelector("strong").textContent = nameOf(node.author)
             row.querySelector(".comment-time").textContent = timeAgo(node.createdAt)
             row.querySelector(".comment-text").textContent = node.text || ""
-            const commentLiked = hasReaction(likes, "like", node.id, me)
-            const commentHearted = hasReaction(hearts, "heart", node.id, me)
-            const commentLikeCount = countReactions(likes, "like", node.id, "comment")
-            const commentHeartCount = countReactions(hearts, "heart", node.id, "comment")
-            const commentLikeBtn = row.querySelector(".js-comment-like")
-            commentLikeBtn.classList.toggle("on-like", commentLiked)
-            commentLikeBtn.querySelector("i").className = "bi " + (commentLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up")
-            commentLikeBtn.querySelector("span").textContent = String(commentLikeCount)
-            commentLikeBtn.addEventListener("click", async (event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              openComments.add(post.id)
-              await toggleLike(db, node.id, "comment")
-            })
-            const commentHeartBtn = row.querySelector(".js-comment-heart")
-            commentHeartBtn.classList.toggle("on-heart", commentHearted)
-            commentHeartBtn.querySelector("i").className = "bi " + (commentHearted ? "bi-heart-fill" : "bi-heart")
-            commentHeartBtn.querySelector("span").textContent = String(commentHeartCount)
-            commentHeartBtn.addEventListener("click", async (event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              openComments.add(post.id)
-              await toggleHeart(db, node.id, "comment")
-            })
+            const actionsRow = row.querySelector(".comment-actions")
+            actionsRow.append(makeReactPair("like", node.id, "comment", post.id), makeReactPair("heart", node.id, "comment", post.id))
             row.querySelector(".comment-reply").addEventListener("click", () => {
               openComments.add(post.id)
               replyTo.set(post.id, node.id)
@@ -1213,6 +1373,7 @@
         applyCurrentUser(db, profiles, presence.online)
         setNavBadge("badge-friends", friendNodes.size)
         setNavBadge("badge-messages", threads.size)
+        paintReactModal()
       }
       paint = render
       watchNotices(db, (unread) => setNavBadge("badge-notifications", unread))
@@ -1307,12 +1468,14 @@
       })
 
       await db.map({ query: { type: "like" }, realtime: true }, ({ id, value, action }) => {
+        ingestReaction(id, value, action)
         if (action === "removed") likes.delete(id)
         else if (value) likes.set(id, { ...value, id })
         render()
       })
 
       await db.map({ query: { type: "heart" }, realtime: true }, ({ id, value, action }) => {
+        ingestReaction(id, value, action)
         if (action === "removed") hearts.delete(id)
         else if (value) hearts.set(id, { ...value, id })
         render()
