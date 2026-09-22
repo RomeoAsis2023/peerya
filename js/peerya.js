@@ -816,30 +816,44 @@ export async function toggleFollow(db, target) {
   return true
 }
 
-export async function toggleReaction(db, kind, postId) {
+export async function toggleReaction(db, kind, targetId, targetType) {
   const from = db.sm.getActiveEthAddress()
-  if (!from || !postId || (kind !== "like" && kind !== "heart")) return false
-  const id = kind + ":" + postId + ":" + from.toLowerCase()
+  const type = targetType || "post"
+  if (!from || !targetId || (kind !== "like" && kind !== "heart")) return false
+  const id = kind + ":" + targetId + ":" + from.toLowerCase()
   const { result } = await db.get(id)
   if (result) {
     await db.remove(id)
     return false
   }
-  await db.put({ type: kind, postId, from, createdAt: Date.now() }, id)
+  let postId = targetId
+  let to = ""
   try {
-    const { result: post } = await db.get(postId)
-    const author = post && post.value && post.value.author
-    if (author) await createNotice(db, { kind, from, to: author, postId })
+    const { result: node } = await db.get(targetId)
+    const value = node && node.value
+    if (value) {
+      to = value.author || ""
+      if (type === "comment") postId = value.postId || targetId
+    }
   } catch {}
+  await db.put({
+    type: kind,
+    postId,
+    targetId,
+    targetType: type,
+    from,
+    createdAt: Date.now()
+  }, id)
+  if (to) await createNotice(db, { kind, from, to, postId })
   return true
 }
 
-export async function toggleLike(db, postId) {
-  return toggleReaction(db, "like", postId)
+export async function toggleLike(db, targetId, targetType) {
+  return toggleReaction(db, "like", targetId, targetType)
 }
 
-export async function toggleHeart(db, postId) {
-  return toggleReaction(db, "heart", postId)
+export async function toggleHeart(db, targetId, targetType) {
+  return toggleReaction(db, "heart", targetId, targetType)
 }
 
 export async function addComment(db, postId, text, parentId) {

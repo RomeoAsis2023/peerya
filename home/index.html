@@ -629,16 +629,35 @@
         word-break: break-word;
       }
 
-      .comment-reply {
-        border: 0;
-        background: none;
+      .comment-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
         padding: 0.2rem 0.15rem 0;
-        color: var(--peerya-green-dark);
-        font-size: 0.75rem;
-        font-weight: 700;
       }
 
-      .comment-reply:hover { text-decoration: underline; }
+      .comment-reply,
+      .comment-stat {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: #8a8a8a;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.28rem;
+      }
+
+      .comment-reply { color: var(--peerya-green-dark); }
+
+      .comment-reply:hover,
+      .comment-stat:hover { text-decoration: underline; }
+
+      .comment-stat i { font-size: 0.92rem; }
+
+      .comment-stat.on-like { color: var(--peerya-green-dark); }
+      .comment-stat.on-heart { color: #e74c3c; }
 
       .comment-replies {
         margin: 0.2rem 0 0 0.2rem;
@@ -1002,10 +1021,14 @@
           return
         }
         for (const post of rows) {
+          const forTarget = (item, targetId, targetType) => {
+            if (item.targetType) return item.targetType === targetType && item.targetId === targetId
+            return targetType === "post" && item.postId === targetId
+          }
           const liked = likes.has("like:" + post.id + ":" + me.toLowerCase())
           const hearted = hearts.has("heart:" + post.id + ":" + me.toLowerCase())
-          const likeCount = [...likes.values()].filter((item) => item.postId === post.id).length
-          const heartCount = [...hearts.values()].filter((item) => item.postId === post.id).length
+          const likeCount = [...likes.values()].filter((item) => forTarget(item, post.id, "post")).length
+          const heartCount = [...hearts.values()].filter((item) => forTarget(item, post.id, "post")).length
           const postComments = [...comments.values()].filter((item) => item.postId === post.id)
           const article = document.createElement("article")
           article.className = "card post-card" + (openComments.has(post.id) ? " open-comments" : "")
@@ -1089,12 +1112,26 @@
               '<span class="avatar-wrap sm"><img class="avatar" alt=""><span class="presence"></span></span>' +
               (profileHref(profiles, node.author) ? "</a>" : "") +
               '<div class="comment-main"><div class="comment-body"><div class="comment-meta"><strong></strong><span class="comment-time"></span></div>' +
-              '<p class="comment-text"></p></div><button type="button" class="comment-reply">Reply</button></div>'
+              '<p class="comment-text"></p></div><div class="comment-actions"><button type="button" class="comment-reply">Reply</button><button type="button" class="comment-stat js-comment-like"><i></i><span></span></button><button type="button" class="comment-stat js-comment-heart"><i></i><span></span></button></div></div>'
             row.querySelector("img").src = avatarUrl(node.author, profiles)
             row.querySelector(".presence").classList.toggle("online", presence.online.has(String(node.author).toLowerCase()))
             row.querySelector("strong").textContent = nameOf(node.author)
             row.querySelector(".comment-time").textContent = timeAgo(node.createdAt)
             row.querySelector(".comment-text").textContent = node.text || ""
+            const commentLiked = likes.has("like:" + node.id + ":" + me.toLowerCase())
+            const commentHearted = hearts.has("heart:" + node.id + ":" + me.toLowerCase())
+            const commentLikeCount = [...likes.values()].filter((item) => forTarget(item, node.id, "comment")).length
+            const commentHeartCount = [...hearts.values()].filter((item) => forTarget(item, node.id, "comment")).length
+            const commentLikeBtn = row.querySelector(".js-comment-like")
+            commentLikeBtn.classList.toggle("on-like", commentLiked)
+            commentLikeBtn.querySelector("i").className = "bi " + (commentLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up")
+            commentLikeBtn.querySelector("span").textContent = String(commentLikeCount)
+            commentLikeBtn.addEventListener("click", () => toggleLike(db, node.id, "comment"))
+            const commentHeartBtn = row.querySelector(".js-comment-heart")
+            commentHeartBtn.classList.toggle("on-heart", commentHearted)
+            commentHeartBtn.querySelector("i").className = "bi " + (commentHearted ? "bi-heart-fill" : "bi-heart")
+            commentHeartBtn.querySelector("span").textContent = String(commentHeartCount)
+            commentHeartBtn.addEventListener("click", () => toggleHeart(db, node.id, "comment"))
             row.querySelector(".comment-reply").addEventListener("click", () => {
               openComments.add(post.id)
               replyTo.set(post.id, node.id)
