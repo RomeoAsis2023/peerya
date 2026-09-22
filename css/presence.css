@@ -1,3 +1,12 @@
+img.avatar,
+.avatar-wrap img,
+.friend-avatar img,
+.story-ring img,
+.profile-photo img {
+  object-fit: cover;
+  background: #e6e6e6;
+}
+
 .avatar-link {
   color: inherit;
   text-decoration: none;

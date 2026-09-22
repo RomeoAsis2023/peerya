@@ -725,7 +725,8 @@
         applyCurrentUser,
         setNavBadge,
         watchNotices,
-        profileHref
+        profileHref,
+        attachProfiles
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -960,18 +961,7 @@
         render()
       })
 
-      await db.map(
-        {
-          query: { type: "profile" },
-          realtime: true
-        },
-        ({ id, value, action }) => {
-          const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
-          if (action === "removed") profiles.delete(address)
-          else if (value) profiles.set(address, value)
-          render()
-        }
-      )
+      attachProfiles(db, profiles, () => render())
 
       await db.map(
         {

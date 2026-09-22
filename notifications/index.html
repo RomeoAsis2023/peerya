@@ -795,7 +795,8 @@
         timeAgo,
         watchNotices,
         markNoticesRead,
-        profileHref
+        profileHref,
+        attachProfiles
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -922,12 +923,7 @@
         if (unread) markNoticesRead(db, [...items.values()]).catch(() => {})
       })
 
-      await db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
-        const address = String((value && value.address) || id.replace(/^profile:/, "")).toLowerCase()
-        if (action === "removed") profiles.delete(address)
-        else if (value) profiles.set(address, value)
-        render()
-      })
+      attachProfiles(db, profiles, () => render())
 
       await db.map({ query: { type: "follow" }, realtime: true }, ({ id, value, action }) => {
         if (action === "removed") follows.delete(id)

@@ -79,7 +79,17 @@ export async function saveProfile(db, fields) {
     createdAt: prev.createdAt || Date.now(),
     updatedAt: Date.now()
   }
-  if (fields && fields.avatar) value.avatar = fields.avatar
+  if (fields && fields.avatar && fields.avatar.data) {
+    value.hasAvatar = true
+    await db.put({
+      type: "avatar",
+      address,
+      mime: fields.avatar.mime || "image/jpeg",
+      data: fields.avatar.data,
+      updatedAt: Date.now()
+    }, "avatar:" + address)
+  }
+  delete value.avatar
   await db.put({ type: "username", username: name, address }, "username:" + name)
   await db.put(value, "profile:" + address)
   localStorage.setItem("peerya.username", name)
@@ -255,10 +265,43 @@ export function profileHref(profiles, address) {
 }
 
 export function avatarUrl(address, source) {
+  const key = String(address || "").toLowerCase()
   let profile = source
-  if (source && typeof source.get === "function") profile = source.get(String(address).toLowerCase())
+  if (source && typeof source.get === "function") profile = source.get(key)
   if (profile && profile.avatar && profile.avatar.data) return profile.avatar.data
   return new URL("default_avatar.png", ROOT).href
+}
+
+export function attachProfiles(db, profiles, onChange) {
+  const emit = () => { if (onChange) onChange() }
+  const keyOf = (id, value, prefix) =>
+    String((value && value.address) || String(id || "").replace(prefix, "")).toLowerCase()
+  db.map({ query: { type: "profile" }, realtime: true }, ({ id, value, action }) => {
+    const address = keyOf(id, value, /^profile:/)
+    if (!address) return
+    if (action === "removed") {
+      const prev = profiles.get(address)
+      if (prev && prev.avatar) profiles.set(address, { address, avatar: prev.avatar })
+      else profiles.delete(address)
+    } else if (value) {
+      const prev = profiles.get(address) || {}
+      const next = { ...prev, ...value, address: value.address || prev.address || address }
+      if (value.avatar && value.avatar.data) next.avatar = value.avatar
+      else if (prev.avatar) next.avatar = prev.avatar
+      else delete next.avatar
+      profiles.set(address, next)
+    }
+    emit()
+  })
+  db.map({ query: { type: "avatar" }, realtime: true }, ({ id, value, action }) => {
+    const address = keyOf(id, value, /^avatar:/)
+    if (!address) return
+    const prev = profiles.get(address) || { address }
+    if (action === "removed") delete prev.avatar
+    else if (value && value.data) prev.avatar = { mime: value.mime || "image/jpeg", data: value.data }
+    profiles.set(address, prev)
+    emit()
+  })
 }
 
 export async function sendDm(db, to, text) {
@@ -389,7 +432,7 @@ export function startPresence(db, onChange) {
 
 export const MAX_POST_IMAGES = 4
 
-export function compressImage(file) {
+export function compressImage(file, maxSize) {
   return new Promise((resolve) => {
     if (!file || !String(file.type || "").startsWith("image/")) {
       resolve(null)
@@ -398,7 +441,7 @@ export function compressImage(file) {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
-      const max = 1280
+      const max = maxSize || 1280
       let width = img.width
       let height = img.height
       if (width > max || height > max) {
@@ -411,7 +454,34 @@ export function compressImage(file) {
       canvas.height = height
       canvas.getContext("2d").drawImage(img, 0, 0, width, height)
       URL.revokeObjectURL(url)
-      resolve({ mime: "image/jpeg", data: canvas.toDataURL("image/jpeg", 0.8) })
+      resolve({ mime: "image/jpeg", data: canvas.toDataURL("image/jpeg", maxSize && maxSize <= 400 ? 0.72 : 0.8) })
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+    img.src = url
+  })
+}
+
+export function compressAvatar(file) {
+  return new Promise((resolve) => {
+    if (!file || !String(file.type || "").startsWith("image/")) {
+      resolve(null)
+      return
+    }
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const size = Math.min(img.width, img.height) || 1
+      const sx = (img.width - size) / 2
+      const sy = (img.height - size) / 2
+      const canvas = document.createElement("canvas")
+      canvas.width = 256
+      canvas.height = 256
+      canvas.getContext("2d").drawImage(img, sx, sy, size, size, 0, 0, 256, 256)
+      URL.revokeObjectURL(url)
+      resolve({ mime: "image/jpeg", data: canvas.toDataURL("image/jpeg", 0.72) })
     }
     img.onerror = () => {
       URL.revokeObjectURL(url)
