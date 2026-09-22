@@ -551,8 +551,19 @@
 
       .comment-form {
         display: flex;
-        gap: 0.5rem;
-        margin-bottom: 0.85rem;
+        align-items: center;
+        gap: 0.55rem;
+        margin-bottom: 0.95rem;
+      }
+
+      .comment-form .avatar,
+      .comment-item .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+        max-width: none;
       }
 
       .comment-form .form-control {
@@ -570,53 +581,74 @@
         color: #1f2a12;
         font-weight: 700;
         font-size: 0.82rem;
+        flex-shrink: 0;
       }
 
       .comment-item {
         display: flex;
+        align-items: flex-start;
         gap: 0.6rem;
-        padding: 0.45rem 0;
+        padding: 0.35rem 0 0.15rem;
       }
 
-      .comment-item .avatar {
-        width: 28px;
-        height: 28px;
+      .comment-main {
+        min-width: 0;
+        flex: 1;
       }
 
-      .comment-body { min-width: 0; flex: 1; }
+      .comment-body {
+        min-width: 0;
+        background: #f3f5f0;
+        border-radius: 1rem;
+        padding: 0.42rem 0.75rem 0.5rem;
+      }
 
       .comment-meta {
         display: flex;
         gap: 0.45rem;
         align-items: baseline;
+        flex-wrap: wrap;
       }
 
       .comment-meta strong {
+        font-family: "Inter", system-ui, sans-serif;
         font-size: 0.82rem;
       }
 
-      .comment-meta span {
+      .comment-time {
         color: #b0b0b0;
         font-size: 0.72rem;
       }
 
       .comment-text {
-        margin: 0.15rem 0 0;
+        margin: 0.12rem 0 0;
         font-size: 0.88rem;
+        line-height: 1.4;
         color: #4a4a4a;
+        white-space: pre-wrap;
+        word-break: break-word;
       }
 
       .comment-reply {
         border: 0;
         background: none;
-        padding: 0;
+        padding: 0.2rem 0.15rem 0;
         color: var(--peerya-green-dark);
         font-size: 0.75rem;
         font-weight: 700;
       }
 
+      .comment-reply:hover { text-decoration: underline; }
+
       .comment-replies {
-        padding-left: 2.15rem;
+        margin: 0.2rem 0 0 0.2rem;
+        padding-left: 0.75rem;
+        border-left: 2px solid var(--peerya-line);
+      }
+
+      .comment-replies .comment-item .avatar {
+        width: 24px;
+        height: 24px;
       }
 
       .comment-empty {
@@ -1035,7 +1067,8 @@
           const form = document.createElement("form")
           form.className = "comment-form"
           const parentId = replyTo.get(post.id) || ""
-          form.innerHTML = '<input type="text" class="form-control" maxlength="280"><button type="submit" class="btn"></button>'
+          form.innerHTML = '<span class="avatar-wrap sm"><img class="avatar" alt=""></span><input type="text" class="form-control" maxlength="280"><button type="submit" class="btn"></button>'
+          form.querySelector("img").src = avatarUrl(me, profiles)
           form.querySelector("input").placeholder = parentId ? "Write a reply…" : "Write a comment…"
           form.querySelector(".btn").textContent = parentId ? "Reply" : "Comment"
           form.addEventListener("submit", async (event) => {
@@ -1052,12 +1085,15 @@
             const row = document.createElement("div")
             row.className = "comment-item"
             row.innerHTML =
-              (profileHref(profiles, node.author) ? '<a class="avatar-link" href="' + profileHref(profiles, node.author) + '">' : "") + '<span class="avatar-wrap sm"><img class="avatar" alt=""><span class="presence"></span></span>' + (profileHref(profiles, node.author) ? "</a>" : "") + '<div class="comment-body"><div class="comment-meta"><strong></strong><span></span></div>' +
-              '<p class="comment-text"></p><button type="button" class="comment-reply">Reply</button></div>'
+              (profileHref(profiles, node.author) ? '<a class="avatar-link" href="' + profileHref(profiles, node.author) + '">' : "") +
+              '<span class="avatar-wrap sm"><img class="avatar" alt=""><span class="presence"></span></span>' +
+              (profileHref(profiles, node.author) ? "</a>" : "") +
+              '<div class="comment-main"><div class="comment-body"><div class="comment-meta"><strong></strong><span class="comment-time"></span></div>' +
+              '<p class="comment-text"></p></div><button type="button" class="comment-reply">Reply</button></div>'
             row.querySelector("img").src = avatarUrl(node.author, profiles)
             row.querySelector(".presence").classList.toggle("online", presence.online.has(String(node.author).toLowerCase()))
             row.querySelector("strong").textContent = nameOf(node.author)
-            row.querySelector("span").textContent = timeAgo(node.createdAt)
+            row.querySelector(".comment-time").textContent = timeAgo(node.createdAt)
             row.querySelector(".comment-text").textContent = node.text || ""
             row.querySelector(".comment-reply").addEventListener("click", () => {
               openComments.add(post.id)
@@ -1070,7 +1106,7 @@
               const nest = document.createElement("div")
               nest.className = "comment-replies"
               replies.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).forEach((child) => drawComment(child, nest))
-              into.append(nest)
+              row.querySelector(".comment-main").append(nest)
             }
           }
           if (!roots.length) {
