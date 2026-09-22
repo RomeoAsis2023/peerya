@@ -387,12 +387,13 @@ function ensureMesh(db, extra) {
 }
 
 function gdbOptions() {
+  if (isScpApp()) return { rtc: false }
   return {
-    rtc: !isScpApp(),
+    rtc: true,
     sm: {
       superAdmins: [BOOTSTRAP_ADMIN],
       acls: true,
-      resume: !isScpApp(),
+      resume: true,
       customRoles: {
         superadmin: { can: ["assignRole", "deleteAny"], inherits: ["admin"] },
         admin: { can: ["delete"], inherits: ["manager"] },
@@ -636,7 +637,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=scp11")
+      const { startSuperadmin } = await import("./admin.js?v=scp12")
       await startSuperadmin(db)
     } catch {}
   }

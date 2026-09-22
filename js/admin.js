@@ -685,7 +685,10 @@ function bindUserActions(main, db, people, paint) {
 
 export async function startSuperadmin(db) {
   if (!isScpApp()) return
-  if (document.getElementById("scp-root")) return
+  if (document.getElementById("scp-root")) {
+    if (db && typeof window.__peeryaAdminAttach === "function") window.__peeryaAdminAttach(db)
+    return
+  }
   let gate
   try {
     gate = await import("./admin-gate.js")
@@ -701,24 +704,13 @@ export async function startSuperadmin(db) {
 
   loadCss()
 
-  const ensureIdentity = async () => {
-    if (!db || !db.sm) return
-    if (db.sm.isSecurityActive() || db.sm.getActiveEthAddress()) return
-    try {
-      await Promise.race([
-        db.sm.startNewUserRegistration(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("identity timeout")), 4000))
-      ])
-    } catch {}
-  }
-
-  const grantScpRole = async () => {
-    await ensureIdentity()
-    const me = db.sm && db.sm.getActiveEthAddress()
+  const grantScpRole = async (cur) => {
+    if (!cur || !cur.sm) return
+    const me = cur.sm.getActiveEthAddress()
     if (!me) return
-    try { await db.sm.assignRole(me, "superadmin") } catch {}
+    try { await cur.sm.assignRole(me, "superadmin") } catch {}
     try {
-      await db.put({ type: "scp-admin", address: me, updatedAt: Date.now() }, "scp-admin:" + String(me).toLowerCase())
+      await cur.put({ type: "scp-admin", address: me, updatedAt: Date.now() }, "scp-admin:" + String(me).toLowerCase())
     } catch {}
   }
 
@@ -736,39 +728,45 @@ export async function startSuperadmin(db) {
     const oldGate = document.getElementById("scp-gate")
     if (oldGate) oldGate.remove()
 
-    grantScpRole().catch(() => {})
-
+    let liveDb = db
     let page = "dashboard"
     const profiles = new Map()
     let paint = () => {}
     let presence = { online: new Map(), stop() {} }
-    try {
-      presence = startPresence(db, () => paint()) || presence
-    } catch {}
-    try {
-      if (db) attachProfiles(db, profiles, () => paint())
-    } catch {}
+    const attachDb = (next) => {
+      liveDb = next || liveDb
+      if (!liveDb) return
+      try { presence = startPresence(liveDb, () => paint()) || presence } catch {}
+      try { attachProfiles(liveDb, profiles, () => paint()) } catch {}
+      grantScpRole(liveDb).catch(() => {})
+      paint()
+    }
+    window.__peeryaAdminAttach = attachDb
     const gdbState = { table: "profile", q: "", page: 1, cache: {} }
     paint = async () => {
       nav.querySelectorAll("button").forEach((btn) => btn.classList.toggle("on", btn.dataset.id === page))
       const main = document.getElementById("scp-main")
       if (!main) return
       try {
-        if (page === "dashboard") main.innerHTML = renderDash(await counts(db))
-        else if (page === "peers") renderLivePeers(main, db, profiles, presence)
+        if (!liveDb) {
+          main.innerHTML = "<h2>Dashboard</h2><p class=\"scp-empty\">Connecting to peers and GenosDB…</p>"
+          return
+        }
+        if (page === "dashboard") main.innerHTML = renderDash(await counts(liveDb))
+        else if (page === "peers") renderLivePeers(main, liveDb, profiles, presence)
         else if (page === "users") {
-          const people = await listProfiles(db)
+          const people = await listProfiles(liveDb)
           main.innerHTML = renderUsers(people)
-          bindUserActions(main, db, people, paint)
+          bindUserActions(main, liveDb, people, paint)
         } else if (page === "flags") {
-          const rows = await listReports(db)
+          const rows = await listReports(liveDb)
           const tab = main.dataset.flagTab || "post"
           main.innerHTML = renderFlags(rows, tab)
           main.dataset.flagTab = tab
-          bindFlagActions(main, db, rows, paint)
+          bindFlagActions(main, liveDb, rows, paint)
         } else if (page === "genosdb") {
-          if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(db)
-          renderGenos(main, db, gdbState, paint)
+          if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(liveDb)
+          renderGenos(main, liveDb, gdbState, paint)
         } else if (page === "storages") renderStorages(main, paint)
         else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
         else if (page === "stores") main.innerHTML = comingSoon("Stores")
@@ -801,7 +799,8 @@ export async function startSuperadmin(db) {
       history.replaceState({}, "", location.pathname + location.search)
     })
     nav.append(quit)
-    paint()
+    if (liveDb) attachDb(liveDb)
+    else paint()
   }
 
   if (sessionOk()) {
