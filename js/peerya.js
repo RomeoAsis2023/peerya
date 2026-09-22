@@ -253,6 +253,7 @@ async function applyRemotePut(id, value) {
   mergeProfileMemory(id, value)
   liveSet(id, value)
   ingestReaction(id, value)
+  if (value && value.type === "dm") ingestDm(id, value)
   meshEmit()
 }
 
@@ -277,6 +278,9 @@ async function dumpTo(db, connectId) {
   const rx = [...reactionOverlay.entries()].map(([id, value]) => ({ id, value }))
   for (let i = 0; i < rx.length; i += 8) {
     meshSend({ kind: "snapshot", items: rx.slice(i, i + 8) }, connectId)
+  }
+  for (const [id, value] of dmOverlay) {
+    meshSend({ kind: "dm", id, value }, connectId)
   }
 }
 
@@ -347,6 +351,9 @@ function ensureMesh(db, extra) {
       if (msg.kind === "hello" && msg.address) {
         meshPeerUser.set(attr.connectId, String(msg.address).toLowerCase())
         if (meshCtx.mark) meshCtx.mark(msg.address, attr.connectId)
+      } else if (msg.kind === "dm" && msg.value) {
+        ingestDm(msg.id || ("dm:" + Date.now()), msg.value)
+        meshEmit()
       } else if (msg.kind === "reaction" && msg.value) {
         ingestReaction(msg.id, msg.value)
         await applyRemotePut(msg.id, msg.value)
@@ -699,36 +706,67 @@ export function attachProfiles(db, profiles, onChange) {
   })
 }
 
+const dmOverlay = new Map()
+
+export function ingestDm(id, value, action) {
+  if (action === "removed") {
+    dmOverlay.delete(id)
+    const map = meshCtx.liveMaps.get("dm")
+    if (map) map.delete(id)
+    return
+  }
+  if (!value) return
+  const prev = dmOverlay.get(id) || {}
+  const next = {
+    ...prev,
+    ...value,
+    id,
+    text: value.text || prev.text || ""
+  }
+  dmOverlay.set(id, next)
+  const map = meshCtx.liveMaps.get("dm")
+  if (map) map.set(id, next)
+}
+
 export async function sendDm(db, to, text) {
   const from = db.sm.getActiveEthAddress()
   const body = (text || "").trim()
   if (!from || !to || !body) return null
   const threadId = threadIdFor(from, to)
   const createdAt = Date.now()
-  const payload = { type: "dm", threadId, from, to, createdAt, text: body }
-  const smId = await db.sm.put(payload)
+  const id = "dm:" + threadId + ":" + createdAt + ":" + from.toLowerCase()
+  const value = { type: "dm", threadId, from, to, createdAt, text: body }
+  ingestDm(id, value)
+  meshSend({ kind: "dm", id, value })
+  meshEmit()
+  let smId = ""
   try {
-    await db.sm.acls.grant(smId, to, "read")
+    smId = await db.sm.put({ type: "dm", threadId, from, to, createdAt, text: body })
+    try { await db.sm.acls.grant(smId, to, "read") } catch {}
   } catch {}
-  await db.put({
-    type: "dm",
-    threadId,
-    from,
-    to,
-    createdAt,
-    smId
-  })
+  try {
+    await db.put({
+      type: "dm",
+      threadId,
+      from,
+      to,
+      createdAt,
+      smId
+    }, id)
+  } catch {}
   const pair = [from.toLowerCase(), to.toLowerCase()].sort()
-  await db.put({
-    type: "thread",
-    threadId,
-    a: pair[0],
-    b: pair[1],
-    lastAt: createdAt,
-    lastFrom: from
-  }, "thread:" + threadId)
-  await createNotice(db, { kind: "dm", from, to, text: body })
-  return { smId, threadId, createdAt }
+  try {
+    await db.put({
+      type: "thread",
+      threadId,
+      a: pair[0],
+      b: pair[1],
+      lastAt: createdAt,
+      lastFrom: from
+    }, "thread:" + threadId)
+  } catch {}
+  try { await createNotice(db, { kind: "dm", from, to, text: body }) } catch {}
+  return { smId, threadId, createdAt, id }
 }
 
 export async function readDmText(db, smId) {
@@ -756,11 +794,20 @@ export function displayName(db, profiles, address) {
 
 export function timeAgo(ms) {
   if (!ms) return ""
-  const diff = Date.now() - ms
-  if (diff < 60000) return "now"
-  if (diff < 3600000) return Math.floor(diff / 60000) + "m ago"
-  if (diff < 86400000) return Math.floor(diff / 3600000) + "h ago"
-  return Math.floor(diff / 86400000) + "d ago"
+  const diff = Math.max(0, Date.now() - ms)
+  const sec = Math.floor(diff / 1000)
+  if (sec < 15) return "just now"
+  if (sec < 60) return sec + " secs ago"
+  const min = Math.floor(sec / 60)
+  if (min === 1) return "1 min ago"
+  if (min < 60) return min + " mins ago"
+  const hr = Math.floor(min / 60)
+  if (hr === 1) return "1 hour ago"
+  if (hr < 24) return hr + " hours ago"
+  const day = Math.floor(hr / 24)
+  if (day === 1) return "Yesterday"
+  if (day < 7) return day + " days ago"
+  return new Date(ms).toLocaleDateString()
 }
 
 export function startPresence(db, onChange) {
