@@ -59,11 +59,15 @@ function clearSession() {
 const MENUS = [
   { id: "dashboard", label: "Dashboard", icon: "bi-grid-fill" },
   { id: "users", label: "All Users", icon: "bi-people-fill" },
+  { id: "genosdb", label: "GenosDB", icon: "bi-database-fill" },
   { id: "advertisers", label: "Advertisers", icon: "bi-megaphone-fill" },
   { id: "stores", label: "Stores", icon: "bi-shop" },
   { id: "livestreams", label: "Livestreams", icon: "bi-broadcast" },
   { id: "settings", label: "Settings", icon: "bi-gear-fill" }
 ]
+
+const GDB_TYPES = ["profile", "username", "avatar", "post", "like", "heart", "comment", "friend", "follow", "notice", "thread", "dm"]
+const GDB_PAGE = 25
 
 function comingSoon(title) {
   return "<h2>" + title + "</h2><p class=\"scp-empty\">Nothing here yet.</p>"
@@ -299,6 +303,160 @@ function openDelete(db, profile, paint) {
   })
 }
 
+function cellText(value) {
+  if (value == null || value === "") return "—"
+  let text = value
+  if (typeof value === "object") {
+    try { text = JSON.stringify(value) } catch { return "[object]" }
+  }
+  text = String(text)
+  if (text.indexOf("data:image") === 0 || text.length > 80) return text.slice(0, 48) + "…"
+  return text
+}
+
+function rowHay(row) {
+  try {
+    return (row.id + " " + JSON.stringify(row)).toLowerCase()
+  } catch {
+    return String(row.id || "").toLowerCase()
+  }
+}
+
+async function loadGdbTable(db, type) {
+  try {
+    const out = await db.map({ query: { type } })
+    return ((out && out.results) || []).map((row) => {
+      const value = row.value || {}
+      return { id: row.id, ...value }
+    })
+  } catch {
+    return []
+  }
+}
+
+async function loadGdbAll(db) {
+  const cache = {}
+  await Promise.all(GDB_TYPES.map(async (type) => {
+    cache[type] = await loadGdbTable(db, type)
+  }))
+  return cache
+}
+
+function gdbColumns(rows) {
+  const keys = new Set(["id", "type"])
+  rows.forEach((row) => Object.keys(row).forEach((key) => {
+    if (key !== "data") keys.add(key)
+  }))
+  return [...keys]
+}
+
+function renderGenos(main, db, state, paint) {
+  const table = state.table
+  const all = state.cache[table] || []
+  const q = String(state.q || "").trim().toLowerCase()
+  const filtered = q ? all.filter((row) => rowHay(row).includes(q)) : all
+  const pages = Math.max(1, Math.ceil(filtered.length / GDB_PAGE))
+  if (state.page > pages) state.page = pages
+  const slice = filtered.slice((state.page - 1) * GDB_PAGE, state.page * GDB_PAGE)
+  const cols = gdbColumns(slice.length ? slice : all.slice(0, 1))
+  main.innerHTML =
+    "<h2>GenosDB</h2><div class=\"gdb-wrap\">" +
+    "<aside class=\"gdb-tables\"></aside>" +
+    "<div class=\"gdb-browse\">" +
+    "<div class=\"gdb-toolbar\">" +
+    "<strong></strong><span class=\"gdb-count\"></span>" +
+    "<input type=\"search\" class=\"gdb-search\" placeholder=\"Search this table\">" +
+    "<button type=\"button\" class=\"scp-act\" id=\"gdb-sync\"><i class=\"bi bi-arrow-repeat\"></i> Sync</button>" +
+    "</div>" +
+    "<div class=\"gdb-scroll\"><table class=\"scp-table gdb-grid\"><thead></thead><tbody></tbody></table></div>" +
+    "<div class=\"gdb-pager\"></div>" +
+    "</div></div>"
+  main.querySelector(".gdb-toolbar strong").textContent = table
+  main.querySelector(".gdb-count").textContent = filtered.length + " / " + all.length + " rows"
+  const list = main.querySelector(".gdb-tables")
+  GDB_TYPES.forEach((type) => {
+    const btn = document.createElement("button")
+    btn.type = "button"
+    btn.className = "gdb-table" + (type === table ? " on" : "")
+    btn.innerHTML = "<span></span><em></em>"
+    btn.querySelector("span").textContent = type
+    btn.querySelector("em").textContent = String((state.cache[type] || []).length)
+    btn.addEventListener("click", () => {
+      state.table = type
+      state.page = 1
+      paint()
+    })
+    list.append(btn)
+  })
+  const search = main.querySelector(".gdb-search")
+  search.value = state.q
+  search.addEventListener("input", () => {
+    state.q = search.value
+    state.page = 1
+    const pos = search.selectionStart
+    Promise.resolve(paint()).then(() => {
+      const next = document.querySelector(".gdb-search")
+      if (!next) return
+      next.focus()
+      try { next.setSelectionRange(pos, pos) } catch {}
+    })
+  })
+  main.querySelector("#gdb-sync").addEventListener("click", async () => {
+    state.cache = await loadGdbAll(db)
+    paint()
+  })
+  const thead = main.querySelector("thead")
+  const head = document.createElement("tr")
+  cols.forEach((col) => {
+    const th = document.createElement("th")
+    th.textContent = col
+    head.append(th)
+  })
+  thead.append(head)
+  const tbody = main.querySelector("tbody")
+  if (!slice.length) {
+    const empty = document.createElement("tr")
+    empty.innerHTML = "<td colspan=\"" + cols.length + "\" class=\"scp-empty\">No rows.</td>"
+    tbody.append(empty)
+  } else {
+    slice.forEach((row) => {
+      const tr = document.createElement("tr")
+      cols.forEach((col) => {
+        const td = document.createElement("td")
+        td.textContent = col === "id" ? row.id : cellText(row[col])
+        tr.append(td)
+      })
+      tr.addEventListener("click", () => {
+        openModal(
+          "<div class=\"scp-card scp-edit\"><h1>" + esc(row.id) + "</h1>" +
+          "<pre class=\"gdb-json\"></pre>" +
+          "<div class=\"scp-edit-actions\"><button type=\"button\" class=\"scp-act\" id=\"scp-edit-cancel\">Close</button></div></div>"
+        )
+        const pre = document.querySelector(".gdb-json")
+        try { pre.textContent = JSON.stringify(row, null, 2) } catch { pre.textContent = String(row.id) }
+        document.getElementById("scp-edit-cancel").addEventListener("click", closeModal)
+      })
+      tbody.append(tr)
+    })
+  }
+  const pager = main.querySelector(".gdb-pager")
+  const prev = document.createElement("button")
+  prev.type = "button"
+  prev.className = "scp-act"
+  prev.textContent = "Prev"
+  prev.disabled = state.page <= 1
+  prev.addEventListener("click", () => { state.page -= 1; paint() })
+  const label = document.createElement("span")
+  label.textContent = "Page " + state.page + " of " + pages
+  const next = document.createElement("button")
+  next.type = "button"
+  next.className = "scp-act"
+  next.textContent = "Next"
+  next.disabled = state.page >= pages
+  next.addEventListener("click", () => { state.page += 1; paint() })
+  pager.append(prev, label, next)
+}
+
 function bindUserActions(main, db, people, paint) {
   const byAddr = new Map(people.map((p) => [String(p.address || "").toLowerCase(), p]))
   main.querySelectorAll("[data-act]").forEach((btn) => {
@@ -342,6 +500,7 @@ export async function startSuperadmin(db) {
     document.body.style.overflow = "hidden"
 
     let page = "dashboard"
+    const gdbState = { table: "profile", q: "", page: 1, cache: {} }
     const paint = async () => {
       nav.querySelectorAll("button").forEach((btn) => btn.classList.toggle("on", btn.dataset.id === page))
       const main = document.getElementById("scp-main")
@@ -350,6 +509,9 @@ export async function startSuperadmin(db) {
         const people = await listProfiles(db)
         main.innerHTML = renderUsers(people)
         bindUserActions(main, db, people, paint)
+      } else if (page === "genosdb") {
+        if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(db)
+        renderGenos(main, db, gdbState, paint)
       }
       else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
       else if (page === "stores") main.innerHTML = comingSoon("Stores")

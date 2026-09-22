@@ -256,6 +256,103 @@
 .scp-edit-actions .scp-act { flex: 1; min-height: 2.4rem; }
 .scp-del { background: #c0392b !important; border-color: #c0392b !important; color: #fff !important; }
 
+.gdb-wrap {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  gap: 0.85rem;
+  min-height: 0;
+}
+
+.gdb-tables {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+  padding: 0.45rem;
+  overflow: auto;
+  max-height: calc(100dvh - 8rem);
+}
+
+.gdb-table {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  border: 0;
+  background: none;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #4a4a4a;
+}
+
+.gdb-table em {
+  color: #9a9a9a;
+  font-style: normal;
+  font-size: 0.75rem;
+}
+
+.gdb-table.on,
+.gdb-table:hover { background: #f6f7f4; }
+.gdb-table.on { color: #7cb342; }
+
+.gdb-browse {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.gdb-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.gdb-toolbar strong { font-family: Inter, system-ui, sans-serif; }
+.gdb-count { color: #8a8a8a; font-size: 0.82rem; }
+
+.gdb-search {
+  margin-left: auto;
+  border: 1px solid #ececec;
+  border-radius: 999px;
+  min-height: 2.2rem;
+  padding: 0 0.85rem;
+  min-width: 12rem;
+}
+
+.gdb-scroll {
+  overflow: auto;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 10px 32px rgba(40, 50, 30, 0.07);
+  max-height: calc(100dvh - 14rem);
+}
+
+.gdb-grid { box-shadow: none; margin: 0; }
+.gdb-grid td,
+.gdb-grid th { white-space: nowrap; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
+.gdb-grid tbody tr { cursor: pointer; }
+.gdb-grid tbody tr:hover { background: #f6f7f4; }
+
+.gdb-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gdb-json {
+  max-height: 18rem;
+  overflow: auto;
+  background: #f6f7f4;
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 @media (max-width: 767.98px) {
   .scp-side { width: 4.2rem; padding: 0.8rem 0.4rem; }
   .scp-brand span,
