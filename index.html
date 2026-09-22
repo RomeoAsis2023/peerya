@@ -635,7 +635,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script type="module">
-      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken, bootAdmin, waitScpApp } from "./js/peerya.js?v=scp7"
+      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken, bootAdmin, waitScpApp } from "./js/peerya.js?v=scp8"
 
       const signupTab = document.getElementById("signup-tab")
       const signinTab = document.getElementById("signin-tab")
@@ -904,13 +904,8 @@
         }
         scpApp = await waitScpApp()
         if (scpApp) {
-          showForgot()
-          setStatus("forgot-status", "This app cannot use a PIN. Paste your 12-word recovery phrase.")
-          db.sm.setSecurityStateChangeCallback((state) => {
-            if (holdRedirect) return
-            if (state.isActive || db.sm.getActiveEthAddress()) bootAdmin(db)
-          })
-          if (db.sm.isSecurityActive() || db.sm.getActiveEthAddress()) await bootAdmin(db)
+          await bootAdmin(db)
+          return
         } else {
           db.sm.setSecurityStateChangeCallback((state) => {
             if (holdRedirect) return

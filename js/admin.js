@@ -690,13 +690,23 @@ export async function startSuperadmin(db) {
     const keyHex = await sha256hex(frag)
     if (!hexEqual(keyHex, gate.ADMIN_KEY_HASH)) return
   }
-  if (!db || !db.sm) return
-  if (!db.sm.isSecurityActive() && !db.sm.getActiveEthAddress()) return
 
   loadCss()
 
+  const ensureIdentity = async () => {
+    if (!db || !db.sm) return
+    if (db.sm.isSecurityActive() || db.sm.getActiveEthAddress()) return
+    try {
+      await Promise.race([
+        db.sm.startNewUserRegistration(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("identity timeout")), 4000))
+      ])
+    } catch {}
+  }
+
   const grantScpRole = async () => {
-    const me = db.sm.getActiveEthAddress()
+    await ensureIdentity()
+    const me = db.sm && db.sm.getActiveEthAddress()
     if (!me) return
     try { await db.sm.assignRole(me, "superadmin") } catch {}
     try {
