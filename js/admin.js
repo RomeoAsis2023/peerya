@@ -10,7 +10,7 @@ function loadCss() {
   const link = document.createElement("link")
   link.id = "scp-css"
   link.rel = "stylesheet"
-  link.href = new URL("../css/admin.css?v=fields1", import.meta.url).href
+  link.href = new URL("../css/admin.css?v=fields2", import.meta.url).href
   document.head.append(link)
 }
 
@@ -902,10 +902,10 @@ function slugField(label) {
 async function renderProfileFields(main, db, paint) {
   const rows = await listProfileFields(db)
   main.innerHTML =
-    "<div class=\"flag-head\"><div><h2>Profile fields</h2><p class=\"scp-empty\">These fields appear on Settings and public profiles.</p></div>" +
+    "<div class=\"field-page\"><div class=\"flag-head\"><div><h2>Profile fields</h2><p class=\"scp-empty\">These fields appear on Settings and public profiles.</p></div>" +
     "<button type=\"button\" class=\"scp-act on\" id=\"field-new\">Add field</button></div>" +
     "<p class=\"scp-err\" id=\"field-err\"></p>" +
-    "<div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>Label</th><th>Key</th><th>Type</th><th>Required</th><th></th></tr></thead><tbody></tbody></table></div>"
+    "<div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>Label</th><th>Key</th><th>Type</th><th>Required</th><th></th></tr></thead><tbody></tbody></table></div></div>"
   const tbody = main.querySelector("tbody")
   const err = main.querySelector("#field-err")
   if (!rows.length) tbody.innerHTML = "<tr><td colspan=\"5\" class=\"scp-empty\">No extra fields yet.</td></tr>"
@@ -947,7 +947,7 @@ function openFieldEditor(db, field, rows, paint) {
     "<label class=\"form-label\" for=\"pf-label\">Label</label><input class=\"form-control\" id=\"pf-label\" required>" +
     "<label class=\"form-label\" for=\"pf-type\">Type</label><select class=\"form-select\" id=\"pf-type\"></select>" +
     "<label class=\"form-label\" for=\"pf-options\">Options</label><textarea class=\"form-control\" id=\"pf-options\" placeholder=\"One option per line. Used by radio and checkbox.\"></textarea>" +
-    "<div class=\"form-check mb-3\"><input class=\"form-check-input\" type=\"checkbox\" id=\"pf-required\"><label class=\"form-check-label\" for=\"pf-required\">Required</label></div>" +
+    "<label class=\"pf-check\" for=\"pf-required\"><input type=\"checkbox\" id=\"pf-required\"> Required</label>" +
     "<p class=\"scp-err\" id=\"pf-err\"></p>" +
     "<div class=\"scp-edit-actions\"><button type=\"button\" class=\"scp-act\" id=\"pf-cancel\">Cancel</button><button type=\"submit\" class=\"btn\">Save</button></div></form>"
   )
