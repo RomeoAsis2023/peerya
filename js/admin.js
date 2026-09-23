@@ -698,6 +698,7 @@ export async function startSuperadmin(db) {
     return
   }
   if (!gate.ADMIN_GATE_READY || !gate.ADMIN_PASS_HASH || !gate.ADMIN_KEY_HASH) return
+  if (!db || !db.sm || !db.sm.isSecurityActive()) return
   const frag = fragment()
   if (frag && !/^junieadminizer-/i.test(frag)) {
     const keyHex = await sha256hex(frag)

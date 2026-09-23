@@ -7,7 +7,7 @@
     <title>Peerya Superadmin</title>
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="css/admin.css?v=scp14">
+    <link rel="stylesheet" href="css/admin.css?v=scp17">
     <style>
       html, body { margin: 0; min-height: 100%; background: #f3f4f0; font-family: system-ui, sans-serif; }
       .scp-gate { position: fixed; inset: 0; z-index: 8100; display: flex; align-items: center; justify-content: center; background: rgba(20, 24, 16, 0.55); }
@@ -19,10 +19,10 @@
       .scp-card input { min-height: 2.6rem; }
       .scp-card textarea { min-height: 6.2rem; resize: vertical; }
       .scp-card .btn { width: 100%; border: 0; border-radius: 999px; background: #8bc34a; color: #1f2a12; font-weight: 700; min-height: 2.6rem; cursor: pointer; }
-      .scp-card .btn.ghost { background: #eef3e6; margin-top: 0.55rem; }
+      .scp-card .btn.ghost { background: transparent; color: #5a6b42; margin-top: 0.65rem; min-height: 0; }
       .scp-err { color: #c0392b; font-size: 0.82rem; min-height: 1.1rem; margin: 0 0 0.55rem; }
-      .scp-check { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.82rem; color: #5a5a5a; margin: 0 0 0.85rem; }
-      .scp-check input { width: auto; min-height: 0; margin: 0.15rem 0 0; }
+      .scp-links { display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 0.85rem; }
+      .scp-links button { border: 0; background: none; color: #6a6a6a; cursor: pointer; padding: 0; font: inherit; }
       .hidden { display: none !important; }
     </style>
   </head>
@@ -36,25 +36,42 @@
         <input type="password" id="scp-pass" autocomplete="current-password" placeholder="Passcode">
         <button type="submit" class="btn">Continue</button>
       </form>
+      <form class="scp-card hidden" id="scp-pin-form">
+        <img alt="Peerya" src="logo_full.svg">
+        <h1>Superadmin PIN</h1>
+        <p>This browser will ask for its PIN. Superadmin is not shown on Peerya.</p>
+        <p class="scp-err" id="scp-pin-err"></p>
+        <button type="submit" class="btn">Sign in with PIN</button>
+        <div class="scp-links">
+          <button type="button" id="scp-show-register">Register</button>
+          <button type="button" id="scp-show-recover">Recover</button>
+        </div>
+      </form>
       <form class="scp-card hidden" id="scp-register-form">
         <img alt="Peerya" src="logo_full.svg">
-        <h1>Create Superadmin</h1>
-        <p>Save these 12 words. They exist only in this CP, not on Peerya.</p>
+        <h1>Register Superadmin</h1>
         <p class="scp-err" id="scp-register-err"></p>
-        <textarea id="scp-new-phrase" readonly></textarea>
-        <button type="button" class="btn ghost" id="scp-copy-phrase">Copy phrase</button>
-        <label class="scp-check"><input type="checkbox" id="scp-saved"> I saved this phrase offline</label>
-        <button type="submit" class="btn">Create Superadmin</button>
-        <button type="button" class="btn ghost" id="scp-have-phrase">I already have a phrase</button>
+        <div id="scp-register-start">
+          <p>Creates a device PIN and a 12-word phrase. The role stays on this CP only.</p>
+          <button type="button" class="btn" id="scp-create-id">Create PIN</button>
+        </div>
+        <div id="scp-register-phrase" class="hidden">
+          <p>Save these 12 words. They recover this PIN, not a public Peerya profile.</p>
+          <textarea id="scp-new-phrase" readonly></textarea>
+          <button type="button" class="btn ghost" id="scp-copy-phrase">Copy phrase</button>
+          <button type="button" class="btn" id="scp-protect">Protect with PIN</button>
+        </div>
+        <button type="button" class="btn ghost" id="scp-register-back">Back</button>
       </form>
-      <form class="scp-card hidden" id="scp-phrase-form">
+      <form class="scp-card hidden" id="scp-recover-form">
         <img alt="Peerya" src="logo_full.svg">
-        <h1>Superadmin</h1>
-        <p>Paste your Superadmin 12-word phrase. This is not a Peerya account.</p>
-        <p class="scp-err" id="scp-phrase-err"></p>
-        <textarea id="scp-phrase" placeholder="twelve word recovery phrase" autocomplete="off"></textarea>
-        <button type="submit" class="btn">Unlock</button>
-        <button type="button" class="btn ghost" id="scp-recreate">Create new Superadmin phrase</button>
+        <h1>Recover</h1>
+        <p>Paste the 12-word phrase, then add a PIN on this device.</p>
+        <p class="scp-err" id="scp-recover-err"></p>
+        <textarea id="scp-recover-phrase" placeholder="twelve word recovery phrase" autocomplete="off"></textarea>
+        <button type="submit" class="btn">Recover</button>
+        <button type="button" class="btn hidden" id="scp-recover-pin">Add PIN on this device</button>
+        <button type="button" class="btn ghost" id="scp-recover-back">Back</button>
       </form>
     </div>
     <script>
@@ -62,9 +79,10 @@
     </script>
     <script type="module">
       import { ADMIN_PASS_HASH } from "./js/admin-gate.js"
-      import { canCreateSuperadmin, createSuperadmin, confirmSuperadmin, unlockWithPhrase } from "./js/scp-auth.js"
+      import { openDb, bootAdmin, claimSuperadmin, PASSKEYS_AVAILABLE } from "./js/peerya.js?v=scp17"
 
-      let pending = null
+      let db
+      const pinOk = () => PASSKEYS_AVAILABLE
 
       async function sha256hex(text) {
         const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
@@ -72,125 +90,177 @@
       }
 
       function show(id) {
-        document.getElementById("scp-pass-form").classList.add("hidden")
-        document.getElementById("scp-register-form").classList.add("hidden")
-        document.getElementById("scp-phrase-form").classList.add("hidden")
+        ["scp-pass-form", "scp-pin-form", "scp-register-form", "scp-recover-form"].forEach((form) => {
+          document.getElementById(form).classList.add("hidden")
+        })
         document.getElementById(id).classList.remove("hidden")
       }
 
-      async function startCp() {
-        const { openDb, bootAdmin } = await import("./js/peerya.js?v=scp16")
-        await bootAdmin(null)
+      function setErr(id, message, ok) {
+        const el = document.getElementById(id)
+        el.style.color = ok ? "#5a7a2a" : "#c0392b"
+        el.textContent = message || ""
+      }
+
+      async function enterCp() {
+        await claimSuperadmin(db)
+        await bootAdmin(db)
         if (!document.getElementById("scp-root")) throw new Error("Control panel did not start.")
-        openDb().then((gdb) => bootAdmin(gdb)).catch((e) => {
-          const main = document.getElementById("scp-main")
-          if (main) main.innerHTML = "<h2>Dashboard</h2><p class=\"scp-empty\">" + String((e && e.message) || "Could not open GenosDB.") + "</p>"
-        })
       }
 
       document.getElementById("scp-pass-form").addEventListener("submit", async (event) => {
         event.preventDefault()
-        const err = document.getElementById("scp-pass-err")
         const input = document.getElementById("scp-pass")
         const hex = await sha256hex(input.value)
         if (hex !== ADMIN_PASS_HASH) {
-          err.textContent = "Wrong passcode."
+          setErr("scp-pass-err", "Wrong passcode.")
           input.value = ""
           input.focus()
           return
         }
-        sessionStorage.setItem("peerya.scp", JSON.stringify({ t: Date.now() }))
-        if (!canCreateSuperadmin()) {
-          show("scp-phrase-form")
-          document.getElementById("scp-phrase").focus()
+        if (!pinOk()) {
+          setErr("scp-pass-err", "Open this page in Chrome or Edge on HTTPS.")
           return
         }
-        err.textContent = ""
+        sessionStorage.setItem("peerya.scp", JSON.stringify({ t: Date.now() }))
+        setErr("scp-pass-err", "Starting…", true)
         try {
-          pending = await createSuperadmin()
-          document.getElementById("scp-new-phrase").value = pending.mnemonic
-          show("scp-register-form")
+          db = await openDb()
         } catch (e) {
-          err.textContent = String((e && e.message) || "Could not create Superadmin.")
+          setErr("scp-pass-err", String((e && e.message) || "Could not start."))
+          return
+        }
+        if (db.sm.isSecurityActive()) {
+          try {
+            await enterCp()
+            return
+          } catch (e) {
+            setErr("scp-pin-err", String((e && e.message) || "Not a Superadmin."))
+          }
+        }
+        show("scp-pin-form")
+      })
+
+      document.getElementById("scp-pin-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        const btn = event.target.querySelector("button")
+        setErr("scp-pin-err", "")
+        btn.disabled = true
+        btn.textContent = "Waiting for PIN…"
+        try {
+          const address = await db.sm.loginCurrentUserWithWebAuthn()
+          if (!address) {
+            setErr("scp-pin-err", "PIN sign-in was cancelled.")
+            return
+          }
+          await enterCp()
+        } catch (e) {
+          setErr("scp-pin-err", String((e && e.message) || "PIN timed out or was blocked."))
+        } finally {
+          btn.disabled = false
+          btn.textContent = "Sign in with PIN"
+        }
+      })
+
+      document.getElementById("scp-show-register").addEventListener("click", () => {
+        show("scp-register-form")
+      })
+      document.getElementById("scp-show-recover").addEventListener("click", () => show("scp-recover-form"))
+      document.getElementById("scp-register-back").addEventListener("click", () => show("scp-pin-form"))
+      document.getElementById("scp-recover-back").addEventListener("click", () => show("scp-pin-form"))
+
+      document.getElementById("scp-create-id").addEventListener("click", async () => {
+        const btn = document.getElementById("scp-create-id")
+        setErr("scp-register-err", "")
+        btn.disabled = true
+        try {
+          const identity = await db.sm.startNewUserRegistration()
+          if (!identity) {
+            setErr("scp-register-err", "Could not create an identity.")
+            return
+          }
+          document.getElementById("scp-new-phrase").value =
+            db.sm.getMnemonicForDisplayAfterRegistrationOrRecovery() || identity.mnemonic || ""
+          document.getElementById("scp-register-start").classList.add("hidden")
+          document.getElementById("scp-register-phrase").classList.remove("hidden")
+          setErr("scp-register-err", "Save the phrase, then protect it with a PIN.", true)
+        } catch (e) {
+          setErr("scp-register-err", String((e && e.message) || "Could not create an identity."))
+        } finally {
+          btn.disabled = false
         }
       })
 
       document.getElementById("scp-copy-phrase").addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(document.getElementById("scp-new-phrase").value)
-          document.getElementById("scp-register-err").style.color = "#5a7a2a"
-          document.getElementById("scp-register-err").textContent = "Phrase copied. Keep it offline."
+          setErr("scp-register-err", "Phrase copied. Keep it offline.", true)
         } catch {
-          document.getElementById("scp-register-err").style.color = "#c0392b"
-          document.getElementById("scp-register-err").textContent = "Copy failed. Select the phrase and copy it."
+          setErr("scp-register-err", "Copy failed. Select the phrase and copy it.")
         }
       })
 
-      document.getElementById("scp-have-phrase").addEventListener("click", () => {
-        show("scp-phrase-form")
-        document.getElementById("scp-phrase").focus()
-      })
-
-      document.getElementById("scp-register-form").addEventListener("submit", async (event) => {
-        event.preventDefault()
-        const err = document.getElementById("scp-register-err")
-        err.style.color = "#c0392b"
-        if (!pending) {
-          err.textContent = "Create the phrase first."
-          return
-        }
-        if (!document.getElementById("scp-saved").checked) {
-          err.textContent = "Confirm you saved the phrase."
-          return
-        }
-        confirmSuperadmin(pending.address)
-        err.style.color = "#5a7a2a"
-        err.textContent = "Starting control panel…"
-        try {
-          await startCp()
-        } catch (e) {
-          err.style.color = "#c0392b"
-          err.textContent = String((e && e.message) || "Could not start Superadmin.")
-        }
-      })
-
-      async function showNewPhrase() {
-        const err = document.getElementById("scp-register-err")
-        err.textContent = ""
-        document.getElementById("scp-saved").checked = false
-        try {
-          pending = await createSuperadmin()
-          document.getElementById("scp-new-phrase").value = pending.mnemonic
-          show("scp-register-form")
-        } catch (e) {
-          err.style.color = "#c0392b"
-          err.textContent = String((e && e.message) || "Could not create Superadmin.")
-          show("scp-register-form")
-        }
-      }
-
-      document.getElementById("scp-recreate").addEventListener("click", () => {
-        showNewPhrase()
-      })
-
-      document.getElementById("scp-phrase-form").addEventListener("submit", async (event) => {
-        event.preventDefault()
-        const err = document.getElementById("scp-phrase-err")
-        const input = document.getElementById("scp-phrase")
-        const btn = event.target.querySelector("button")
-        err.textContent = ""
+      document.getElementById("scp-protect").addEventListener("click", async () => {
+        const btn = document.getElementById("scp-protect")
         btn.disabled = true
-        input.disabled = true
+        btn.textContent = "Waiting for PIN…"
         try {
-          await unlockWithPhrase(input.value)
-          err.style.color = "#5a7a2a"
-          err.textContent = "Starting control panel…"
-          await startCp()
+          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
+          if (!address) {
+            setErr("scp-register-err", "PIN was cancelled.")
+            return
+          }
+          await enterCp()
         } catch (e) {
-          err.style.color = "#c0392b"
-          err.textContent = String((e && e.message) || "Could not unlock.")
-          input.disabled = false
+          setErr("scp-register-err", String((e && e.message) || "PIN timed out or was blocked."))
+        } finally {
           btn.disabled = false
+          btn.textContent = "Protect with PIN"
+        }
+      })
+
+      document.getElementById("scp-recover-form").addEventListener("submit", async (event) => {
+        event.preventDefault()
+        const phrase = document.getElementById("scp-recover-phrase").value.toLowerCase().replace(/[^a-z]+/g, " ").trim()
+        const words = phrase ? phrase.split(" ") : []
+        if (words.length !== 12 && words.length !== 24) {
+          setErr("scp-recover-err", "Paste your 12-word phrase.")
+          return
+        }
+        const btn = event.target.querySelector("button")
+        btn.disabled = true
+        setErr("scp-recover-err", "")
+        try {
+          const identity = await db.sm.loginOrRecoverUserWithMnemonic(phrase)
+          if (!identity && !db.sm.getActiveEthAddress()) {
+            setErr("scp-recover-err", "That recovery phrase is not valid.")
+            return
+          }
+          document.getElementById("scp-recover-pin").classList.remove("hidden")
+          setErr("scp-recover-err", "Phrase accepted. Add a PIN on this device.", true)
+        } catch (e) {
+          setErr("scp-recover-err", String((e && e.message) || "Could not recover."))
+        } finally {
+          btn.disabled = false
+        }
+      })
+
+      document.getElementById("scp-recover-pin").addEventListener("click", async () => {
+        const btn = document.getElementById("scp-recover-pin")
+        btn.disabled = true
+        btn.textContent = "Waiting for PIN…"
+        try {
+          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
+          if (!address && !db.sm.isSecurityActive()) {
+            setErr("scp-recover-err", "PIN was cancelled.")
+            return
+          }
+          await enterCp()
+        } catch (e) {
+          setErr("scp-recover-err", String((e && e.message) || "PIN timed out or was blocked."))
+        } finally {
+          btn.disabled = false
+          btn.textContent = "Add PIN on this device"
         }
       })
     </script>

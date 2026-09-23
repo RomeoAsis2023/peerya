@@ -387,7 +387,6 @@ function ensureMesh(db, extra) {
 }
 
 function gdbOptions() {
-  if (isScpApp()) return { rtc: false }
   return {
     rtc: true,
     sm: {
@@ -450,7 +449,6 @@ async function openGdb() {
 
 export function openDb() {
   if (!dbPromise) {
-    blockScpWebAuthn()
     dbPromise = openGdb().catch((err) => {
       dbPromise = null
       throw err
@@ -583,44 +581,29 @@ export function setNavBadge(id, count) {
 
 export function isScpApp() {
   if (window.__PEERYA_SCP_APP__ === true) return true
-  const ua = String(navigator.userAgent || "")
-  if (/PeeryaSCP\/1\.0/.test(ua)) return true
-  if (/\bElectron\b/i.test(ua) && /(romeoasis2023\.github\.io\/peerya|peerya\.com)/i.test(location.href)) return true
-  return false
+  return /\/scp\.html$/i.test(location.pathname)
 }
-
-function blockScpWebAuthn() {
-  if (!isScpApp()) return
-  const fail = () => Promise.reject(new DOMException("Not allowed.", "NotAllowedError"))
-  try {
-    if (navigator.credentials) {
-      navigator.credentials.get = fail
-      navigator.credentials.create = fail
-    }
-    if (window.PublicKeyCredential) {
-      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = () => Promise.resolve(false)
-      if (PublicKeyCredential.isConditionalMediationAvailable) {
-        PublicKeyCredential.isConditionalMediationAvailable = () => Promise.resolve(false)
-      }
-    }
-  } catch {}
-}
-
-blockScpWebAuthn()
 
 export async function waitScpApp() {
-  if (isScpApp()) {
-    blockScpWebAuthn()
-    return true
-  }
-  for (let i = 0; i < 50; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 50))
-    if (isScpApp()) {
-      blockScpWebAuthn()
-      return true
-    }
-  }
   return isScpApp()
+}
+
+export async function claimSuperadmin(db) {
+  const me = String((db && db.sm && db.sm.getActiveEthAddress()) || "").toLowerCase()
+  if (!me || !db.sm.isSecurityActive()) throw new Error("Device PIN is required.")
+  let owners = []
+  try {
+    const out = await db.map({ query: { type: "scp-admin" } })
+    owners = ((out && out.results) || []).map((row) => String((row.value && row.value.address) || "").toLowerCase()).filter(Boolean)
+  } catch {}
+  const unique = [...new Set(owners)]
+  if (unique.length && !unique.includes(me)) throw new Error("This PIN is not a Superadmin.")
+  try { await db.sm.assignRole(me, "superadmin") } catch {}
+  try {
+    await db.put({ type: "scp-admin", address: me, role: "superadmin", updatedAt: Date.now() }, "scp-admin:" + me)
+  } catch {}
+  localStorage.setItem("peerya.scp.address", me)
+  return me
 }
 
 export function goHome() {
@@ -637,7 +620,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=scp16")
+      const { startSuperadmin } = await import("./admin.js?v=scp17")
       await startSuperadmin(db)
     } catch {}
   }
@@ -658,7 +641,6 @@ export async function requireAuth() {
   const db = await openDb()
   if (db.sm.isSecurityActive()) {
     ensureMesh(db)
-    bootAdmin(db)
     return db
   }
   goLogin()

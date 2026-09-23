@@ -635,7 +635,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script type="module">
-      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken, bootAdmin, waitScpApp } from "./js/peerya.js?v=scp8"
+      import { openDb, saveProfile, goHome, PASSKEYS_AVAILABLE, isUsernameTaken } from "./js/peerya.js?v=web1"
 
       const signupTab = document.getElementById("signup-tab")
       const signinTab = document.getElementById("signin-tab")
@@ -649,8 +649,7 @@
       let pendingSignup = { username: "", email: "" }
       let holdRedirect = false
       let hasPasskey = false
-      let scpApp = false
-      const pinOk = () => PASSKEYS_AVAILABLE && !scpApp
+      const pinOk = () => PASSKEYS_AVAILABLE
 
       const continuePhraseBtn = document.getElementById("continue-phrase-btn")
 
@@ -683,14 +682,10 @@
         try {
           await saveProfile(db, { username, email })
         } catch (error) {
-          if (error && error.message === "username taken" && !scpApp) {
+          if (error && error.message === "username taken") {
             setStatus("signup-status", "That username is taken.", "error")
             return
           }
-        }
-        if (scpApp) {
-          await bootAdmin(db)
-          return
         }
         goHome()
       }
@@ -733,8 +728,7 @@
           return
         }
         if (!pinOk()) {
-          setStatus("signin-status", scpApp ? "Use Recover with your phrase in this app." : "Device PIN needs HTTPS or localhost.", "error")
-          if (scpApp) showForgot()
+          setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
           return
         }
         if (!hasPasskey) {
@@ -809,7 +803,7 @@
 
       protectBtn.addEventListener("click", async () => {
         if (!pinOk()) {
-          setStatus("signup-status", scpApp ? "This app cannot add a PIN. Continue with your recovery phrase." : "Device PIN needs HTTPS or localhost. Your phrase still works.", "error")
+          setStatus("signup-status", "Device PIN needs HTTPS or localhost. Your phrase still works.", "error")
           continuePhraseBtn.classList.remove("hidden")
           return
         }
@@ -902,22 +896,14 @@
           setStatus("signin-status", "Could not start Peerya. Try again.", "error")
           return
         }
-        scpApp = await waitScpApp()
-        if (scpApp) {
-          await bootAdmin(db)
-          return
-        } else {
-          db.sm.setSecurityStateChangeCallback((state) => {
-            if (holdRedirect) return
-            if (state.isActive) goHome()
-          })
-          if (db.sm.isSecurityActive()) goHome()
-        }
-        if (!pinOk()) {
-          if (!scpApp) setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
-        }
+        db.sm.setSecurityStateChangeCallback((state) => {
+          if (holdRedirect) return
+          if (state.isActive) goHome()
+        })
+        if (db.sm.isSecurityActive()) goHome()
+        if (!pinOk()) setStatus("signin-status", "Device PIN needs HTTPS or localhost.", "error")
         try {
-          hasPasskey = scpApp ? false : !!(await db.sm.hasExistingWebAuthnRegistration())
+          hasPasskey = !!(await db.sm.hasExistingWebAuthnRegistration())
         } catch {
           hasPasskey = false
         }
