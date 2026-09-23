@@ -103,7 +103,7 @@ function wrapDb(db) {
     liveSet(nodeId, value)
     ingestReaction(nodeId, value)
     if (remoteDepth === 0 && value && value.type) {
-      meshSend({ kind: "put", id: nodeId, value })
+      meshSend({ kind: "put", id: nodeId, value: linkOnly(value) })
     }
     meshEmit()
     return result
@@ -119,10 +119,26 @@ function wrapDb(db) {
   return db
 }
 
+function linkOnly(value) {
+  if (!value || typeof value !== "object") return value
+  const next = { ...value }
+  if (next.url && next.data) delete next.data
+  if (next.avatar && next.avatar.url) {
+    next.avatar = { url: next.avatar.url, key: next.avatar.key || "", mime: next.avatar.mime || "" }
+  }
+  if (Array.isArray(next.images)) {
+    next.images = next.images.map((image) => image && image.url
+      ? { url: image.url, key: image.key || "", mime: image.mime || "", name: image.name || "" }
+      : image)
+  }
+  return next
+}
+
 function meshSend(payload, connectId) {
   if (!meshConnect || !payload) return
+  const msg = payload.value ? { ...payload, value: linkOnly(payload.value) } : payload
   try {
-    meshConnect.Send(payload, { connectId: connectId === undefined ? null : connectId })
+    meshConnect.Send(msg, { connectId: connectId === undefined ? null : connectId })
   } catch {}
 }
 
@@ -575,7 +591,6 @@ export async function saveProfile(db, fields) {
       mime: value.avatar.mime || "image/jpeg",
       url: value.avatar.url || "",
       key: value.avatar.key || "",
-      data: value.avatar.url ? "" : value.avatar.data,
       updatedAt: Date.now()
     }, "avatar:" + String(address).toLowerCase())
   } else {
@@ -858,10 +873,12 @@ export function attachProfiles(db, profiles, onChange) {
     if (!address) return
     const prev = profiles.get(address) || { address }
     if (action === "removed") delete prev.avatar
-    else if (value && (value.data || (value.avatar && value.avatar.data))) {
-      prev.avatar = value.data
-        ? { mime: value.mime || "image/jpeg", data: value.data }
-        : value.avatar
+    else if (value && (value.url || value.data || (value.avatar && (value.avatar.url || value.avatar.data)))) {
+      prev.avatar = value.url
+        ? { mime: value.mime || "image/jpeg", url: value.url, key: value.key || "" }
+        : value.data
+          ? { mime: value.mime || "image/jpeg", data: value.data }
+          : value.avatar
       meshAvatars.set(address, prev.avatar)
     }
     profiles.set(address, prev)
@@ -1160,12 +1177,11 @@ export async function publishPost(db, caption, images) {
     type: "post",
     author,
     caption: text,
-    images: pics.map((image) => ({
-      url: image.url || "",
+    images: pics.filter((image) => image.url).map((image) => ({
+      url: image.url,
       key: image.key || "",
       mime: image.mime || "",
-      name: image.name || "",
-      data: image.url ? "" : image.data || ""
+      name: image.name || ""
     })),
     createdAt: Date.now()
   })
