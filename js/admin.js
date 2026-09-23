@@ -10,7 +10,7 @@ function loadCss() {
   const link = document.createElement("link")
   link.id = "scp-css"
   link.rel = "stylesheet"
-  link.href = new URL("../css/admin.css?v=flags1", import.meta.url).href
+  link.href = new URL("../css/admin.css?v=r2sum1", import.meta.url).href
   document.head.append(link)
 }
 
@@ -750,7 +750,8 @@ function formatSize(bytes) {
   const n = Number(bytes) || 0
   if (n < 1024) return n + " B"
   if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB"
-  return (n / (1024 * 1024)).toFixed(1) + " MB"
+  if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + " MB"
+  return (n / (1024 * 1024 * 1024)).toFixed(2) + " GB"
 }
 
 function renderStorages(main, paint) {
@@ -779,22 +780,31 @@ function renderStorages(main, paint) {
     return
   }
   box.innerHTML =
+    "<div class=\"scp-grid r2-stats\">" +
+    "<div class=\"scp-stat\"><span>Files in R2</span><strong id=\"r2-count\">—</strong></div>" +
+    "<div class=\"scp-stat\"><span>Total size</span><strong id=\"r2-size\">—</strong></div>" +
+    "</div>" +
     "<div class=\"gdb-toolbar\">" +
     "<button type=\"button\" class=\"scp-act\" id=\"r2-refresh\">Refresh</button>" +
     "<label class=\"scp-act\" id=\"r2-upload-lab\">Upload<input type=\"file\" id=\"r2-file\" hidden accept=\"image/*,video/*,audio/*\"></label>" +
     "<button type=\"button\" class=\"scp-act danger\" id=\"r2-forget\">Remove keys</button>" +
     "<span class=\"gdb-count\" id=\"r2-status\"></span></div>" +
-    "<div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>File</th><th>Size</th><th>Public URL</th><th></th></tr></thead><tbody id=\"r2-rows\"></tbody></table></div>"
+    "<div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>File already in bucket</th><th>Size</th><th>Public URL</th><th></th></tr></thead><tbody id=\"r2-rows\"></tbody></table></div>"
   const status = box.querySelector("#r2-status")
   const tbody = box.querySelector("#r2-rows")
   const draw = async () => {
-    status.textContent = "Loading…"
+    status.textContent = "Loading bucket…"
+    box.querySelector("#r2-count").textContent = "…"
+    box.querySelector("#r2-size").textContent = "…"
     tbody.innerHTML = ""
     try {
       const rows = await r2List()
-      status.textContent = rows.length + " objects"
+      const total = rows.reduce((sum, row) => sum + (Number(row.size) || 0), 0)
+      box.querySelector("#r2-count").textContent = String(rows.length)
+      box.querySelector("#r2-size").textContent = formatSize(total)
+      status.textContent = rows.length + " files · " + formatSize(total)
       if (!rows.length) {
-        tbody.innerHTML = "<tr><td colspan=\"4\" class=\"scp-empty\">Empty bucket.</td></tr>"
+        tbody.innerHTML = "<tr><td colspan=\"4\" class=\"scp-empty\">No files in this bucket yet.</td></tr>"
         return
       }
       rows.forEach((row) => {

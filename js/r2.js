@@ -109,17 +109,37 @@ async function signedFetch(method, url, body, contentType) {
   }
 }
 
+function xmlValue(block, tag) {
+  const raw = (String(block).match(new RegExp("<" + tag + ">([^<]*)</" + tag + ">")) || [])[1] || ""
+  return raw.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'")
+}
+
+function listUrl(token) {
+  const params = [["list-type", "2"], ["max-keys", "1000"]]
+  if (token) params.push(["continuation-token", token])
+  params.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)
+  const qs = params.map(([key, value]) => encodeURIComponent(key) + "=" + encodeURIComponent(value)).join("&")
+  return R2_ENDPOINT + "/" + R2_BUCKET + "?" + qs
+}
+
 export async function r2List() {
-  const res = await signedFetch("GET", R2_ENDPOINT + "/" + R2_BUCKET + "?list-type=2")
-  const xml = await res.text()
-  if (!res.ok) throw new Error((xml || String(res.status)).slice(0, 180))
   const rows = []
-  String(xml).split("<Contents>").slice(1).forEach((block) => {
-    const key = (block.match(/<Key>([^<]+)<\/Key>/) || [])[1]
-    const size = (block.match(/<Size>([^<]+)<\/Size>/) || [])[1]
-    const modified = (block.match(/<LastModified>([^<]+)<\/LastModified>/) || [])[1]
-    if (key) rows.push({ key, size: Number(size || 0), modified: modified || "" })
-  })
+  let token = ""
+  do {
+    const res = await signedFetch("GET", listUrl(token))
+    const xml = await res.text()
+    if (!res.ok) throw new Error((xml || String(res.status)).slice(0, 180))
+    String(xml).split("<Contents>").slice(1).forEach((block) => {
+      const key = xmlValue(block, "Key")
+      if (!key) return
+      rows.push({
+        key,
+        size: Number(xmlValue(block, "Size") || 0),
+        modified: xmlValue(block, "LastModified")
+      })
+    })
+    token = /<IsTruncated>true<\/IsTruncated>/.test(xml) ? xmlValue(xml, "NextContinuationToken") : ""
+  } while (token)
   return rows
 }
 

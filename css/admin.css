@@ -461,6 +461,8 @@
 .flag-status[data-status="dismissed"] { background: #f3f4f0; color: #6a6a6a; }
 .flag-status[data-status="removed"] { background: #fde8e6; color: #c0392b; }
 
+.r2-stats { margin: 0.2rem 0 1rem; }
+
 .gdb-json {
   max-height: 18rem;
   overflow: auto;
