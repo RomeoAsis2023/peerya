@@ -1,6 +1,7 @@
 const R2_ENDPOINT = "https://927ac929eb08673cea54d7f1888fd640.r2.cloudflarestorage.com"
 const R2_BUCKET = "peeryar2storage"
 export const R2_PUBLIC = "https://pyr.antserver1.eu.org"
+export const R2_UPLOAD_LIMIT = (5 * 1024 * 1024 * 1024) - (5 * 1024 * 1024)
 const R2_STORE = "peerya.r2"
 const EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 

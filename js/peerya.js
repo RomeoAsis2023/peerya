@@ -623,7 +623,7 @@ export function goHome() {
 export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
-      const { startSuperadmin } = await import("./admin.js?v=r2sum1")
+      const { startSuperadmin } = await import("./admin.js?v=r2lim1")
     await startSuperadmin(db)
   }
   await run()

@@ -1,5 +1,5 @@
 import { startPresence, attachProfiles, avatarUrl, displayName, isScpApp } from "./peerya.js"
-import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl, R2_CORS } from "./r2.js"
+import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl, R2_CORS, R2_UPLOAD_LIMIT } from "./r2.js"
 
 const SESSION = "peerya.scp"
 const TTL = 4 * 60 * 60 * 1000
@@ -10,7 +10,7 @@ function loadCss() {
   const link = document.createElement("link")
   link.id = "scp-css"
   link.rel = "stylesheet"
-  link.href = new URL("../css/admin.css?v=r2sum1", import.meta.url).href
+  link.href = new URL("../css/admin.css?v=r2lim1", import.meta.url).href
   document.head.append(link)
 }
 
@@ -783,7 +783,11 @@ function renderStorages(main, paint) {
     "<div class=\"scp-grid r2-stats\">" +
     "<div class=\"scp-stat\"><span>Files in R2</span><strong id=\"r2-count\">—</strong></div>" +
     "<div class=\"scp-stat\"><span>Total size</span><strong id=\"r2-size\">—</strong></div>" +
+    "<div class=\"scp-stat\"><span>Cloudflare file limit</span><strong id=\"r2-limit\">—</strong></div>" +
+    "<div class=\"scp-stat\"><span>Remaining for one file</span><strong id=\"r2-left\">—</strong></div>" +
     "</div>" +
+    "<div class=\"r2-meter\"><span id=\"r2-bar\"></span></div>" +
+    "<p class=\"scp-empty\" id=\"r2-meter-label\">Limit updates from the files in this bucket.</p>" +
     "<div class=\"gdb-toolbar\">" +
     "<button type=\"button\" class=\"scp-act\" id=\"r2-refresh\">Refresh</button>" +
     "<label class=\"scp-act\" id=\"r2-upload-lab\">Upload<input type=\"file\" id=\"r2-file\" hidden accept=\"image/*,video/*,audio/*\"></label>" +
@@ -796,12 +800,22 @@ function renderStorages(main, paint) {
     status.textContent = "Loading bucket…"
     box.querySelector("#r2-count").textContent = "…"
     box.querySelector("#r2-size").textContent = "…"
+    box.querySelector("#r2-limit").textContent = formatSize(R2_UPLOAD_LIMIT)
+    box.querySelector("#r2-left").textContent = "…"
     tbody.innerHTML = ""
     try {
       const rows = await r2List()
       const total = rows.reduce((sum, row) => sum + (Number(row.size) || 0), 0)
+      const largest = rows.reduce((max, row) => Math.max(max, Number(row.size) || 0), 0)
+      const left = Math.max(0, R2_UPLOAD_LIMIT - largest)
+      const usedPct = Math.min(100, (largest / R2_UPLOAD_LIMIT) * 100)
       box.querySelector("#r2-count").textContent = String(rows.length)
       box.querySelector("#r2-size").textContent = formatSize(total)
+      box.querySelector("#r2-limit").textContent = formatSize(R2_UPLOAD_LIMIT)
+      box.querySelector("#r2-left").textContent = formatSize(left)
+      box.querySelector("#r2-bar").style.width = usedPct.toFixed(1) + "%"
+      box.querySelector("#r2-meter-label").textContent =
+        "Largest file is " + usedPct.toFixed(1) + "% of the " + formatSize(R2_UPLOAD_LIMIT) + " single-upload limit. Recalculated from the bucket."
       status.textContent = rows.length + " files · " + formatSize(total)
       if (!rows.length) {
         tbody.innerHTML = "<tr><td colspan=\"4\" class=\"scp-empty\">No files in this bucket yet.</td></tr>"
@@ -814,7 +828,8 @@ function renderStorages(main, paint) {
           "<td></td><td></td><td><a class=\"scp-url\" target=\"_blank\" rel=\"noopener\"></a></td>" +
           "<td class=\"scp-actions\"><button type=\"button\" class=\"scp-act danger\">Delete</button></td>"
         tr.children[0].textContent = row.key
-        tr.children[1].textContent = formatSize(row.size)
+        const pct = ((Number(row.size) || 0) / R2_UPLOAD_LIMIT) * 100
+        tr.children[1].textContent = formatSize(row.size) + " · " + pct.toFixed(1) + "%"
         const a = tr.querySelector("a")
         a.href = href
         a.textContent = href
@@ -842,6 +857,10 @@ function renderStorages(main, paint) {
     const file = event.target.files && event.target.files[0]
     event.target.value = ""
     if (!file) return
+    if (file.size > R2_UPLOAD_LIMIT) {
+      status.textContent = "File is over the Cloudflare single-upload limit of " + formatSize(R2_UPLOAD_LIMIT) + "."
+      return
+    }
     status.textContent = "Uploading…"
     try {
       await r2Put(file)
