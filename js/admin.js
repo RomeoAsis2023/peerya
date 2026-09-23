@@ -10,7 +10,7 @@ function loadCss() {
   const link = document.createElement("link")
   link.id = "scp-css"
   link.rel = "stylesheet"
-  link.href = new URL("../css/admin.css?v=peers1", import.meta.url).href
+  link.href = new URL("../css/admin.css?v=flags1", import.meta.url).href
   document.head.append(link)
 }
 
@@ -146,56 +146,241 @@ async function listReports(db) {
   }
 }
 
-function renderFlags(rows, tab) {
-  const filtered = rows.filter((row) => (row.targetType || "post") === tab)
-  if (!filtered.length) return "<h2>Flags</h2><p class=\"scp-empty\">No " + tab + " reports.</p>"
-  const body = filtered.map((row) => {
-    const when = row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"
-    return (
-      "<tr data-id=\"" + esc(row.id) + "\">" +
-      "<td>" + esc(row.targetId || "—") + "</td>" +
-      "<td>" + esc(row.reason || "other") + "</td>" +
-      "<td>" + esc(row.text || "") + "</td>" +
-      "<td>" + esc(String(row.from || "").slice(0, 10)) + "</td>" +
-      "<td>" + esc(row.status || "open") + "</td>" +
-      "<td>" + esc(when) + "</td>" +
-      "<td class=\"scp-actions\">" +
-      "<button type=\"button\" class=\"scp-act\" data-act=\"dismiss\">Dismiss</button>" +
-      (tab === "post" ? "<button type=\"button\" class=\"scp-act danger\" data-act=\"remove-post\">Remove post</button>" : "") +
-      "</td></tr>"
-    )
-  }).join("")
-  return (
-    "<h2>Flags</h2><div class=\"scp-flag-tabs\">" +
-    "<button type=\"button\" class=\"scp-act" + (tab === "post" ? " on" : "") + "\" data-tab=\"post\">Posts</button>" +
-    "<button type=\"button\" class=\"scp-act" + (tab === "user" ? " on" : "") + "\" data-tab=\"user\">Users</button>" +
-    "</div><div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>Target</th><th>Reason</th><th>Details</th><th>From</th><th>Status</th><th>When</th><th>Actions</th></tr></thead><tbody>" +
-    body + "</tbody></table></div>"
-  )
+const FLAG_PAGE = 8
+const FLAG_REASONS = ["spam", "harassment", "nudity", "violence", "scam", "other"]
+const FLAG_STATUSES = ["open", "reviewed", "dismissed", "removed"]
+
+function reportValue(item, patch) {
+  const prev = item || {}
+  const next = { ...prev, ...(patch || {}) }
+  delete next.id
+  return {
+    type: "report",
+    targetType: next.targetType || "post",
+    targetId: next.targetId || "",
+    about: next.about || "",
+    from: next.from || "",
+    reason: next.reason || "other",
+    text: String(next.text || "").slice(0, 280),
+    createdAt: next.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    status: next.status || "open"
+  }
 }
 
-function bindFlagActions(main, db, rows, paint) {
-  const byId = new Map(rows.map((row) => [row.id, row]))
-  main.querySelectorAll("[data-tab]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      main.dataset.flagTab = btn.dataset.tab
-      paint()
+async function saveReport(db, item, patch) {
+  const value = reportValue(item, patch)
+  const id = (item && item.id) || ("report:" + value.targetType + ":" + value.targetId + ":" + String(value.from || "scp").toLowerCase())
+  if (!value.targetId) throw new Error("Target is required.")
+  await db.put(value, id)
+  return id
+}
+
+async function removeFlagTarget(db, item) {
+  const id = String(item.targetId || "")
+  if (!id) return
+  if ((item.targetType || "post") === "user") {
+    const address = id.replace(/^profile:/, "").toLowerCase()
+    let profile = { address }
+    try {
+      const { result } = await db.get("profile:" + address)
+      if (result && result.value) profile = { ...result.value, address }
+    } catch {}
+    await deleteUser(db, profile)
+    return
+  }
+  await db.remove(id)
+}
+
+function renderFlags(main, db, rows, state, paint) {
+  const tab = state.tab || "all"
+  const status = state.status || "all"
+  const q = String(state.q || "").trim().toLowerCase()
+  const typed = rows.filter((row) => tab === "all" || (row.targetType || "post") === tab)
+  const filtered = typed.filter((row) => {
+    if (status !== "all" && (row.status || "open") !== status) return false
+    if (!q) return true
+    return [row.targetId, row.reason, row.text, row.from, row.about, row.status].join(" ").toLowerCase().includes(q)
+  })
+  const pages = Math.max(1, Math.ceil(filtered.length / FLAG_PAGE))
+  if (state.page > pages) state.page = pages
+  if (state.page < 1) state.page = 1
+  const slice = filtered.slice((state.page - 1) * FLAG_PAGE, state.page * FLAG_PAGE)
+  const count = (name) => rows.filter((row) => name === "all" || (row.targetType || "post") === name).length
+  main.innerHTML =
+    "<div class=\"flag-head\"><div><h2>Flags</h2><p class=\"scp-empty\">Review reports. Changes save to GenosDB.</p></div>" +
+    "<button type=\"button\" class=\"scp-act on\" id=\"flag-new\">New flag</button></div>" +
+    "<div class=\"scp-flag-tabs\"></div>" +
+    "<div class=\"gdb-toolbar flag-tools\">" +
+    "<input type=\"search\" class=\"gdb-search\" id=\"flag-q\" placeholder=\"Search target, reason, details\">" +
+    "<select id=\"flag-status\" class=\"flag-select\"></select>" +
+    "<span class=\"gdb-count\" id=\"flag-count\"></span></div>" +
+    "<p class=\"scp-err\" id=\"flag-err\"></p>" +
+    "<div class=\"gdb-scroll\"><table class=\"scp-table flag-table\"><thead><tr><th>Type</th><th>Target</th><th>Reason</th><th>Details</th><th>From</th><th>Status</th><th>When</th><th>Actions</th></tr></thead><tbody></tbody></table></div>" +
+    "<div class=\"gdb-pager\"></div>"
+  const tabs = main.querySelector(".scp-flag-tabs")
+  ;[["all", "All"], ["post", "Posts"], ["user", "Users"]].forEach(([id, label]) => {
+    const btn = document.createElement("button")
+    btn.type = "button"
+    btn.className = "scp-act" + (tab === id ? " on" : "")
+    btn.textContent = label + " " + count(id)
+    btn.addEventListener("click", () => { state.tab = id; state.page = 1; paint() })
+    tabs.append(btn)
+  })
+  const select = main.querySelector("#flag-status")
+  ;[["all", "All statuses"]].concat(FLAG_STATUSES.map((item) => [item, item])).forEach(([id, label]) => {
+    const opt = document.createElement("option")
+    opt.value = id
+    opt.textContent = label
+    if (id === status) opt.selected = true
+    select.append(opt)
+  })
+  select.addEventListener("change", () => { state.status = select.value; state.page = 1; paint() })
+  const search = main.querySelector("#flag-q")
+  search.value = state.q
+  search.addEventListener("input", () => {
+    state.q = search.value
+    state.page = 1
+    const pos = search.selectionStart
+    Promise.resolve(paint()).then(() => {
+      const next = document.getElementById("flag-q")
+      if (!next) return
+      next.focus()
+      try { next.setSelectionRange(pos, pos) } catch {}
     })
   })
-  main.querySelectorAll("[data-act]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const row = btn.closest("tr")
-      const item = byId.get(row && row.dataset.id)
-      if (!item) return
-      if (btn.dataset.act === "dismiss") {
-        try { await db.put({ ...item, status: "dismissed" }, item.id) } catch {}
+  main.querySelector("#flag-count").textContent = filtered.length + " / " + rows.length
+  const tbody = main.querySelector("tbody")
+  const err = main.querySelector("#flag-err")
+  if (!slice.length) {
+    tbody.innerHTML = "<tr><td colspan=\"8\" class=\"scp-empty\">No flags match this filter.</td></tr>"
+  }
+  slice.forEach((item) => {
+    const tr = document.createElement("tr")
+    const when = item.createdAt ? new Date(item.createdAt).toLocaleString() : "—"
+    const kind = item.targetType || "post"
+    tr.innerHTML =
+      "<td></td><td class=\"flag-target\"></td><td></td><td class=\"flag-details\"></td><td></td><td><span class=\"flag-status\"></span></td><td></td>" +
+      "<td class=\"scp-actions\"></td>"
+    tr.children[0].textContent = kind
+    tr.children[1].textContent = item.targetId || "—"
+    tr.children[2].textContent = item.reason || "other"
+    tr.children[3].textContent = item.text || item.about || "—"
+    tr.children[4].textContent = String(item.from || "—").slice(0, 10)
+    const pill = tr.querySelector(".flag-status")
+    pill.textContent = item.status || "open"
+    pill.dataset.status = item.status || "open"
+    tr.children[6].textContent = when
+    const actions = tr.querySelector(".scp-actions")
+    const add = (label, act, danger) => {
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.className = "scp-act" + (danger ? " danger" : "")
+      btn.textContent = label
+      btn.addEventListener("click", () => runFlag(act))
+      actions.append(btn)
+    }
+    const runFlag = async (act) => {
+      err.textContent = ""
+      try {
+        if (act === "edit") return openFlagEditor(db, item, paint)
+        if (act === "dismiss") await saveReport(db, item, { status: "dismissed" })
+        if (act === "reopen") await saveReport(db, item, { status: "open" })
+        if (act === "remove-target") {
+          await removeFlagTarget(db, item)
+          await saveReport(db, item, { status: "removed" })
+        }
+        if (act === "delete") await db.remove(item.id)
+        await paint()
+      } catch (e) {
+        err.textContent = String((e && e.message) || "Could not update that flag.")
       }
-      if (btn.dataset.act === "remove-post" && item.targetId) {
-        try { await db.remove(item.targetId) } catch {}
-        try { await db.put({ ...item, status: "removed" }, item.id) } catch {}
-      }
+    }
+    add("Edit", "edit")
+    if ((item.status || "open") !== "dismissed") add("Dismiss", "dismiss")
+    if ((item.status || "open") !== "open") add("Reopen", "reopen")
+    add(kind === "user" ? "Remove user" : "Remove post", "remove-target", true)
+    add("Delete", "delete", true)
+    tbody.append(tr)
+  })
+  const pager = main.querySelector(".gdb-pager")
+  const prev = document.createElement("button")
+  prev.type = "button"
+  prev.className = "scp-act"
+  prev.textContent = "Prev"
+  prev.disabled = state.page <= 1
+  prev.addEventListener("click", () => { state.page -= 1; paint() })
+  const label = document.createElement("span")
+  label.textContent = "Page " + state.page + " of " + pages
+  const next = document.createElement("button")
+  next.type = "button"
+  next.className = "scp-act"
+  next.textContent = "Next"
+  next.disabled = state.page >= pages
+  next.addEventListener("click", () => { state.page += 1; paint() })
+  pager.append(prev, label, next)
+  main.querySelector("#flag-new").addEventListener("click", () => openFlagEditor(db, null, paint))
+}
+
+function openFlagEditor(db, item, paint) {
+  const creating = !item
+  const el = openModal(
+    "<form class=\"scp-card scp-edit\">" +
+    "<h1>" + (creating ? "New flag" : "Edit flag") + "</h1>" +
+    "<p>" + (creating ? "Create a report in GenosDB." : "Update this report.") + "</p>" +
+    "<div class=\"scp-edit-row\">" +
+    "<div><label for=\"flag-type\">Type</label><select id=\"flag-type\"><option value=\"post\">Post</option><option value=\"user\">User</option></select></div>" +
+    "<div><label for=\"flag-reason\">Reason</label><select id=\"flag-reason\"></select></div>" +
+    "</div>" +
+    "<label for=\"flag-target\">Target id or address</label><input id=\"flag-target\" required>" +
+    "<label for=\"flag-text\">Details</label><textarea id=\"flag-text\" maxlength=\"280\"></textarea>" +
+    "<label for=\"flag-edit-status\">Status</label><select id=\"flag-edit-status\"></select>" +
+    "<p class=\"scp-err\" id=\"flag-edit-err\"></p>" +
+    "<div class=\"scp-edit-actions\">" +
+    "<button type=\"button\" class=\"scp-act\" id=\"flag-cancel\">Cancel</button>" +
+    "<button type=\"submit\" class=\"btn\">Save</button></div></form>"
+  )
+  const type = el.querySelector("#flag-type")
+  const reason = el.querySelector("#flag-reason")
+  const status = el.querySelector("#flag-edit-status")
+  FLAG_REASONS.forEach((name) => {
+    const opt = document.createElement("option")
+    opt.value = name
+    opt.textContent = name
+    reason.append(opt)
+  })
+  FLAG_STATUSES.forEach((name) => {
+    const opt = document.createElement("option")
+    opt.value = name
+    opt.textContent = name
+    status.append(opt)
+  })
+  if (item) {
+    type.value = item.targetType || "post"
+    reason.value = item.reason || "other"
+    status.value = item.status || "open"
+    el.querySelector("#flag-target").value = item.targetId || ""
+    el.querySelector("#flag-text").value = item.text || ""
+  }
+  el.querySelector("#flag-cancel").addEventListener("click", closeModal)
+  el.querySelector("form").addEventListener("submit", async (event) => {
+    event.preventDefault()
+    const err = el.querySelector("#flag-edit-err")
+    err.textContent = ""
+    try {
+      await saveReport(db, item, {
+        targetType: type.value,
+        targetId: el.querySelector("#flag-target").value.trim(),
+        reason: reason.value,
+        text: el.querySelector("#flag-text").value.trim(),
+        status: status.value,
+        from: (item && item.from) || localStorage.getItem("peerya.scp.address") || "scp"
+      })
+      closeModal()
       await paint()
-    })
+    } catch (e) {
+      err.textContent = String((e && e.message) || "Could not save.")
+    }
   })
 }
 
@@ -719,6 +904,7 @@ export async function startSuperadmin(db) {
     }
     window.__peeryaAdminAttach = attachDb
     const gdbState = { table: "profile", q: "", page: 1, cache: {} }
+    const flagState = { tab: "all", status: "all", q: "", page: 1 }
     paint = async () => {
       nav.querySelectorAll("button").forEach((btn) => btn.classList.toggle("on", btn.dataset.id === page))
       const main = document.getElementById("scp-main")
@@ -735,11 +921,7 @@ export async function startSuperadmin(db) {
           main.innerHTML = renderUsers(people)
           bindUserActions(main, liveDb, people, paint)
         } else if (page === "flags") {
-          const rows = await listReports(liveDb)
-          const tab = main.dataset.flagTab || "post"
-          main.innerHTML = renderFlags(rows, tab)
-          main.dataset.flagTab = tab
-          bindFlagActions(main, liveDb, rows, paint)
+          renderFlags(main, liveDb, await listReports(liveDb), flagState, paint)
         } else if (page === "genosdb") {
           if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(liveDb)
           renderGenos(main, liveDb, gdbState, paint)

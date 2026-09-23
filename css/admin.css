@@ -416,6 +416,51 @@
   color: #1f2a12;
 }
 
+.flag-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.flag-head h2 { margin-bottom: 0.15rem; }
+
+.flag-tools .gdb-search { margin-left: 0; flex: 1; }
+
+.flag-select {
+  border: 1px solid #ececec;
+  border-radius: 999px;
+  min-height: 2.2rem;
+  padding: 0 0.8rem;
+  background: #fff;
+}
+
+.flag-table td { vertical-align: top; }
+
+.flag-target,
+.flag-details {
+  max-width: 12rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.flag-status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: capitalize;
+  background: #f3f4f0;
+  color: #5a5a5a;
+}
+
+.flag-status[data-status="open"] { background: #fff4d6; color: #8a5a00; }
+.flag-status[data-status="reviewed"] { background: #e8f2ff; color: #1d4f91; }
+.flag-status[data-status="dismissed"] { background: #f3f4f0; color: #6a6a6a; }
+.flag-status[data-status="removed"] { background: #fde8e6; color: #c0392b; }
+
 .gdb-json {
   max-height: 18rem;
   overflow: auto;
