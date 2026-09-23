@@ -11,8 +11,41 @@ import {
   listReactions,
   updatePost,
   removePost,
-  reportContent
+  reportContent,
+  mediaSrc
 } from "./peerya.js"
+
+function mediaNode(file) {
+  const src = mediaSrc(file)
+  const mime = String((file && file.mime) || "")
+  const name = (file && file.name) || "File"
+  if (mime.startsWith("video/") || /\.(mp4|webm|mov)(\?|$)/i.test(src)) {
+    const video = document.createElement("video")
+    video.src = src
+    video.controls = true
+    video.playsInline = true
+    return video
+  }
+  if (mime.startsWith("audio/") || /\.(mp3|wav|ogg|m4a)(\?|$)/i.test(src)) {
+    const audio = document.createElement("audio")
+    audio.src = src
+    audio.controls = true
+    return audio
+  }
+  if (!mime || mime.startsWith("image/") || (file && file.data) || /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(src)) {
+    const img = document.createElement("img")
+    img.src = src
+    img.alt = name
+    return img
+  }
+  const link = document.createElement("a")
+  link.href = src
+  link.target = "_blank"
+  link.rel = "noopener"
+  link.className = "scp-url"
+  link.textContent = name
+  return link
+}
 
 let chromeBound = false
 
@@ -235,7 +268,7 @@ export function createFeed({ db, me, profiles, comments, presence, onRender }) {
   const openLightbox = (images, index) => {
     lightboxImages = images
     lightboxIndex = index
-    lightboxImage.src = images[index].data
+    lightboxImage.src = mediaSrc(images[index])
     const many = images.length > 1
     document.getElementById("lightbox-prev").style.visibility = many ? "visible" : "hidden"
     document.getElementById("lightbox-next").style.visibility = many ? "visible" : "hidden"
@@ -298,17 +331,15 @@ export function createFeed({ db, me, profiles, comments, presence, onRender }) {
       article.querySelector(".post-user").textContent = nameOf(post.author)
       article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
       bindPostMenu(article, post)
-      const pics = Array.isArray(post.images) ? post.images.filter((image) => image && image.data) : []
+      const pics = Array.isArray(post.images) ? post.images.filter((image) => mediaSrc(image)) : []
       const grid = article.querySelector(".post-media-grid")
       if (!pics.length) grid.remove()
       else {
         grid.classList.add("count-" + Math.min(pics.length, 4))
         pics.forEach((image, index) => {
-          const img = document.createElement("img")
-          img.src = image.data
-          img.alt = ""
-          img.addEventListener("click", () => openLightbox(pics, index))
-          grid.append(img)
+          const node = mediaNode(image)
+          if (node.tagName === "IMG") node.addEventListener("click", () => openLightbox(pics, index))
+          grid.append(node)
         })
       }
       const caption = article.querySelector(".post-caption")

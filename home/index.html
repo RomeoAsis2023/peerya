@@ -986,7 +986,7 @@
             <button type="button" class="attach-btn" id="attach-btn" aria-label="Attach images">
               <i class="bi bi-image"></i>
             </button>
-            <input type="file" id="composer-files" accept="image/*" multiple hidden>
+            <input type="file" id="composer-files" accept="image/*,video/*,audio/*,.pdf,.txt,.zip" multiple hidden>
             <button type="submit" class="btn">Post</button>
           </div>
         </form>
@@ -1056,7 +1056,9 @@
         listReactions,
         ingestReaction,
         applyCurrentUser,
-        compressImage,
+        storeMedia,
+        dropMedia,
+        mediaSrc,
         MAX_POST_IMAGES,
         setNavBadge,
         watchNotices,
@@ -1277,14 +1279,14 @@
           article.querySelector(".post-header .presence").classList.toggle("online", presence.online.has(String(post.author).toLowerCase()))
           article.querySelector(".post-user").textContent = nameOf(post.author)
           article.querySelector(".post-meta").textContent = timeAgo(post.createdAt)
-          const pics = Array.isArray(post.images) ? post.images.filter((image) => image && image.data) : []
+          const pics = Array.isArray(post.images) ? post.images.filter((image) => mediaSrc(image)) : []
           const grid = article.querySelector(".post-media-grid")
           if (!pics.length) grid.remove()
           else {
             grid.classList.add("count-" + Math.min(pics.length, 4))
             pics.forEach((image, index) => {
               const img = document.createElement("img")
-              img.src = image.data
+              img.src = mediaSrc(image)
               img.alt = ""
               img.addEventListener("click", () => openLightbox(pics, index))
               grid.append(img)
@@ -1428,10 +1430,12 @@
           const thumb = document.createElement("div")
           thumb.className = "composer-thumb"
           thumb.innerHTML = '<img alt=""><button type="button" aria-label="Remove">&times;</button>'
-          thumb.querySelector("img").src = image.data
-          thumb.querySelector("button").addEventListener("click", () => {
+          thumb.querySelector("img").src = mediaSrc(image) || "../default_avatar.png"
+          thumb.querySelector("button").addEventListener("click", async () => {
+            const item = pendingImages[index]
             pendingImages.splice(index, 1)
             renderPreviews()
+            await dropMedia(item)
           })
           previews.append(thumb)
         })
@@ -1440,7 +1444,7 @@
       const openLightbox = (images, index) => {
         lightboxImages = images
         lightboxIndex = index
-        lightboxImage.src = images[index].data
+        lightboxImage.src = mediaSrc(images[index])
         const many = images.length > 1
         document.getElementById("lightbox-prev").style.visibility = many ? "visible" : "hidden"
         document.getElementById("lightbox-next").style.visibility = many ? "visible" : "hidden"
@@ -1455,7 +1459,7 @@
       const stepLightbox = (dir) => {
         if (!lightboxImages.length) return
         lightboxIndex = (lightboxIndex + dir + lightboxImages.length) % lightboxImages.length
-        lightboxImage.src = lightboxImages[lightboxIndex].data
+        lightboxImage.src = mediaSrc(lightboxImages[lightboxIndex])
       }
 
       document.getElementById("attach-btn").addEventListener("click", () => fileInput.click())
@@ -1464,8 +1468,11 @@
         fileInput.value = ""
         const room = MAX_POST_IMAGES - pendingImages.length
         for (const file of files.slice(0, room)) {
-          const image = await compressImage(file)
-          if (image) pendingImages.push(image)
+          try {
+            pendingImages.push(await storeMedia(file, "posts"))
+          } catch (error) {
+            document.getElementById("composer-text").placeholder = String((error && error.message) || "Could not upload to R2.")
+          }
         }
         renderPreviews()
       })

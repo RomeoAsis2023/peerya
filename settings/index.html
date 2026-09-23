@@ -706,7 +706,8 @@
         watchNotices,
         profileHref,
         attachProfiles,
-        compressAvatar
+        storeMedia,
+        mediaSrc
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -798,10 +799,13 @@
         const file = document.getElementById("avatar-file").files[0]
         document.getElementById("avatar-file").value = ""
         if (!file) return
-        const image = await compressAvatar(file)
-        if (!image) return
-        pendingAvatar = image
-        document.getElementById("settings-avatar").src = image.data
+        try {
+          const image = await storeMedia(file, "avatars")
+          pendingAvatar = image
+          document.getElementById("settings-avatar").src = mediaSrc(image)
+        } catch (error) {
+          showNote(String((error && error.message) || "Could not upload to R2."), "err")
+        }
       })
 
       document.getElementById("settings-form").addEventListener("submit", async (event) => {

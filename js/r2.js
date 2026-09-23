@@ -144,12 +144,26 @@ export async function r2List() {
   return rows
 }
 
-export async function r2Put(file) {
-  const safe = String(file.name || "file").replace(/[^\w.\-]+/g, "_")
-  const key = "media/" + Date.now() + "-" + safe
-  const res = await signedFetch("PUT", objectUrl(key), file, file.type || "application/octet-stream")
+export async function r2Put(file, key) {
+  if (file && file.size > R2_UPLOAD_LIMIT) throw new Error("File is over the Cloudflare single-upload limit.")
+  const safe = String((file && file.name) || "file").replace(/[^\w.\-]+/g, "_")
+  const objectKey = key || ("media/" + Date.now() + "-" + safe)
+  const res = await signedFetch("PUT", objectUrl(objectKey), file, (file && file.type) || "application/octet-stream")
   if (!res.ok) throw new Error((await res.text() || String(res.status)).slice(0, 180))
-  return { key, url: publicUrl(key) }
+  return {
+    key: objectKey,
+    url: publicUrl(objectKey),
+    mime: (file && file.type) || "application/octet-stream",
+    name: (file && file.name) || safe,
+    size: (file && file.size) || 0
+  }
+}
+
+export async function uploadMedia(file, folder) {
+  if (!loadR2Keys()) throw new Error("Connect Cloudflare R2 in Superadmin Storages on this browser first.")
+  const safe = String((file && file.name) || "file").replace(/[^\w.\-]+/g, "_")
+  const key = String(folder || "media").replace(/\/+$/, "") + "/" + Date.now() + "-" + safe
+  return r2Put(file, key)
 }
 
 export async function r2Delete(key) {

@@ -1,4 +1,4 @@
-import { startPresence, attachProfiles, avatarUrl, displayName, isScpApp } from "./peerya.js"
+import { startPresence, attachProfiles, avatarUrl, displayName, isScpApp, dropMedia } from "./peerya.js"
 import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl, R2_CORS, R2_UPLOAD_LIMIT } from "./r2.js"
 
 const SESSION = "peerya.scp"
@@ -179,6 +179,13 @@ async function saveReport(db, item, patch) {
 async function removeFlagTarget(db, item) {
   const id = String(item.targetId || "")
   if (!id) return
+  if ((item.targetType || "post") !== "user") {
+    try {
+      const { result } = await db.get(id)
+      const pics = result && result.value && result.value.images
+      for (const image of pics || []) await dropMedia(image)
+    } catch {}
+  }
   if ((item.targetType || "post") === "user") {
     const address = id.replace(/^profile:/, "").toLowerCase()
     let profile = { address }

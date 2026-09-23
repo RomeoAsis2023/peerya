@@ -498,17 +498,23 @@ export async function saveProfile(db, fields) {
     createdAt: prev.createdAt || Date.now(),
     updatedAt: Date.now()
   }
-  const photo = (fields && fields.avatar && fields.avatar.data)
-    ? fields.avatar
-    : (prev.avatar && prev.avatar.data ? prev.avatar : null)
-  if (photo && photo.data) {
-    value.avatar = photo
+  const incoming = fields && fields.avatar
+  const photo = incoming && (incoming.url || incoming.data)
+    ? incoming
+    : (prev.avatar && (prev.avatar.url || prev.avatar.data) ? prev.avatar : null)
+  if (photo && (photo.url || photo.data)) {
+    if (prev.avatar && prev.avatar.key && photo.key && prev.avatar.key !== photo.key) dropMedia(prev.avatar)
+    value.avatar = photo.url
+      ? { url: photo.url, key: photo.key || "", mime: photo.mime || "image/jpeg", name: photo.name || "" }
+      : photo
     value.hasAvatar = true
     await db.put({
       type: "avatar",
       address,
-      mime: photo.mime || "image/jpeg",
-      data: photo.data,
+      mime: value.avatar.mime || "image/jpeg",
+      url: value.avatar.url || "",
+      key: value.avatar.key || "",
+      data: value.avatar.url ? "" : value.avatar.data,
       updatedAt: Date.now()
     }, "avatar:" + String(address).toLowerCase())
   } else {
@@ -740,7 +746,8 @@ export function profileHref(profiles, address) {
 function readAvatar(profile) {
   if (!profile) return ""
   const photo = profile.avatar
-  if (typeof photo === "string" && photo.indexOf("data:") === 0) return photo
+  if (typeof photo === "string" && (photo.indexOf("data:") === 0 || photo.indexOf("http") === 0)) return photo
+  if (photo && photo.url) return photo.url
   if (photo && photo.data) return photo.data
   return ""
 }
@@ -1063,16 +1070,42 @@ export function compressAvatar(file) {
   })
 }
 
+export function mediaSrc(file) {
+  if (!file) return ""
+  if (typeof file === "string") return file
+  return file.url || file.data || ""
+}
+
+export async function storeMedia(file, folder) {
+  const { uploadMedia } = await import("./r2.js")
+  return uploadMedia(file, folder)
+}
+
+export async function dropMedia(item) {
+  const key = item && (item.key || (typeof item === "string" ? item : ""))
+  if (!key || String(key).indexOf("http") === 0) return
+  try {
+    const { r2Delete } = await import("./r2.js")
+    await r2Delete(key)
+  } catch {}
+}
+
 export async function publishPost(db, caption, images) {
   const author = db.sm.getActiveEthAddress()
   const text = (caption || "").trim()
-  const pics = (images || []).filter((image) => image && image.data).slice(0, MAX_POST_IMAGES)
+  const pics = (images || []).filter((image) => image && (image.url || image.data)).slice(0, MAX_POST_IMAGES)
   if (!author || (!text && !pics.length)) return null
   return db.put({
     type: "post",
     author,
     caption: text,
-    images: pics,
+    images: pics.map((image) => ({
+      url: image.url || "",
+      key: image.key || "",
+      mime: image.mime || "",
+      name: image.name || "",
+      data: image.url ? "" : image.data || ""
+    })),
     createdAt: Date.now()
   })
 }
@@ -1092,6 +1125,7 @@ export async function removePost(db, postId) {
   const { result } = await db.get(postId)
   const prev = result && result.value
   if (!prev || String(prev.author).toLowerCase() !== me.toLowerCase()) return false
+  for (const image of prev.images || []) await dropMedia(image)
   await db.remove(postId)
   return true
 }
