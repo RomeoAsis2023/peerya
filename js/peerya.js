@@ -77,12 +77,16 @@ const meshCtx = {
   notify: null,
   profiles: null,
   profileChange: null,
-  liveMaps: new Map()
+  liveMaps: new Map(),
+  callHandlers: new Set(),
+  disconnectHandlers: new Set(),
+  onStream: null
 }
 let meshConnect = null
 let meshReady = null
 let remoteDepth = 0
 const meshPeerUser = new Map()
+const meshUserPeer = new Map()
 const meshAvatars = new Map()
 
 function wrapDb(db) {
@@ -136,6 +140,38 @@ function liveRemove(id) {
 
 export function bindLiveMap(type, map) {
   meshCtx.liveMaps.set(type, map)
+}
+
+export function meshPeerFor(address) {
+  return meshUserPeer.get(String(address || "").toLowerCase()) || null
+}
+
+export function sendMeshCall(payload, connectId) {
+  meshSend(payload, connectId)
+}
+
+export function onMeshCall(fn) {
+  meshCtx.callHandlers.add(fn)
+  return () => meshCtx.callHandlers.delete(fn)
+}
+
+export function onMeshDisconnect(fn) {
+  meshCtx.disconnectHandlers.add(fn)
+  return () => meshCtx.disconnectHandlers.delete(fn)
+}
+
+export function openMeshStream(stream, connectId) {
+  if (!meshConnect || !stream || !connectId) return
+  meshConnect.openStreaming(stream, { connectId })
+}
+
+export function closeMeshStream(stream, connectId) {
+  if (!meshConnect || !stream) return
+  try { meshConnect.closeStreaming(stream, { connectId: null }) } catch {}
+}
+
+export function onMeshStream(fn) {
+  meshCtx.onStream = fn
 }
 
 const reactionOverlay = new Map()
@@ -341,7 +377,14 @@ function ensureMesh(db, extra) {
     connect.onDisconnect((attr) => {
       const address = meshPeerUser.get(attr.connectId)
       meshPeerUser.delete(attr.connectId)
+      if (address && meshUserPeer.get(address) === attr.connectId) meshUserPeer.delete(address)
       if (address && meshCtx.drop) meshCtx.drop(address)
+      meshCtx.disconnectHandlers.forEach((fn) => {
+        try { fn(attr, address) } catch {}
+      })
+    })
+    connect.onStreaming((stream, attr) => {
+      if (meshCtx.onStream) meshCtx.onStream(stream, attr)
     })
     connect.onReceive(async (data, attr) => {
       let msg = data
@@ -350,8 +393,14 @@ function ensureMesh(db, extra) {
       }
       if (!msg || typeof msg !== "object") return
       if (msg.kind === "hello" && msg.address) {
-        meshPeerUser.set(attr.connectId, String(msg.address).toLowerCase())
+        const address = String(msg.address).toLowerCase()
+        meshPeerUser.set(attr.connectId, address)
+        meshUserPeer.set(address, attr.connectId)
         if (meshCtx.mark) meshCtx.mark(msg.address, attr.connectId)
+      } else if (String(msg.kind || "").indexOf("call-") === 0) {
+        meshCtx.callHandlers.forEach((fn) => {
+          try { fn(msg, attr) } catch {}
+        })
       } else if (msg.kind === "dm" && msg.value) {
         ingestDm(msg.id || ("dm:" + Date.now()), msg.value)
         meshEmit()

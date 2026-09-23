@@ -271,6 +271,138 @@
         padding: 0.2rem;
       }
 
+      .call-btn {
+        margin-left: auto;
+        width: 2.4rem;
+        height: 2.4rem;
+        border: 0;
+        border-radius: 999px;
+        background: #8bc34a;
+        color: #1f2a12;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .call-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+        background: rgba(8, 10, 7, 0.72);
+      }
+
+      .call-modal.hidden { display: none; }
+
+      .call-card {
+        width: min(28rem, 100%);
+        height: min(40rem, 100%);
+        background: #141814;
+        color: #f4f6f1;
+        border-radius: 1.4rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      .call-stage {
+        position: relative;
+        flex: 1;
+        min-height: 16rem;
+        background: #10140f;
+      }
+
+      .call-stage video,
+      .call-stage img.remote-fallback {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #10140f;
+      }
+
+      .call-local {
+        position: absolute;
+        right: 0.8rem;
+        bottom: 0.8rem;
+        width: 7.2rem;
+        height: 9.6rem;
+        border-radius: 0.9rem;
+        overflow: hidden;
+        border: 2px solid #8bc34a;
+        background: #1c2418;
+      }
+
+      .call-local video,
+      .call-local img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .call-stage .remote-fallback {
+        position: absolute;
+        inset: 0;
+      }
+
+      .call-top {
+        position: absolute;
+        left: 0.9rem;
+        right: 0.9rem;
+        top: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .call-top img {
+        width: 2.2rem;
+        height: 2.2rem;
+      }
+
+      .call-top p {
+        margin: 0;
+        font-weight: 800;
+      }
+
+      .call-top span {
+        display: block;
+        color: #c5d7a8;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .call-actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.7rem;
+        padding: 1rem;
+        background: #10140f;
+      }
+
+      .call-actions button {
+        width: 3.2rem;
+        height: 3.2rem;
+        border: 0;
+        border-radius: 999px;
+        background: #2a3324;
+        color: #f4f6f1;
+        font-size: 1.05rem;
+      }
+
+      .call-actions .accept { background: #8bc34a; color: #1f2a12; }
+      .call-actions .end { background: #d4534a; color: #fff; }
+      .call-actions .wide { width: auto; padding: 0 1rem; font-weight: 800; }
+
+      @media (max-width: 767.98px) {
+        .call-card { width: 100%; height: 100%; border-radius: 0; }
+      }
+
       .chat-log {
         flex: 1;
         overflow-y: auto;
@@ -714,6 +846,7 @@
                 <p class="thread-name" id="chat-name">Select a chat</p>
                 <p class="friend-status" id="chat-status">Pick a friend to message</p>
               </div>
+              <button type="button" class="call-btn" id="call-btn" hidden aria-label="Video call"><i class="bi bi-camera-video-fill"></i></button>
             </div>
             <div class="chat-log" id="chat-log">
               <p class="chat-empty">Your 1:1 chats live here. Search or open a friend to start.</p>
@@ -749,6 +882,27 @@
       </aside>
     </main>
 
+    <div class="call-modal hidden" id="call-modal">
+      <div class="call-card">
+        <div class="call-stage">
+          <video id="call-remote" autoplay playsinline></video>
+          <img class="remote-fallback hidden" id="call-fallback" src="../icon.svg" alt="">
+          <div class="call-top">
+            <img src="../icon.svg" alt="">
+            <div>
+              <p id="call-name">Peerya</p>
+              <span id="call-state">Calling…</span>
+            </div>
+          </div>
+          <div class="call-local">
+            <video id="call-local" autoplay muted playsinline></video>
+            <img id="call-local-fallback" src="../icon.svg" alt="">
+          </div>
+        </div>
+        <div class="call-actions" id="call-actions"></div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha256-CDOy6cOibCWEdsRiZuaHf8dSGGJRYuBGC+mjoJimHGw=" crossorigin="anonymous"></script>
     <script type="module">
       import {
@@ -769,7 +923,13 @@
         attachProfiles,
         bindLiveMap,
         ingestDm,
-        hydrateDms
+        hydrateDms,
+        sendMeshCall,
+        onMeshCall,
+        onMeshDisconnect,
+        onMeshStream,
+        openMeshStream,
+        closeMeshStream
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -848,6 +1008,7 @@
         els.status.textContent = isOn ? "Active now" : "Offline"
         els.input.disabled = false
         els.send.disabled = false
+        document.getElementById("call-btn").hidden = false
         els.input.focus()
         render()
         els.log.scrollTop = els.log.scrollHeight
@@ -1001,6 +1162,7 @@
 
       els.back.addEventListener("click", () => {
         activeThread = ""
+        document.getElementById("call-btn").hidden = true
         els.card.classList.remove("show-chat")
         els.input.disabled = true
         els.send.disabled = true
@@ -1016,6 +1178,214 @@
         try {
           await sendDm(db, to, text)
         } catch {}
+      })
+
+      const callModal = document.getElementById("call-modal")
+      const callRemote = document.getElementById("call-remote")
+      const callLocal = document.getElementById("call-local")
+      const callFallback = document.getElementById("call-fallback")
+      const callLocalFallback = document.getElementById("call-local-fallback")
+      const callActions = document.getElementById("call-actions")
+      const ringSound = new Audio(new URL("../ring_phone.mp3", import.meta.url).href)
+      const endSound = new Audio(new URL("../end_call.mp3", import.meta.url).href)
+      ringSound.loop = true
+      let call = null
+      let localStream = null
+      let callTimer = null
+
+      const callBtn = (label, className, icon, onClick) => {
+        const btn = document.createElement("button")
+        btn.type = "button"
+        btn.className = className
+        btn.innerHTML = icon ? '<i class="bi ' + icon + '"></i>' : label
+        if (!icon) btn.textContent = label
+        btn.addEventListener("click", onClick)
+        return btn
+      }
+
+      const stopRing = () => {
+        ringSound.pause()
+        ringSound.currentTime = 0
+      }
+
+      const playEnd = () => {
+        stopRing()
+        endSound.currentTime = 0
+        endSound.play().catch(() => {})
+      }
+
+      const paintCall = () => {
+        if (!call) {
+          callModal.classList.add("hidden")
+          return
+        }
+        callModal.classList.remove("hidden")
+        document.getElementById("call-name").textContent = call.name || "Peerya"
+        document.getElementById("call-state").textContent = call.status
+        callFallback.classList.toggle("hidden", !!callRemote.srcObject)
+        callLocalFallback.classList.toggle("hidden", !!callLocal.srcObject)
+        callActions.innerHTML = ""
+        if (call.phase === "incoming") {
+          callActions.append(
+            callBtn("Decline", "end wide", "", () => finishCall("decline")),
+            callBtn("Accept", "accept wide", "", () => acceptCall())
+          )
+          return
+        }
+        if (call.phase === "live") {
+          callActions.append(
+            callBtn("", call.muted ? "end" : "", "bi-mic" + (call.muted ? "-mute" : "") + "-fill", () => toggleMute()),
+            callBtn("", call.cameraOff ? "end" : "", "bi-camera-video" + (call.cameraOff ? "-off" : "") + "-fill", () => toggleCamera()),
+            callBtn("", "end", "bi-telephone-x-fill", () => finishCall("hangup"))
+          )
+          return
+        }
+        callActions.append(callBtn("", "end", "bi-telephone-x-fill", () => finishCall("cancel")))
+      }
+
+      const clearCallTimer = () => {
+        if (callTimer) clearTimeout(callTimer)
+        callTimer = null
+      }
+
+      const stopMedia = () => {
+        if (localStream) {
+          localStream.getTracks().forEach((track) => track.stop())
+          closeMeshStream(localStream, call && call.connectId)
+        }
+        localStream = null
+        callRemote.srcObject = null
+        callLocal.srcObject = null
+      }
+
+      const finishCall = (reason) => {
+        if (!call) return
+        const current = call
+        if (reason === "decline" || reason === "hangup" || reason === "cancel") {
+          sendMeshCall({
+            kind: reason === "decline" ? "call-decline" : "call-hangup",
+            callId: current.callId,
+            from: me,
+            to: current.peer
+          }, current.connectId)
+        }
+        stopMedia()
+        clearCallTimer()
+        call = null
+        playEnd()
+        paintCall()
+      }
+
+      const startMedia = async () => {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        callLocal.srcObject = localStream
+        callLocalFallback.classList.add("hidden")
+        openMeshStream(localStream, call.connectId)
+      }
+
+      const acceptCall = async () => {
+        if (!call) return
+        stopRing()
+        clearCallTimer()
+        call.phase = "live"
+        call.status = "Connecting…"
+        paintCall()
+        sendMeshCall({ kind: "call-accept", callId: call.callId, from: me, to: call.peer }, call.connectId)
+        try {
+          await startMedia()
+          call.status = "Connected"
+        } catch {
+          call.status = "Camera or mic was blocked"
+        }
+        paintCall()
+      }
+
+      const beginCall = () => {
+        if (!activeThread || call) return
+        const peer = otherInThread(activeThread, me)
+        const connectId = null
+        call = {
+          callId: String(Date.now()),
+          peer,
+          connectId,
+          name: displayName(peer),
+          phase: "outgoing",
+          status: "Calling…",
+          muted: false,
+          cameraOff: false
+        }
+        sendMeshCall({ kind: "call-invite", callId: call.callId, from: me, to: peer, name: meName }, null)
+        ringSound.play().catch(() => {})
+        paintCall()
+        callTimer = setTimeout(() => finishCall("cancel"), 45000)
+      }
+
+      const toggleMute = () => {
+        if (!localStream || !call) return
+        call.muted = !call.muted
+        localStream.getAudioTracks().forEach((track) => { track.enabled = !call.muted })
+        paintCall()
+      }
+
+      const toggleCamera = () => {
+        if (!localStream || !call) return
+        call.cameraOff = !call.cameraOff
+        localStream.getVideoTracks().forEach((track) => { track.enabled = !call.cameraOff })
+        callLocalFallback.classList.toggle("hidden", !call.cameraOff && !!callLocal.srcObject)
+        paintCall()
+      }
+
+      document.getElementById("call-btn").addEventListener("click", beginCall)
+      onMeshStream((stream, attr) => {
+        if (!call || attr.connectId !== call.connectId) return
+        callRemote.srcObject = stream
+        callFallback.classList.add("hidden")
+        call.status = "Connected"
+        paintCall()
+      })
+      onMeshDisconnect((attr) => {
+        if (call && attr && attr.connectId === call.connectId) finishCall("drop")
+      })
+      onMeshCall(async (msg, attr) => {
+        const to = String(msg.to || "").toLowerCase()
+        if (to && to !== String(me).toLowerCase()) return
+        if (msg.kind === "call-invite") {
+          if (call) {
+            sendMeshCall({ kind: "call-decline", callId: msg.callId, from: me, to: msg.from }, attr.connectId)
+            return
+          }
+          call = {
+            callId: msg.callId,
+            peer: String(msg.from || "").toLowerCase(),
+            connectId: attr.connectId,
+            name: msg.name || displayName(msg.from),
+            phase: "incoming",
+            status: "Incoming video call",
+            muted: false,
+            cameraOff: false
+          }
+          ringSound.play().catch(() => {})
+          paintCall()
+          callTimer = setTimeout(() => finishCall("decline"), 45000)
+          return
+        }
+        if (!call || msg.callId !== call.callId) return
+        if (msg.kind === "call-accept") {
+          stopRing()
+          clearCallTimer()
+          call.connectId = attr.connectId
+          call.phase = "live"
+          call.status = "Connecting…"
+          paintCall()
+          try {
+            await startMedia()
+            call.status = "Connected"
+          } catch {
+            call.status = "Camera or mic was blocked"
+          }
+          paintCall()
+        }
+        if (msg.kind === "call-decline" || msg.kind === "call-hangup") finishCall("drop")
       })
 
       await db.map({ query: { type: "friend" }, realtime: true }, ({ id, value, action }) => {
