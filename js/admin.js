@@ -797,12 +797,14 @@ function renderStorages(main, paint, db) {
     })
     return
   }
-  db.put({
-    type: "r2-config",
-    accessKeyId: keys.accessKeyId,
-    secretAccessKey: keys.secretAccessKey,
-    updatedAt: Date.now()
-  }, "r2-config:site").catch(() => {})
+  if (db) {
+    db.put({
+      type: "r2-config",
+      accessKeyId: keys.accessKeyId,
+      secretAccessKey: keys.secretAccessKey,
+      updatedAt: Date.now()
+    }, "r2-config:site").catch(() => {})
+  }
   box.innerHTML =
     "<div class=\"scp-grid r2-stats\">" +
     "<div class=\"scp-stat\"><span>Files in R2</span><strong id=\"r2-count\">—</strong></div>" +
