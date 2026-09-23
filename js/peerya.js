@@ -45,6 +45,10 @@ async function hmacSha1B64(secret, msg) {
   return btoa(out)
 }
 
+export async function callIceServers() {
+  return meshIceServers()
+}
+
 async function meshIceServers() {
   const stun = [
     { urls: "stun:stun.l.google.com:19302" },

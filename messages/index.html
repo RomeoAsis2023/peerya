@@ -929,7 +929,8 @@
         onMeshDisconnect,
         onMeshStream,
         openMeshStream,
-        closeMeshStream
+        closeMeshStream,
+        callIceServers
       } from "../js/peerya.js"
 
       const db = await requireAuth()
@@ -1192,6 +1193,8 @@
       let call = null
       let localStream = null
       let callTimer = null
+      let pc = null
+      let pendingOffer = null
 
       const callBtn = (label, className, icon, onClick) => {
         const btn = document.createElement("button")
@@ -1248,14 +1251,26 @@
         callTimer = null
       }
 
+      const mediaError = (error) => {
+        const name = error && error.name
+        if (name === "NotAllowedError") return "Allow camera and microphone, then try again."
+        if (name === "NotFoundError") return "No camera or microphone was found."
+        return (error && error.message) || "Camera or mic was blocked"
+      }
+
       const stopMedia = () => {
-        if (localStream) {
-          localStream.getTracks().forEach((track) => track.stop())
-          closeMeshStream(localStream, call && call.connectId)
+        if (pc) {
+          pc.onicecandidate = null
+          pc.ontrack = null
+          pc.close()
         }
+        pc = null
+        pendingOffer = null
+        if (localStream) localStream.getTracks().forEach((track) => track.stop())
         localStream = null
         callRemote.srcObject = null
         callLocal.srcObject = null
+        closeMeshStream(null, null)
       }
 
       const finishCall = (reason) => {
@@ -1276,11 +1291,87 @@
         paintCall()
       }
 
+      const ensurePc = async () => {
+        if (pc) return pc
+        const ice = await callIceServers()
+        pc = new RTCPeerConnection({ iceServers: ice })
+        pc.onicecandidate = (event) => {
+          if (!event.candidate || !call) return
+          sendMeshCall({
+            kind: "call-ice",
+            callId: call.callId,
+            from: me,
+            to: call.peer,
+            candidate: event.candidate
+          }, call.connectId)
+        }
+        pc.ontrack = (event) => {
+          const stream = event.streams[0] || new MediaStream([event.track])
+          callRemote.srcObject = stream
+          callRemote.play().catch(() => {})
+          callFallback.classList.add("hidden")
+          if (call) {
+            call.status = "Connected"
+            paintCall()
+          }
+        }
+        return pc
+      }
+
       const startMedia = async () => {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        if (localStream) return
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("This browser has no camera API. Use Chrome or Edge.")
+        }
+        const tries = [
+          { video: true, audio: true },
+          { video: true, audio: false },
+          { video: false, audio: true }
+        ]
+        let last = null
+        for (const constraints of tries) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia(constraints)
+            break
+          } catch (error) {
+            last = error
+          }
+        }
+        if (!localStream) throw last || new Error("Camera or mic was blocked")
         callLocal.srcObject = localStream
+        callLocal.muted = true
+        await callLocal.play().catch(() => {})
         callLocalFallback.classList.add("hidden")
-        openMeshStream(localStream, call.connectId)
+        const conn = await ensurePc()
+        localStream.getTracks().forEach((track) => conn.addTrack(track, localStream))
+        if (call && call.connectId) openMeshStream(localStream, call.connectId)
+      }
+
+      const sendOffer = async () => {
+        const conn = await ensurePc()
+        const offer = await conn.createOffer()
+        await conn.setLocalDescription(offer)
+        sendMeshCall({
+          kind: "call-offer",
+          callId: call.callId,
+          from: me,
+          to: call.peer,
+          sdp: conn.localDescription
+        }, call.connectId)
+      }
+
+      const answerOffer = async (sdp) => {
+        const conn = await ensurePc()
+        await conn.setRemoteDescription(sdp)
+        const answer = await conn.createAnswer()
+        await conn.setLocalDescription(answer)
+        sendMeshCall({
+          kind: "call-answer",
+          callId: call.callId,
+          from: me,
+          to: call.peer,
+          sdp: conn.localDescription
+        }, call.connectId)
       }
 
       const acceptCall = async () => {
@@ -1293,29 +1384,40 @@
         sendMeshCall({ kind: "call-accept", callId: call.callId, from: me, to: call.peer }, call.connectId)
         try {
           await startMedia()
-          call.status = "Connected"
-        } catch {
-          call.status = "Camera or mic was blocked"
+          if (pendingOffer) {
+            const sdp = pendingOffer
+            pendingOffer = null
+            await answerOffer(sdp)
+          }
+          call.status = localStream.getVideoTracks().length ? "Connected" : "Audio only"
+        } catch (error) {
+          call.status = mediaError(error)
         }
         paintCall()
       }
 
-      const beginCall = () => {
+      const beginCall = async () => {
         if (!activeThread || call) return
         const peer = otherInThread(activeThread, me)
-        const connectId = null
         call = {
           callId: String(Date.now()),
           peer,
-          connectId,
+          connectId: null,
           name: displayName(peer),
           phase: "outgoing",
-          status: "Calling…",
+          status: "Starting camera…",
           muted: false,
           cameraOff: false
         }
-        sendMeshCall({ kind: "call-invite", callId: call.callId, from: me, to: peer, name: meName }, null)
+        paintCall()
         ringSound.play().catch(() => {})
+        try {
+          await startMedia()
+          call.status = "Calling…"
+        } catch (error) {
+          call.status = mediaError(error)
+        }
+        sendMeshCall({ kind: "call-invite", callId: call.callId, from: me, to: peer, name: meName }, null)
         paintCall()
         callTimer = setTimeout(() => finishCall("cancel"), 45000)
       }
@@ -1379,11 +1481,31 @@
           paintCall()
           try {
             await startMedia()
-            call.status = "Connected"
-          } catch {
-            call.status = "Camera or mic was blocked"
+            if (call.connectId) openMeshStream(localStream, call.connectId)
+            await sendOffer()
+            call.status = localStream.getVideoTracks().length ? "Connected" : "Audio only"
+          } catch (error) {
+            call.status = mediaError(error)
           }
           paintCall()
+          return
+        }
+        if (msg.kind === "call-offer" && msg.sdp) {
+          call.connectId = attr.connectId || call.connectId
+          if (call.phase !== "live" || !localStream) {
+            pendingOffer = msg.sdp
+            return
+          }
+          try { await answerOffer(msg.sdp) } catch (error) { call.status = mediaError(error); paintCall() }
+          return
+        }
+        if (msg.kind === "call-answer" && msg.sdp && pc) {
+          try { await pc.setRemoteDescription(msg.sdp) } catch (error) { call.status = mediaError(error); paintCall() }
+          return
+        }
+        if (msg.kind === "call-ice" && msg.candidate && pc) {
+          try { await pc.addIceCandidate(msg.candidate) } catch {}
+          return
         }
         if (msg.kind === "call-decline" || msg.kind === "call-hangup") finishCall("drop")
       })
