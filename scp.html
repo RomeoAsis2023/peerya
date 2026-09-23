@@ -79,9 +79,10 @@
     </script>
     <script type="module">
       import { ADMIN_PASS_HASH } from "./js/admin-gate.js"
-      import { openDb, bootAdmin, claimSuperadmin, PASSKEYS_AVAILABLE } from "./js/peerya.js?v=scp17"
+      import { openDb, bootAdmin, claimSuperadmin, PASSKEYS_AVAILABLE } from "./js/peerya.js?v=scp18"
 
       let db
+      let volatile = false
       const pinOk = () => PASSKEYS_AVAILABLE
 
       async function sha256hex(text) {
@@ -102,10 +103,42 @@
         el.textContent = message || ""
       }
 
+      function armSm() {
+        db.sm.setSecurityStateChangeCallback((state) => {
+          volatile = !!(state && state.hasVolatileIdentity)
+        })
+      }
+
       async function enterCp() {
         await claimSuperadmin(db)
         await bootAdmin(db)
         if (!document.getElementById("scp-root")) throw new Error("Control panel did not start.")
+      }
+
+      async function protectThenEnter(errId) {
+        if (db.sm.isSecurityActive() && !volatile) {
+          await enterCp()
+          return
+        }
+        try {
+          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
+          if (!address && !db.sm.isSecurityActive()) {
+            setErr(errId, "PIN was cancelled.")
+            return
+          }
+          await enterCp()
+        } catch (e) {
+          const msg = String((e && e.message) || "")
+          if (/volatile/i.test(msg) && db.sm.isSecurityActive()) {
+            await enterCp()
+            return
+          }
+          if (/volatile/i.test(msg)) {
+            setErr(errId, "No new identity to protect. Sign in with PIN, or Register again.")
+            return
+          }
+          setErr(errId, msg || "PIN timed out or was blocked.")
+        }
       }
 
       document.getElementById("scp-pass-form").addEventListener("submit", async (event) => {
@@ -126,6 +159,7 @@
         setErr("scp-pass-err", "Starting…", true)
         try {
           db = await openDb()
+          armSm()
         } catch (e) {
           setErr("scp-pass-err", String((e && e.message) || "Could not start."))
           return
@@ -174,13 +208,19 @@
         setErr("scp-register-err", "")
         btn.disabled = true
         try {
-          const identity = await db.sm.startNewUserRegistration()
-          if (!identity) {
-            setErr("scp-register-err", "Could not create an identity.")
+          if (db.sm.isSecurityActive()) {
+            setErr("scp-register-err", "This browser already has a PIN. Use Sign in with PIN.")
+            show("scp-pin-form")
             return
           }
-          document.getElementById("scp-new-phrase").value =
-            db.sm.getMnemonicForDisplayAfterRegistrationOrRecovery() || identity.mnemonic || ""
+          const identity = await db.sm.startNewUserRegistration()
+          const phrase = db.sm.getMnemonicForDisplayAfterRegistrationOrRecovery() || (identity && identity.mnemonic) || ""
+          if (!identity || !phrase) {
+            setErr("scp-register-err", "Could not create an identity. Sign in with PIN instead.")
+            return
+          }
+          volatile = true
+          document.getElementById("scp-new-phrase").value = phrase
           document.getElementById("scp-register-start").classList.add("hidden")
           document.getElementById("scp-register-phrase").classList.remove("hidden")
           setErr("scp-register-err", "Save the phrase, then protect it with a PIN.", true)
@@ -205,14 +245,7 @@
         btn.disabled = true
         btn.textContent = "Waiting for PIN…"
         try {
-          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
-          if (!address) {
-            setErr("scp-register-err", "PIN was cancelled.")
-            return
-          }
-          await enterCp()
-        } catch (e) {
-          setErr("scp-register-err", String((e && e.message) || "PIN timed out or was blocked."))
+          await protectThenEnter("scp-register-err")
         } finally {
           btn.disabled = false
           btn.textContent = "Protect with PIN"
@@ -236,6 +269,12 @@
             setErr("scp-recover-err", "That recovery phrase is not valid.")
             return
           }
+          if (db.sm.isSecurityActive() && !volatile) {
+            setErr("scp-recover-err", "Phrase accepted. Opening control panel…", true)
+            await enterCp()
+            return
+          }
+          volatile = true
           document.getElementById("scp-recover-pin").classList.remove("hidden")
           setErr("scp-recover-err", "Phrase accepted. Add a PIN on this device.", true)
         } catch (e) {
@@ -250,14 +289,7 @@
         btn.disabled = true
         btn.textContent = "Waiting for PIN…"
         try {
-          const address = await db.sm.protectCurrentIdentityWithWebAuthn()
-          if (!address && !db.sm.isSecurityActive()) {
-            setErr("scp-recover-err", "PIN was cancelled.")
-            return
-          }
-          await enterCp()
-        } catch (e) {
-          setErr("scp-recover-err", String((e && e.message) || "PIN timed out or was blocked."))
+          await protectThenEnter("scp-recover-err")
         } finally {
           btn.disabled = false
           btn.textContent = "Add PIN on this device"
