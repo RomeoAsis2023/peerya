@@ -160,7 +160,7 @@ export async function r2Put(file, key) {
 }
 
 export async function uploadMedia(file, folder) {
-  if (!loadR2Keys()) throw new Error("Connect Cloudflare R2 in Superadmin Storages on this browser first.")
+  if (!loadR2Keys()) throw new Error("R2 keys are not saved yet. Open Superadmin, Storages, and save the Access Key once.")
   const safe = String((file && file.name) || "file").replace(/[^\w.\-]+/g, "_")
   const key = String(folder || "media").replace(/\/+$/, "") + "/" + Date.now() + "-" + safe
   return r2Put(file, key)

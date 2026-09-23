@@ -706,7 +706,7 @@ export function goHome() {
 export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
-      const { startSuperadmin } = await import("./admin.js?v=fields1")
+      const { startSuperadmin } = await import("./admin.js?v=r2share1")
     await startSuperadmin(db)
   }
   await run()
@@ -1292,7 +1292,15 @@ export function mediaSrc(file) {
 }
 
 export async function storeMedia(file, folder) {
-  const { uploadMedia } = await import("./r2.js")
+  const { uploadMedia, loadR2Keys, saveR2Keys } = await import("./r2.js")
+  if (!loadR2Keys()) {
+    const db = await openDb()
+    try {
+      const { result } = await db.get("r2-config:site")
+      const cfg = result && result.value
+      if (cfg && cfg.accessKeyId && cfg.secretAccessKey) saveR2Keys(cfg.accessKeyId, cfg.secretAccessKey)
+    } catch {}
+  }
   return uploadMedia(file, folder)
 }
 

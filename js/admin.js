@@ -762,7 +762,7 @@ function formatSize(bytes) {
   return (n / (1024 * 1024 * 1024)).toFixed(2) + " GB"
 }
 
-function renderStorages(main, paint) {
+function renderStorages(main, paint, db) {
   const keys = loadR2Keys()
   main.innerHTML = "<h2>Storages</h2><p class=\"scp-empty\">Cloudflare R2 · peeryar2storage · pyr.antserver1.eu.org</p><div id=\"r2-box\"></div>"
   const box = main.querySelector("#r2-box")
@@ -774,7 +774,7 @@ function renderStorages(main, paint) {
       "<label>Secret Access Key</label><input id=\"r2-secret\" type=\"password\" autocomplete=\"off\">" +
       "<p class=\"scp-err\" id=\"r2-err\"></p>" +
       "<button type=\"submit\" class=\"btn\">Save keys</button></form>"
-    box.querySelector("form").addEventListener("submit", (event) => {
+    box.querySelector("form").addEventListener("submit", async (event) => {
       event.preventDefault()
       const id = box.querySelector("#r2-id").value.trim()
       const secret = box.querySelector("#r2-secret").value.trim()
@@ -783,10 +783,26 @@ function renderStorages(main, paint) {
         return
       }
       saveR2Keys(id, secret)
+      if (db) {
+        try {
+          await db.put({
+            type: "r2-config",
+            accessKeyId: id,
+            secretAccessKey: secret,
+            updatedAt: Date.now()
+          }, "r2-config:site")
+        } catch {}
+      }
       paint()
     })
     return
   }
+  db.put({
+    type: "r2-config",
+    accessKeyId: keys.accessKeyId,
+    secretAccessKey: keys.secretAccessKey,
+    updatedAt: Date.now()
+  }, "r2-config:site").catch(() => {})
   box.innerHTML =
     "<div class=\"scp-grid r2-stats\">" +
     "<div class=\"scp-stat\"><span>Files in R2</span><strong id=\"r2-count\">—</strong></div>" +
@@ -1063,7 +1079,7 @@ export async function startSuperadmin(db) {
         } else if (page === "genosdb") {
           if (!Object.keys(gdbState.cache).length) gdbState.cache = await loadGdbAll(liveDb)
           renderGenos(main, liveDb, gdbState, paint)
-        } else if (page === "storages") renderStorages(main, paint)
+        }         else if (page === "storages") renderStorages(main, paint, liveDb)
         else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
         else if (page === "stores") main.innerHTML = comingSoon("Stores")
         else if (page === "livestreams") main.innerHTML = comingSoon("Livestreams")
