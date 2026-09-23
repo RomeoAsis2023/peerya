@@ -628,23 +628,9 @@ function renderStorages(main, paint) {
           try {
             await r2Delete(row.key)
             await draw()
-    } catch (err) {
-      const msg = String(err.message || err)
-      status.textContent = msg
-      if (/CORS|Failed to fetch/i.test(msg)) {
-        const pre = document.createElement("pre")
-        pre.className = "gdb-json"
-        pre.textContent = JSON.stringify(R2_CORS, null, 2)
-        tbody.innerHTML = ""
-        const tr = document.createElement("tr")
-        const td = document.createElement("td")
-        td.colSpan = 4
-        td.append(pre)
-        tr.append(td)
-        tbody.append(tr)
-      }
-    }
-  }
+          } catch (err) {
+            status.textContent = String(err.message || err)
+          }
         })
         tbody.append(tr)
       })
