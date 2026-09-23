@@ -151,7 +151,14 @@ export function meshPeerFor(address) {
 }
 
 export function sendMeshCall(payload, connectId) {
-  meshSend(payload, connectId)
+  const ids = new Set()
+  if (connectId) ids.add(connectId)
+  meshPeerUser.forEach((address, id) => ids.add(id))
+  if (!ids.size) {
+    meshSend(payload, null)
+    return
+  }
+  ids.forEach((id) => meshSend(payload, id))
 }
 
 export function onMeshCall(fn) {

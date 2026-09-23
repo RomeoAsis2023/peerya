@@ -894,7 +894,6 @@
       <div class="call-card">
         <div class="call-stage">
           <video id="call-remote" autoplay playsinline></video>
-          <img class="remote-fallback hidden" id="call-fallback" src="../icon.svg" alt="">
           <div class="call-top">
             <img src="../icon.svg" alt="">
             <div>
@@ -904,7 +903,6 @@
           </div>
           <div class="call-local">
             <video id="call-local" autoplay muted playsinline></video>
-            <img id="call-local-fallback" src="../icon.svg" alt="">
           </div>
         </div>
         <div class="call-actions" id="call-actions"></div>
@@ -939,7 +937,7 @@
         openMeshStream,
         closeMeshStream,
         callIceServers
-      } from "../js/peerya.js?v=call3"
+      } from "../js/peerya.js?v=call4"
 
       const db = await requireAuth()
       if (!db) throw new Error("unauthorized")
@@ -1192,8 +1190,6 @@
       const callModal = document.getElementById("call-modal")
       const callRemote = document.getElementById("call-remote")
       const callLocal = document.getElementById("call-local")
-      const callFallback = document.getElementById("call-fallback")
-      const callLocalFallback = document.getElementById("call-local-fallback")
       const callActions = document.getElementById("call-actions")
       const ringSound = new Audio(new URL("../ring_phone.mp3", import.meta.url).href)
       const endSound = new Audio(new URL("../end_call.mp3", import.meta.url).href)
@@ -1203,6 +1199,8 @@
       let callTimer = null
       let pc = null
       let pendingOffer = null
+      let iceQueue = []
+      let remoteStream = null
 
       const callBtn = (label, className, icon, onClick) => {
         const btn = document.createElement("button")
@@ -1233,8 +1231,6 @@
         callModal.classList.remove("hidden")
         document.getElementById("call-name").textContent = call.name || "Peerya"
         document.getElementById("call-state").textContent = call.status
-        callFallback.classList.toggle("hidden", !!callRemote.srcObject)
-        callLocalFallback.classList.toggle("hidden", !!callLocal.srcObject)
         callActions.innerHTML = ""
         if (call.phase === "incoming") {
           callActions.append(
@@ -1274,6 +1270,7 @@
         }
         pc = null
         pendingOffer = null
+        iceQueue = []
         if (localStream) localStream.getTracks().forEach((track) => track.stop())
         localStream = null
         callRemote.srcObject = null
@@ -1299,9 +1296,12 @@
         paintCall()
       }
 
+      const sdpPlain = (desc) => desc ? { type: desc.type, sdp: desc.sdp } : null
+
       const ensurePc = async () => {
         if (pc) return pc
         const ice = await callIceServers()
+        remoteStream = new MediaStream()
         pc = new RTCPeerConnection({ iceServers: ice })
         pc.onicecandidate = (event) => {
           if (!event.candidate || !call) return
@@ -1310,20 +1310,29 @@
             callId: call.callId,
             from: me,
             to: call.peer,
-            candidate: event.candidate
+            candidate: event.candidate.toJSON()
           }, call.connectId)
         }
         pc.ontrack = (event) => {
-          const stream = event.streams[0] || new MediaStream([event.track])
-          callRemote.srcObject = stream
+          if (!remoteStream.getTracks().some((track) => track.id === event.track.id)) {
+            remoteStream.addTrack(event.track)
+          }
+          callRemote.srcObject = remoteStream
           callRemote.play().catch(() => {})
-          callFallback.classList.add("hidden")
           if (call) {
             call.status = "Connected"
             paintCall()
           }
         }
         return pc
+      }
+
+      const flushIce = async () => {
+        if (!pc || !pc.remoteDescription) return
+        while (iceQueue.length) {
+          const candidate = iceQueue.shift()
+          try { await pc.addIceCandidate(candidate) } catch {}
+        }
       }
 
       const startMedia = async () => {
@@ -1349,10 +1358,10 @@
         callLocal.srcObject = localStream
         callLocal.muted = true
         await callLocal.play().catch(() => {})
-        callLocalFallback.classList.add("hidden")
         const conn = await ensurePc()
-        localStream.getTracks().forEach((track) => conn.addTrack(track, localStream))
-        if (call && call.connectId) openMeshStream(localStream, call.connectId)
+        localStream.getTracks().forEach((track) => {
+          if (!conn.getSenders().some((sender) => sender.track === track)) conn.addTrack(track, localStream)
+        })
       }
 
       const sendOffer = async () => {
@@ -1364,13 +1373,14 @@
           callId: call.callId,
           from: me,
           to: call.peer,
-          sdp: conn.localDescription
+          sdp: sdpPlain(conn.localDescription)
         }, call.connectId)
       }
 
       const answerOffer = async (sdp) => {
         const conn = await ensurePc()
         await conn.setRemoteDescription(sdp)
+        await flushIce()
         const answer = await conn.createAnswer()
         await conn.setLocalDescription(answer)
         sendMeshCall({
@@ -1378,7 +1388,7 @@
           callId: call.callId,
           from: me,
           to: call.peer,
-          sdp: conn.localDescription
+          sdp: sdpPlain(conn.localDescription)
         }, call.connectId)
       }
 
@@ -1441,7 +1451,6 @@
         if (!localStream || !call) return
         call.cameraOff = !call.cameraOff
         localStream.getVideoTracks().forEach((track) => { track.enabled = !call.cameraOff })
-        callLocalFallback.classList.toggle("hidden", !call.cameraOff && !!callLocal.srcObject)
         paintCall()
       }
 
@@ -1489,7 +1498,6 @@
           paintCall()
           try {
             await startMedia()
-            if (call.connectId) openMeshStream(localStream, call.connectId)
             await sendOffer()
             call.status = localStream.getVideoTracks().length ? "Camera on" : "Audio only"
           } catch (error) {
@@ -1508,11 +1516,17 @@
           return
         }
         if (msg.kind === "call-answer" && msg.sdp && pc) {
-          try { await pc.setRemoteDescription(msg.sdp) } catch (error) { call.status = mediaError(error); paintCall() }
+          try {
+            await pc.setRemoteDescription(msg.sdp)
+            await flushIce()
+          } catch (error) { call.status = mediaError(error); paintCall() }
           return
         }
-        if (msg.kind === "call-ice" && msg.candidate && pc) {
-          try { await pc.addIceCandidate(msg.candidate) } catch {}
+        if (msg.kind === "call-ice" && msg.candidate) {
+          if (!pc || !pc.remoteDescription) iceQueue.push(msg.candidate)
+          else {
+            try { await pc.addIceCandidate(msg.candidate) } catch {}
+          }
           return
         }
         if (msg.kind === "call-decline" || msg.kind === "call-hangup") finishCall("drop")
