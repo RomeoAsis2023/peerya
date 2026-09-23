@@ -572,6 +572,7 @@ export async function saveProfile(db, fields) {
     birthday: fields && fields.birthday != null ? fields.birthday : prev.birthday || "",
     gender: fields && fields.gender != null ? fields.gender : prev.gender || "",
     about: fields && fields.about != null ? String(fields.about).trim() : prev.about || "",
+    custom: fields && fields.custom ? { ...(prev.custom || {}), ...fields.custom } : (prev.custom || {}),
     createdAt: prev.createdAt || Date.now(),
     updatedAt: Date.now()
   }
@@ -705,7 +706,7 @@ export function goHome() {
 export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
-      const { startSuperadmin } = await import("./admin.js?v=r2lim1")
+      const { startSuperadmin } = await import("./admin.js?v=fields1")
     await startSuperadmin(db)
   }
   await run()
@@ -1145,6 +1146,142 @@ export function compressAvatar(file) {
       resolve(null)
     }
     img.src = url
+  })
+}
+
+export async function listProfileFields(db) {
+  try {
+    const out = await db.map({ query: { type: "profile-field" } })
+    return ((out && out.results) || [])
+      .map((row) => ({ id: row.id, ...(row.value || {}) }))
+      .filter((row) => row.key && row.label)
+      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+  } catch {
+    return []
+  }
+}
+
+export function sanitizeFieldHtml(html) {
+  const box = document.createElement("div")
+  box.innerHTML = String(html || "")
+  box.querySelectorAll("script,style,iframe,object,embed").forEach((el) => el.remove())
+  box.querySelectorAll("*").forEach((el) => {
+    ;[...el.attributes].forEach((attr) => {
+      if (/^on/i.test(attr.name) || attr.name === "style") el.removeAttribute(attr.name)
+      if (attr.name === "href" && /^\s*javascript:/i.test(attr.value)) el.removeAttribute(attr.name)
+    })
+  })
+  return box.innerHTML
+}
+
+export function mountProfileFields(root, fields, values) {
+  root.innerHTML = ""
+  fields.forEach((field) => {
+    const wrap = document.createElement("div")
+    wrap.className = "mb-3 full"
+    const label = document.createElement("label")
+    label.className = "form-label"
+    label.textContent = field.label + (field.required ? " *" : "")
+    wrap.append(label)
+    const current = values && values[field.key]
+    const options = Array.isArray(field.options) ? field.options : []
+    if (field.fieldType === "radio" || field.fieldType === "checkbox") {
+      const selected = Array.isArray(current) ? current.map(String) : String(current || "").split(",").filter(Boolean)
+      options.forEach((option, index) => {
+        const row = document.createElement("div")
+        row.className = "form-check"
+        const input = document.createElement("input")
+        input.className = "form-check-input"
+        input.type = field.fieldType === "radio" ? "radio" : "checkbox"
+        input.name = "pf-" + field.key
+        input.id = "pf-" + field.key + "-" + index
+        input.value = option
+        input.dataset.field = field.key
+        input.dataset.kind = field.fieldType
+        input.checked = selected.includes(option)
+        const lab = document.createElement("label")
+        lab.className = "form-check-label"
+        lab.htmlFor = input.id
+        lab.textContent = option
+        row.append(input, lab)
+        wrap.append(row)
+      })
+    } else if (field.fieldType === "textarea" || field.fieldType === "wysiwyg") {
+      const area = document.createElement("textarea")
+      area.className = "form-control"
+      area.dataset.field = field.key
+      area.dataset.kind = field.fieldType
+      if (field.fieldType === "wysiwyg") area.dataset.wysiwyg = "1"
+      area.required = !!field.required
+      area.value = typeof current === "string" ? current : ""
+      wrap.append(area)
+    } else {
+      const input = document.createElement("input")
+      input.className = "form-control"
+      input.type = "text"
+      input.dataset.field = field.key
+      input.dataset.kind = "text"
+      input.required = !!field.required
+      input.value = typeof current === "string" ? current : ""
+      wrap.append(input)
+    }
+    root.append(wrap)
+  })
+  upgradeWysiwyg(root)
+}
+
+function upgradeWysiwyg(root) {
+  root.querySelectorAll("textarea[data-wysiwyg]").forEach((area) => {
+    const tools = document.createElement("div")
+    tools.className = "field-tools"
+    tools.innerHTML = '<button type="button" data-cmd="bold">B</button><button type="button" data-cmd="italic">I</button><button type="button" data-cmd="insertUnorderedList">List</button>'
+    const editor = document.createElement("div")
+    editor.className = "form-control field-editor"
+    editor.contentEditable = "true"
+    editor.innerHTML = sanitizeFieldHtml(area.value)
+    area.hidden = true
+    area.after(tools, editor)
+    const sync = () => { area.value = editor.innerHTML }
+    tools.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        editor.focus()
+        document.execCommand(btn.dataset.cmd)
+        sync()
+      })
+    })
+    editor.addEventListener("input", sync)
+  })
+}
+
+export function collectProfileFields(root) {
+  const custom = {}
+  root.querySelectorAll("[data-field]").forEach((el) => {
+    const key = el.dataset.field
+    const kind = el.dataset.kind
+    if (kind === "checkbox") {
+      custom[key] = custom[key] || []
+      if (el.checked) custom[key].push(el.value)
+    } else if (kind === "radio") {
+      if (el.checked) custom[key] = el.value
+    } else custom[key] = el.value
+  })
+  return custom
+}
+
+export function appendProfileAnswers(root, fields, profile) {
+  const custom = (profile && profile.custom) || {}
+  fields.forEach((field) => {
+    const raw = custom[field.key]
+    const empty = raw == null || raw === "" || (Array.isArray(raw) && !raw.length)
+    if (empty) return
+    const row = document.createElement("div")
+    row.className = "about-row"
+    row.innerHTML = "<dt></dt><dd></dd>"
+    row.querySelector("dt").textContent = field.label
+    const dd = row.querySelector("dd")
+    if (field.fieldType === "wysiwyg") dd.innerHTML = sanitizeFieldHtml(raw)
+    else dd.textContent = Array.isArray(raw) ? raw.join(", ") : String(raw)
+    root.append(row)
   })
 }
 

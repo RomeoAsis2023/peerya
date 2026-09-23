@@ -130,6 +130,16 @@
   background: #fff;
 }
 
+.field-tools { display: flex; gap: 0.35rem; margin-bottom: 0.35rem; }
+.field-tools button {
+  border: 1px solid #ececec;
+  background: #fff;
+  border-radius: 0.45rem;
+  min-width: 2rem;
+  font-weight: 800;
+}
+.field-editor { min-height: 7rem; }
+
 .post-dialog-actions .ok {
   background: var(--peerya-green, #8bc34a);
   border-color: var(--peerya-green, #8bc34a);

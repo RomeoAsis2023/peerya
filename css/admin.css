@@ -471,6 +471,18 @@
   margin-bottom: 0.35rem;
 }
 
+.scp-main .form-control,
+.scp-main .form-select {
+  width: 100%;
+  border: 1px solid #ececec;
+  border-radius: 0.7rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+  margin-bottom: 0.7rem;
+}
+.scp-main .form-label { display: block; color: #6f6f6f; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.25rem; }
+.scp-main .form-check { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.35rem; }
+
 .r2-meter span {
   display: block;
   height: 100%;

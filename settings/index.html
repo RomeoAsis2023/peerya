@@ -665,6 +665,7 @@
             <textarea class="form-control" id="about" maxlength="500" placeholder="Tell peers a little about you"></textarea>
           </div>
         </div>
+        <div id="profile-fields"></div>
         <button type="submit" class="settings-save">Save changes</button>
       </form>
       </section>
@@ -707,8 +708,11 @@
         profileHref,
         attachProfiles,
         storeMedia,
-        mediaSrc
-      } from "../js/peerya.js?v=r2link1"
+        mediaSrc,
+        listProfileFields,
+        mountProfileFields,
+        collectProfileFields
+      } from "../js/peerya.js?v=fields1"
 
       const db = await requireAuth()
       if (!db) throw new Error("unauthorized")
@@ -747,6 +751,9 @@
         document.getElementById("birthday").value = profile.birthday || ""
         document.getElementById("gender").value = profile.gender || ""
         document.getElementById("about").value = profile.about || ""
+        listProfileFields(db).then((fields) => {
+          mountProfileFields(document.getElementById("profile-fields"), fields, profile.custom || {})
+        })
         document.getElementById("settings-avatar").src = avatarUrl(me, profile)
       }
 
@@ -819,6 +826,7 @@
             birthday: document.getElementById("birthday").value,
             gender: document.getElementById("gender").value,
             about: document.getElementById("about").value,
+            custom: collectProfileFields(document.getElementById("profile-fields")),
             avatar: pendingAvatar
           })
           pendingAvatar = null

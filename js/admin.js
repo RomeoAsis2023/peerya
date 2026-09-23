@@ -1,4 +1,4 @@
-import { startPresence, attachProfiles, avatarUrl, displayName, isScpApp, dropMedia } from "./peerya.js"
+import { startPresence, attachProfiles, avatarUrl, displayName, isScpApp, dropMedia, listProfileFields } from "./peerya.js"
 import { loadR2Keys, saveR2Keys, clearR2Keys, r2List, r2Put, r2Delete, publicUrl, R2_CORS, R2_UPLOAD_LIMIT } from "./r2.js"
 
 const SESSION = "peerya.scp"
@@ -10,7 +10,7 @@ function loadCss() {
   const link = document.createElement("link")
   link.id = "scp-css"
   link.rel = "stylesheet"
-  link.href = new URL("../css/admin.css?v=r2lim1", import.meta.url).href
+  link.href = new URL("../css/admin.css?v=fields1", import.meta.url).href
   document.head.append(link)
 }
 
@@ -69,6 +69,7 @@ const MENUS = [
   { id: "advertisers", label: "Advertisers", icon: "bi-megaphone-fill" },
   { id: "stores", label: "Stores", icon: "bi-shop" },
   { id: "livestreams", label: "Livestreams", icon: "bi-broadcast" },
+  { id: "fields", label: "Profile fields", icon: "bi-ui-checks-grid" },
   { id: "settings", label: "Settings", icon: "bi-gear-fill" }
 ]
 
@@ -892,6 +893,107 @@ function bindUserActions(main, db, people, paint) {
   })
 }
 
+const FIELD_TYPES = ["text", "radio", "checkbox", "textarea", "wysiwyg"]
+
+function slugField(label) {
+  return String(label || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40)
+}
+
+async function renderProfileFields(main, db, paint) {
+  const rows = await listProfileFields(db)
+  main.innerHTML =
+    "<div class=\"flag-head\"><div><h2>Profile fields</h2><p class=\"scp-empty\">These fields appear on Settings and public profiles.</p></div>" +
+    "<button type=\"button\" class=\"scp-act on\" id=\"field-new\">Add field</button></div>" +
+    "<p class=\"scp-err\" id=\"field-err\"></p>" +
+    "<div class=\"gdb-scroll\"><table class=\"scp-table\"><thead><tr><th>Label</th><th>Key</th><th>Type</th><th>Required</th><th></th></tr></thead><tbody></tbody></table></div>"
+  const tbody = main.querySelector("tbody")
+  const err = main.querySelector("#field-err")
+  if (!rows.length) tbody.innerHTML = "<tr><td colspan=\"5\" class=\"scp-empty\">No extra fields yet.</td></tr>"
+  rows.forEach((field) => {
+    const tr = document.createElement("tr")
+    tr.innerHTML = "<td></td><td></td><td></td><td></td><td class=\"scp-actions\"></td>"
+    tr.children[0].textContent = field.label
+    tr.children[1].textContent = field.key
+    tr.children[2].textContent = field.fieldType || "text"
+    tr.children[3].textContent = field.required ? "Yes" : "No"
+    const actions = tr.querySelector(".scp-actions")
+    const edit = document.createElement("button")
+    edit.type = "button"
+    edit.className = "scp-act"
+    edit.textContent = "Edit"
+    edit.addEventListener("click", () => openFieldEditor(db, field, rows, paint))
+    const del = document.createElement("button")
+    del.type = "button"
+    del.className = "scp-act danger"
+    del.textContent = "Remove"
+    del.addEventListener("click", async () => {
+      try {
+        await db.remove(field.id)
+        await paint()
+      } catch (e) {
+        err.textContent = String((e && e.message) || "Could not remove that field.")
+      }
+    })
+    actions.append(edit, del)
+    tbody.append(tr)
+  })
+  main.querySelector("#field-new").addEventListener("click", () => openFieldEditor(db, null, rows, paint))
+}
+
+function openFieldEditor(db, field, rows, paint) {
+  const el = openModal(
+    "<form class=\"scp-card scp-edit\">" +
+    "<h1>" + (field ? "Edit field" : "Add field") + "</h1>" +
+    "<label class=\"form-label\" for=\"pf-label\">Label</label><input class=\"form-control\" id=\"pf-label\" required>" +
+    "<label class=\"form-label\" for=\"pf-type\">Type</label><select class=\"form-select\" id=\"pf-type\"></select>" +
+    "<label class=\"form-label\" for=\"pf-options\">Options</label><textarea class=\"form-control\" id=\"pf-options\" placeholder=\"One option per line. Used by radio and checkbox.\"></textarea>" +
+    "<div class=\"form-check mb-3\"><input class=\"form-check-input\" type=\"checkbox\" id=\"pf-required\"><label class=\"form-check-label\" for=\"pf-required\">Required</label></div>" +
+    "<p class=\"scp-err\" id=\"pf-err\"></p>" +
+    "<div class=\"scp-edit-actions\"><button type=\"button\" class=\"scp-act\" id=\"pf-cancel\">Cancel</button><button type=\"submit\" class=\"btn\">Save</button></div></form>"
+  )
+  const type = el.querySelector("#pf-type")
+  FIELD_TYPES.forEach((name) => {
+    const opt = document.createElement("option")
+    opt.value = name
+    opt.textContent = name
+    type.append(opt)
+  })
+  if (field) {
+    el.querySelector("#pf-label").value = field.label || ""
+    type.value = field.fieldType || "text"
+    el.querySelector("#pf-options").value = (field.options || []).join("\n")
+    el.querySelector("#pf-required").checked = !!field.required
+  }
+  el.querySelector("#pf-cancel").addEventListener("click", closeModal)
+  el.querySelector("form").addEventListener("submit", async (event) => {
+    event.preventDefault()
+    const err = el.querySelector("#pf-err")
+    const label = el.querySelector("#pf-label").value.trim()
+    const key = field && field.key ? field.key : slugField(label)
+    if (!label || !key) {
+      err.textContent = "Label is required."
+      return
+    }
+    const options = el.querySelector("#pf-options").value.split("\n").map((line) => line.trim()).filter(Boolean)
+    try {
+      await db.put({
+        type: "profile-field",
+        key,
+        label,
+        fieldType: type.value,
+        required: el.querySelector("#pf-required").checked,
+        options,
+        order: field ? Number(field.order) || 0 : rows.length + 1,
+        updatedAt: Date.now()
+      }, field && field.id ? field.id : "profile-field:" + key)
+      closeModal()
+      await paint()
+    } catch (e) {
+      err.textContent = String((e && e.message) || "Could not save.")
+    }
+  })
+}
+
 export async function startSuperadmin(db) {
   if (!isScpApp()) return
   if (document.getElementById("scp-root")) {
@@ -965,6 +1067,7 @@ export async function startSuperadmin(db) {
         else if (page === "advertisers") main.innerHTML = comingSoon("Advertisers")
         else if (page === "stores") main.innerHTML = comingSoon("Stores")
         else if (page === "livestreams") main.innerHTML = comingSoon("Livestreams")
+        else if (page === "fields") await renderProfileFields(main, liveDb, paint)
         else if (page === "settings") main.innerHTML = comingSoon("Settings")
       } catch (err) {
         main.innerHTML = "<h2>Dashboard</h2><p class=\"scp-empty\">" + esc(err && err.message || "Could not load this page.") + "</p>"

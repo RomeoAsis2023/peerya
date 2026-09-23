@@ -961,8 +961,10 @@
         profileHref,
         attachProfiles,
         bindLiveMap,
-        ingestReaction
-      } from "../js/peerya.js"
+        ingestReaction,
+        listProfileFields,
+        appendProfileAnswers
+      } from "../js/peerya.js?v=fields1"
       import { createFeed } from "../js/feed.js"
 
       const db = await requireAuth()
@@ -1118,6 +1120,7 @@
           dl.append(row)
         }
         about.append(dl)
+        listProfileFields(db).then((fields) => appendProfileAnswers(dl, fields, profile))
         const minePosts = [...posts.values()].filter((post) => String(post.author).toLowerCase() === String(address).toLowerCase())
           .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
         feedUi.renderPosts(feeds, minePosts, "No posts yet.")
