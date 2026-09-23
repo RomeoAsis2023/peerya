@@ -1,0 +1,8 @@
+name = "peerya-upload"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+account_id = "927ac929eb08673cea54d7f1888fd640"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "peeryar2storage"

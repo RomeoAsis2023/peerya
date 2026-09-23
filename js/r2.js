@@ -1,6 +1,7 @@
 const R2_ENDPOINT = "https://927ac929eb08673cea54d7f1888fd640.r2.cloudflarestorage.com"
 const R2_BUCKET = "peeryar2storage"
 export const R2_PUBLIC = "https://pyr.antserver1.eu.org"
+export const R2_UPLOAD_API = "https://peerya-upload.romeoasis2023.workers.dev"
 export const R2_UPLOAD_LIMIT = (5 * 1024 * 1024 * 1024) - (5 * 1024 * 1024)
 const R2_STORE = "peerya.r2"
 const EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -160,10 +161,38 @@ export async function r2Put(file, key) {
 }
 
 export async function uploadMedia(file, folder) {
-  if (!loadR2Keys()) throw new Error("R2 keys are not saved yet. Open Superadmin, Storages, and save the Access Key once.")
-  const safe = String((file && file.name) || "file").replace(/[^\w.\-]+/g, "_")
-  const key = String(folder || "media").replace(/\/+$/, "") + "/" + Date.now() + "-" + safe
-  return r2Put(file, key)
+  if (file && file.size > 100 * 1024 * 1024) throw new Error("File is over 100 MB.")
+  const name = (file && file.name) || "file"
+  const type = (file && file.type) || "application/octet-stream"
+  const url = R2_UPLOAD_API + "/?folder=" + encodeURIComponent(folder || "media")
+  let res
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      body: file,
+      headers: { "Content-Type": type, "X-File-Name": name }
+    })
+  } catch {
+    throw new Error("Upload service is not reachable yet.")
+  }
+  if (!res.ok) throw new Error((await res.text() || "Upload failed") .slice(0, 180))
+  const data = await res.json()
+  return {
+    key: data.key,
+    url: data.url || publicUrl(data.key),
+    mime: data.mime || type,
+    name: data.name || name,
+    size: data.size || (file && file.size) || 0
+  }
+}
+
+export async function deleteMedia(key) {
+  if (!key) return
+  if (loadR2Keys()) {
+    await r2Delete(key)
+    return
+  }
+  await fetch(R2_UPLOAD_API + "/?key=" + encodeURIComponent(key), { method: "DELETE" })
 }
 
 export async function r2Delete(key) {

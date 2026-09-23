@@ -783,27 +783,9 @@ function renderStorages(main, paint, db) {
         return
       }
       saveR2Keys(id, secret)
-      if (db) {
-        try {
-          await db.put({
-            type: "r2-config",
-            accessKeyId: id,
-            secretAccessKey: secret,
-            updatedAt: Date.now()
-          }, "r2-config:site")
-        } catch {}
-      }
       paint()
     })
     return
-  }
-  if (db) {
-    db.put({
-      type: "r2-config",
-      accessKeyId: keys.accessKeyId,
-      secretAccessKey: keys.secretAccessKey,
-      updatedAt: Date.now()
-    }, "r2-config:site").catch(() => {})
   }
   box.innerHTML =
     "<div class=\"scp-grid r2-stats\">" +

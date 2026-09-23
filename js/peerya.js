@@ -1292,15 +1292,7 @@ export function mediaSrc(file) {
 }
 
 export async function storeMedia(file, folder) {
-  const { uploadMedia, loadR2Keys, saveR2Keys } = await import("./r2.js")
-  if (!loadR2Keys()) {
-    const db = await openDb()
-    try {
-      const { result } = await db.get("r2-config:site")
-      const cfg = result && result.value
-      if (cfg && cfg.accessKeyId && cfg.secretAccessKey) saveR2Keys(cfg.accessKeyId, cfg.secretAccessKey)
-    } catch {}
-  }
+  const { uploadMedia } = await import("./r2.js")
   return uploadMedia(file, folder)
 }
 
@@ -1308,8 +1300,8 @@ export async function dropMedia(item) {
   const key = item && (item.key || (typeof item === "string" ? item : ""))
   if (!key || String(key).indexOf("http") === 0) return
   try {
-    const { r2Delete } = await import("./r2.js")
-    await r2Delete(key)
+    const { deleteMedia } = await import("./r2.js")
+    await deleteMedia(key)
   } catch {}
 }
 
