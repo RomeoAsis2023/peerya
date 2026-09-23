@@ -591,13 +591,17 @@ export async function waitScpApp() {
 export async function claimSuperadmin(db) {
   const me = String((db && db.sm && db.sm.getActiveEthAddress()) || "").toLowerCase()
   if (!me || !db.sm.isSecurityActive()) throw new Error("Device PIN is required.")
-  let owners = []
+  if (!isScpApp()) throw new Error("Superadmin is only available on the control panel.")
   try {
     const out = await db.map({ query: { type: "scp-admin" } })
-    owners = ((out && out.results) || []).map((row) => String((row.value && row.value.address) || "").toLowerCase()).filter(Boolean)
+    const rows = (out && out.results) || []
+    for (const row of rows) {
+      const addr = String((row.value && row.value.address) || "").toLowerCase()
+      if (row.id && addr !== me) {
+        try { await db.remove(row.id) } catch {}
+      }
+    }
   } catch {}
-  const unique = [...new Set(owners)]
-  if (unique.length && !unique.includes(me)) throw new Error("This PIN is not a Superadmin.")
   try { await db.sm.assignRole(me, "superadmin") } catch {}
   try {
     await db.put({ type: "scp-admin", address: me, role: "superadmin", updatedAt: Date.now() }, "scp-admin:" + me)
@@ -620,7 +624,7 @@ export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
     try {
-      const { startSuperadmin } = await import("./admin.js?v=scp17")
+      const { startSuperadmin } = await import("./admin.js?v=scp19")
       await startSuperadmin(db)
     } catch {}
   }
