@@ -623,10 +623,8 @@ export function goHome() {
 export async function bootAdmin(db) {
   if (db) ensureMesh(db)
   const run = async () => {
-    try {
-      const { startSuperadmin } = await import("./admin.js?v=scp19")
-      await startSuperadmin(db)
-    } catch {}
+    const { startSuperadmin } = await import("./admin.js?v=scp20")
+    await startSuperadmin(db)
   }
   await run()
   if (!window.__peeryaAdminHash) {

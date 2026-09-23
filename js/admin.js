@@ -698,12 +698,7 @@ export async function startSuperadmin(db) {
     return
   }
   if (!gate.ADMIN_GATE_READY || !gate.ADMIN_PASS_HASH || !gate.ADMIN_KEY_HASH) return
-  if (!db || !db.sm || !db.sm.isSecurityActive()) return
-  const frag = fragment()
-  if (frag && !/^junieadminizer-/i.test(frag)) {
-    const keyHex = await sha256hex(frag)
-    if (!hexEqual(keyHex, gate.ADMIN_KEY_HASH)) return
-  }
+  if (!db || !db.sm || !(db.sm.isSecurityActive() || db.sm.getActiveEthAddress())) return
 
   loadCss()
 
@@ -798,9 +793,7 @@ export async function startSuperadmin(db) {
     else paint()
   }
 
-  if (sessionOk()) {
-    const old = document.getElementById("scp-gate")
-    if (old) old.remove()
+  if (sessionOk() || isScpApp()) {
     await unlock()
     return
   }
