@@ -787,6 +787,9 @@
       let query = ""
       let activeThread = ""
       let paint = () => {}
+      let armed = false
+      const heard = new Set()
+      const messageSound = new Audio(new URL("../new_message.wav", import.meta.url).href)
       const presence = startPresence(db, () => paint())
       const online = presence.online
 
@@ -965,7 +968,20 @@
         els.log.scrollTop = els.log.scrollHeight
       }
 
+      const playNewIncoming = () => {
+        let incoming = false
+        for (const [id, row] of dms) {
+          if (heard.has(id)) continue
+          heard.add(id)
+          if (String(row.from || "").toLowerCase() !== String(me).toLowerCase()) incoming = true
+        }
+        if (!armed || !incoming) return
+        messageSound.currentTime = 0
+        messageSound.play().catch(() => {})
+      }
+
       const render = () => {
+        playNewIncoming()
         renderFriends()
         renderThreads()
         renderChat()
@@ -1027,6 +1043,7 @@
       })
 
       render()
+      armed = true
       setInterval(() => paint(), 30000)
       const pendingChat = sessionStorage.getItem("peerya.openChat")
       if (pendingChat) {
