@@ -295,7 +295,9 @@
         background: rgba(8, 10, 7, 0.72);
       }
 
-      .call-modal.hidden { display: none; }
+      .call-modal.hidden,
+      .call-fallback.hidden,
+      #call-local-fallback.hidden { display: none; }
 
       .call-card {
         width: min(28rem, 100%);
@@ -324,6 +326,11 @@
         background: #10140f;
       }
 
+      #call-remote {
+        position: relative;
+        z-index: 1;
+      }
+
       .call-local {
         position: absolute;
         right: 0.8rem;
@@ -348,6 +355,7 @@
       .call-stage .remote-fallback {
         position: absolute;
         inset: 0;
+        z-index: 0;
       }
 
       .call-top {
@@ -1237,8 +1245,8 @@
         }
         if (call.phase === "live") {
           callActions.append(
-            callBtn("", call.muted ? "end" : "", "bi-mic" + (call.muted ? "-mute" : "") + "-fill", () => toggleMute()),
-            callBtn("", call.cameraOff ? "end" : "", "bi-camera-video" + (call.cameraOff ? "-off" : "") + "-fill", () => toggleCamera()),
+            callBtn("", call.muted ? "end" : "accept", "bi-mic" + (call.muted ? "-mute" : "") + "-fill", () => toggleMute()),
+            callBtn("", call.cameraOff ? "end" : "accept", "bi-camera-video" + (call.cameraOff ? "-off" : "") + "-fill", () => toggleCamera()),
             callBtn("", "end", "bi-telephone-x-fill", () => finishCall("hangup"))
           )
           return
@@ -1389,7 +1397,7 @@
             pendingOffer = null
             await answerOffer(sdp)
           }
-          call.status = localStream.getVideoTracks().length ? "Connected" : "Audio only"
+          call.status = localStream.getVideoTracks().length ? "Camera on" : "Audio only"
         } catch (error) {
           call.status = mediaError(error)
         }
@@ -1483,7 +1491,7 @@
             await startMedia()
             if (call.connectId) openMeshStream(localStream, call.connectId)
             await sendOffer()
-            call.status = localStream.getVideoTracks().length ? "Connected" : "Audio only"
+            call.status = localStream.getVideoTracks().length ? "Camera on" : "Audio only"
           } catch (error) {
             call.status = mediaError(error)
           }
