@@ -26,6 +26,7 @@ const MESH_NOSTR = [
   "wss://offchain.pub"
 ]
 const MESH_MQTT = [
+  "wss://peeryamqtt:Hoopla2019%21@captain.010101010101.xyz:8884/",
   "wss://broker.emqx.io:8084/mqtt",
   "wss://test.mosquitto.org:8081"
 ]
